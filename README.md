@@ -73,7 +73,7 @@ deployment each time this repository is checked out.
 
 The NEAR work is published on the dedicated `hackathon/near-2026` branch. Review
 the [source publication diff](https://github.com/ola-893/pump/compare/publication-start...hackathon/near-2026)
-and the [architecture and integration scope](docs/NEAR-ARCHITECTURE.md).
+and the [NEAR demo runbook](docs/NEAR-DEMO-RUNBOOK.md).
 `publication-start` marks repository setup, not a pre-hackathon source snapshot.
 These commits publish work prepared locally; their timestamps record when the
 commits were made.
