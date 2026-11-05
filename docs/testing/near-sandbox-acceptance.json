@@ -1,0 +1,127 @@
+{
+  "date": "2026-10-20T18:38:02.380Z",
+  "environment": "local NEAR Sandbox only",
+  "binaryVersion": "2.13.4",
+  "fixture": "Sandbox FT fixture at pinned token ID; NOT Circle-issued",
+  "checks": [
+    {
+      "label": "20 test USDC claim + 30 separate reserve",
+      "state": {
+        "version": "PUMPCOIN-TESTNET-CLEARING-v1",
+        "environment": "testnet-simulated-performance",
+        "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+        "controller_id": "controller.testnet",
+        "reporter_id": "controller.testnet",
+        "reserve": "30000000",
+        "total_claims": "20000000",
+        "in_flight": "0",
+        "registered": 2,
+        "max_gain_bps": 10000,
+        "reserve_pending": null
+      },
+      "tokenBalance": "50000000"
+    },
+    {
+      "label": "simulated gain consumes 2 reserve",
+      "state": {
+        "version": "PUMPCOIN-TESTNET-CLEARING-v1",
+        "environment": "testnet-simulated-performance",
+        "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+        "controller_id": "controller.testnet",
+        "reporter_id": "controller.testnet",
+        "reserve": "28000000",
+        "total_claims": "22000000",
+        "in_flight": "0",
+        "registered": 2,
+        "max_gain_bps": 10000,
+        "reserve_pending": null
+      },
+      "tokenBalance": "50000000"
+    },
+    {
+      "label": "failed FT transfer callback restores full claim",
+      "state": {
+        "version": "PUMPCOIN-TESTNET-CLEARING-v1",
+        "environment": "testnet-simulated-performance",
+        "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+        "controller_id": "controller.testnet",
+        "reporter_id": "controller.testnet",
+        "reserve": "28000000",
+        "total_claims": "22000000",
+        "in_flight": "0",
+        "registered": 2,
+        "max_gain_bps": 10000,
+        "reserve_pending": null
+      },
+      "tokenBalance": "50000000"
+    },
+    {
+      "label": "principal + simulated gain paid; claim zero",
+      "state": {
+        "version": "PUMPCOIN-TESTNET-CLEARING-v1",
+        "environment": "testnet-simulated-performance",
+        "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+        "controller_id": "controller.testnet",
+        "reporter_id": "controller.testnet",
+        "reserve": "28000000",
+        "total_claims": "0",
+        "in_flight": "0",
+        "registered": 2,
+        "max_gain_bps": 10000,
+        "reserve_pending": null
+      },
+      "tokenBalance": "28000000"
+    },
+    {
+      "label": "simulated loss increases reserve by 1",
+      "state": {
+        "version": "PUMPCOIN-TESTNET-CLEARING-v1",
+        "environment": "testnet-simulated-performance",
+        "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+        "controller_id": "controller.testnet",
+        "reporter_id": "controller.testnet",
+        "reserve": "29000000",
+        "total_claims": "19000000",
+        "in_flight": "0",
+        "registered": 2,
+        "max_gain_bps": 10000,
+        "reserve_pending": null
+      },
+      "tokenBalance": "48000000"
+    },
+    {
+      "label": "controller can withdraw free reserve without spending claims",
+      "state": {
+        "version": "PUMPCOIN-TESTNET-CLEARING-v1",
+        "environment": "testnet-simulated-performance",
+        "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+        "controller_id": "controller.testnet",
+        "reporter_id": "controller.testnet",
+        "reserve": "0",
+        "total_claims": "19000000",
+        "in_flight": "0",
+        "registered": 2,
+        "max_gain_bps": 10000,
+        "reserve_pending": null
+      },
+      "tokenBalance": "19000000"
+    },
+    {
+      "label": "unsupported transfer-call refunded",
+      "state": {
+        "version": "PUMPCOIN-TESTNET-CLEARING-v1",
+        "environment": "testnet-simulated-performance",
+        "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+        "controller_id": "controller.testnet",
+        "reporter_id": "controller.testnet",
+        "reserve": "0",
+        "total_claims": "19000000",
+        "in_flight": "0",
+        "registered": 2,
+        "max_gain_bps": 10000,
+        "reserve_pending": null
+      },
+      "tokenBalance": "19000000"
+    }
+  ]
+}

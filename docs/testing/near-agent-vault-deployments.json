@@ -1,0 +1,88 @@
+{
+  "observedAt": "2026-10-26T15:03:58.344Z",
+  "network": "testnet",
+  "wasmSha256": "6bb72a8cabb62d5520e6200b61071dcd9de637dd5bc88c1b6726a1b8ac0808a5",
+  "vaults": [
+    {
+      "name": "katana",
+      "agentId": "8350fcee-969a-4e1b-88dc-53d9835a90c8",
+      "manifestHash": "8c0cbcdd8d03c66b023f0fe9e23121280e675a845e9e724d1ac097696a61c464",
+      "contractId": "v8350fcee969a.pumpcoin-demo-472db8.testnet",
+      "codeHash": "8FUcmrzx5ihszax9gjto5eU9Qt6J5ZLGFPZPSijzLjUQ",
+      "accessKeys": 0,
+      "state": {
+        "version": "PUMP-AGENT-VAULT-v1",
+        "environment": "testnet-paper-rounds",
+        "agent_id": "8350fcee-969a-4e1b-88dc-53d9835a90c8",
+        "manifest_hash": "8c0cbcdd8d03c66b023f0fe9e23121280e675a845e9e724d1ac097696a61c464",
+        "name": "katana",
+        "controller_id": "157ebee42ecb62b60325ac8a31c8da0d60cc6f97d2604d71d68e52cab1c918ba",
+        "reporter_id": "157ebee42ecb62b60325ac8a31c8da0d60cc6f97d2604d71d68e52cab1c918ba",
+        "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+        "assets": "0",
+        "reserve": "0",
+        "total_supply": "0",
+        "nonce": 0,
+        "paused": false,
+        "round": null,
+        "pending": null,
+        "last_evidence_hash": ""
+      },
+      "transactionHash": "Ec8TkCmmT9xTvNgNucYYVAwNA1SfAbHLsRChHtLx4bGm"
+    },
+    {
+      "name": "okina",
+      "agentId": "3fe5f9d3-0a29-45d8-b8aa-37666a79880e",
+      "manifestHash": "878052fcfc2af4a61eb421e74b522a86c8f94898886831481802970b03d55628",
+      "contractId": "v3fe5f9d30a29.pumpcoin-demo-472db8.testnet",
+      "codeHash": "8FUcmrzx5ihszax9gjto5eU9Qt6J5ZLGFPZPSijzLjUQ",
+      "accessKeys": 0,
+      "state": {
+        "version": "PUMP-AGENT-VAULT-v1",
+        "environment": "testnet-paper-rounds",
+        "agent_id": "3fe5f9d3-0a29-45d8-b8aa-37666a79880e",
+        "manifest_hash": "878052fcfc2af4a61eb421e74b522a86c8f94898886831481802970b03d55628",
+        "name": "okina",
+        "controller_id": "157ebee42ecb62b60325ac8a31c8da0d60cc6f97d2604d71d68e52cab1c918ba",
+        "reporter_id": "157ebee42ecb62b60325ac8a31c8da0d60cc6f97d2604d71d68e52cab1c918ba",
+        "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+        "assets": "0",
+        "reserve": "0",
+        "total_supply": "0",
+        "nonce": 0,
+        "paused": false,
+        "round": null,
+        "pending": null,
+        "last_evidence_hash": ""
+      },
+      "transactionHash": "F61YP57XPqQqKU1iqKjBYxydwyP3Aik2aeXDDpaCzfKX"
+    },
+    {
+      "name": "nagakiba",
+      "agentId": "9949ff19-b995-4325-ae94-f03920c17504",
+      "manifestHash": "eaf6b8beaa745f16c7f30fcd35c1c53e961d3b73435cc42eb1b27ab4892fcb33",
+      "contractId": "v9949ff19b995.pumpcoin-demo-472db8.testnet",
+      "codeHash": "8FUcmrzx5ihszax9gjto5eU9Qt6J5ZLGFPZPSijzLjUQ",
+      "accessKeys": 0,
+      "state": {
+        "version": "PUMP-AGENT-VAULT-v1",
+        "environment": "testnet-paper-rounds",
+        "agent_id": "9949ff19-b995-4325-ae94-f03920c17504",
+        "manifest_hash": "eaf6b8beaa745f16c7f30fcd35c1c53e961d3b73435cc42eb1b27ab4892fcb33",
+        "name": "nagakiba",
+        "controller_id": "157ebee42ecb62b60325ac8a31c8da0d60cc6f97d2604d71d68e52cab1c918ba",
+        "reporter_id": "157ebee42ecb62b60325ac8a31c8da0d60cc6f97d2604d71d68e52cab1c918ba",
+        "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+        "assets": "0",
+        "reserve": "0",
+        "total_supply": "0",
+        "nonce": 0,
+        "paused": false,
+        "round": null,
+        "pending": null,
+        "last_evidence_hash": ""
+      },
+      "transactionHash": "BprrgyXLQncG4vak7Yh71GzozQTHkhiC4iHFEbpj41mA"
+    }
+  ]
+}

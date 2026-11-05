@@ -1,0 +1,36 @@
+{
+  "network": "testnet",
+  "contractId": "pumpcoin-demo-472db8.testnet",
+  "transactionHash": "HQ1fKaVB2VvSUxAtULNNcLSeGCUULx7Mi3HWTaf2JSPx",
+  "wasmSha256": "3eca1bc9f3d17b42f2ddc970b7a9c04aa33f3ea22fe8e6d8601b2eaff46995de",
+  "codeHash": "5E72LfgGSVWKtCgkGSJCHS4ii6hRvjTBXxe9N29K76V3",
+  "observation": {
+    "network": "testnet",
+    "controllerId": "157ebee42ecb62b60325ac8a31c8da0d60cc6f97d2604d71d68e52cab1c918ba",
+    "reporterId": "157ebee42ecb62b60325ac8a31c8da0d60cc6f97d2604d71d68e52cab1c918ba",
+    "contractId": "pumpcoin-demo-472db8.testnet",
+    "tokenId": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+    "configured": true,
+    "tokenSymbol": "test USDC",
+    "chain": "NEAR testnet",
+    "contractState": {
+      "version": "PUMPCOIN-TESTNET-CLEARING-v1",
+      "environment": "testnet-simulated-performance",
+      "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+      "controller_id": "157ebee42ecb62b60325ac8a31c8da0d60cc6f97d2604d71d68e52cab1c918ba",
+      "reporter_id": "157ebee42ecb62b60325ac8a31c8da0d60cc6f97d2604d71d68e52cab1c918ba",
+      "reserve": "0",
+      "total_claims": "0",
+      "in_flight": "0",
+      "registered": 0,
+      "max_gain_bps": 10000,
+      "reserve_pending": null
+    },
+    "claim": null,
+    "walletBalance": null,
+    "error": null,
+    "observedAt": "2026-10-20T18:51:09.687Z",
+    "blockHash": "B1x3We4BMXnfBW7WfyvbtjER5uzyyddGf457cTupGvYd",
+    "blockHeight": 273984787
+  }
+}

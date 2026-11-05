@@ -1,0 +1,51 @@
+{
+  "capturedAt": "2026-10-25T16:51:03.521Z",
+  "continuous": {
+    "activeAgentId": null,
+    "agentIds": [
+      "8350fcee-969a-4e1b-88dc-53d9835a90c8",
+      "3fe5f9d3-0a29-45d8-b8aa-37666a79880e",
+      "9949ff19-b995-4325-ae94-f03920c17504"
+    ],
+    "batchRemaining": 6,
+    "cursor": 0,
+    "enabled": true,
+    "error": null,
+    "ownerPid": 55886,
+    "phase": "waiting for UTC turnover reset",
+    "runId": "7a114aab-be9d-4f46-865c-b0d1b8ef7a52",
+    "startedAt": "2026-10-25T13:40:03.597Z",
+    "targetPerAgent": 50,
+    "updatedAt": "2026-10-25T16:50:17.601Z"
+  },
+  "totalFills": 150,
+  "agents": [
+    {
+      "name": "katana",
+      "fills": 50,
+      "buys": 25,
+      "sells": 25,
+      "head": "979b8dba9abfceaa1e7b0d0b4391fcf3709cd392ef81d7981089293988d91620"
+    },
+    {
+      "name": "okina",
+      "fills": 50,
+      "buys": 25,
+      "sells": 25,
+      "head": "fbd14470356f6effd581ada0e34ce7fda0d56ad3a60f4c08f48094dd8b466ae2"
+    },
+    {
+      "name": "nagakiba",
+      "fills": 50,
+      "buys": 25,
+      "sells": 25,
+      "head": "0384f9d51f159f2c7083c6041d66823c4598b774d64f4b436fe6226f0cb45c59"
+    }
+  ],
+  "validation": {
+    "tests": 222,
+    "build": "passed",
+    "operatorDirected": true,
+    "noTokensMoved": true
+  }
+}

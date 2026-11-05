@@ -1,0 +1,39 @@
+{
+  "comparisonId": "52f2bcc5-2500-45a3-ab50-49a05a4d0354",
+  "state": "complete",
+  "datasetId": "514268e8a953cfb55b1518affe32ce2ede5efac6d5fd8857dea0945e4008f9fb",
+  "results": [
+    {
+      "name": "katana",
+      "model": "Muse-Glimmer-30B",
+      "decisions": 24,
+      "fills": 0,
+      "blocked": 0,
+      "errors": 0,
+      "returnBps": 0,
+      "maxDrawdownBps": 0
+    },
+    {
+      "name": "okina",
+      "model": "Qwen3.8-27B",
+      "decisions": 24,
+      "fills": 1,
+      "blocked": 0,
+      "errors": 0,
+      "returnBps": -329,
+      "maxDrawdownBps": 494
+    },
+    {
+      "name": "nagakiba",
+      "model": "gemma-4-26B-A4B-it",
+      "decisions": 24,
+      "fills": 7,
+      "blocked": 7,
+      "errors": 0,
+      "returnBps": -790,
+      "maxDrawdownBps": 1702
+    }
+  ],
+  "projectLocalGGUFs": [],
+  "scope": "Retrospective hypothetical USDT comparison; no token transfers; unsigned local execution evidence."
+}

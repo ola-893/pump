@@ -1,0 +1,11 @@
+# Recorded quote context — 24 October 2026
+
+The NEAR paper agent now receives up to 20 comparable one-USDC dry-run quotes recorded in its own session during the preceding 15 minutes. Historical input quotes remain signed source evidence even if the associated model cycle failed. Duplicate observations keep the most recent receipt; other sessions, sources, pairs, sizes, expired observations and future receipt times are excluded. No candles, volume or news are fabricated.
+
+The local adapter requests a bounded JSON response and disables reasoning using llama.cpp’s documented request control. Invalid output, HTTP errors and timeouts are blocked with no assumed fill. Input quotes are preserved for failed inference where available. [llama.cpp request documentation](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md#post-v1chatcompletions-openai-compatible-chat-completions-api).
+
+The initial Muse request hit the 90-second bound. Its next attempt encountered a Metal out-of-memory compute failure. The server was confirmed idle and stopped. A separately started Qwen runtime returned HTTP 500 and exited. One existing Qwen weights file was then loaded with 4096 context, one slot, batch 64, microbatch 32 and q8 KV caches; no weights were downloaded or copied. The recovered runtime completed two real local-model HOLD decisions, first using two recorded quotes and then three; the model referenced their observed drift. The five-event journal, including the earlier HTTP 500, replays exactly and is saved in `replay.json`. The failed attempts remain in the journal.
+
+Typecheck and the focused 19-test NEAR suite passed. An initial full regression run reported 193/194 passing; failure detail was truncated. A complete rerun passed 194/194. No cause is asserted for that initial regression result.
+
+The controller subsequently received 20 test USDC from the faucet. A fresh `Circle USDC · deposit and payout` paper session was created and remains at sequence zero. Account preparation and a proposed 10 test-USDC principal / 10 test-USDC reserve split are awaiting the controller wallet. No funding transaction was signed or broadcast. Public Circle deposits, surplus funding and withdrawals still require approval in the controller’s testnet wallet. No public payouts or mainnet trades are claimed by this work.

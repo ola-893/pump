@@ -1,0 +1,50 @@
+{
+  "schema": "PUMP-REMOTE-VERIFICATION-v1",
+  "valid": true,
+  "network": "testnet",
+  "checkedAt": "2026-11-04T05:28:05.691Z",
+  "directory": "https://explorer-plasma-lone-macro.trycloudflare.com",
+  "transport": "submitted-public-checkpoint",
+  "reportedAt": "2026-11-03T21:17:55.327Z",
+  "checkpointAgeMs": 29410364,
+  "agentId": "73f2c9a1-420e-4306-9ebd-1c64f6adb1b1",
+  "owner": "rudepuma4060.testnet",
+  "ownerKeyPermission": "FullAccess",
+  "blockHeight": 276152020,
+  "publicationHash": "9dbe27705c4839780fae048d593eee0d03ecdf88f4077de7660077bb6ee55f18",
+  "runnerSignature": "verified",
+  "ownerSignature": "verified",
+  "strategies": [
+    {
+      "id": "0e934003-2576-4230-8d3b-38fa729d9b6a",
+      "version": 3,
+      "commitment": "e76f556bcd435ce2afc03da3a91f2ae3f8abb5e8b4663a098ce64ebbcc6442f9",
+      "definitionCommitment": "verified",
+      "head": "31a69c3b5d109e05588b6ada882f689bd6c1697e736862f4b19a0d1cc4413da4",
+      "sequence": 69,
+      "decisions": 18,
+      "fills": 15
+    },
+    {
+      "id": "e55017f8-6159-4ed0-9b71-0e6d1abcc413",
+      "version": 2,
+      "commitment": "d9ce249fdd30e3a0881562f0913de1bf075f5e4f4620ca4e1feb9950c6838be9",
+      "definitionCommitment": "verified",
+      "head": "fea199cda2921cb573c81f8177c61629961a86edd95820b6c58149b3f5b43a16",
+      "sequence": 2,
+      "decisions": 1,
+      "fills": 0
+    },
+    {
+      "id": "e23c1b5d-c633-4719-b246-750c0c5ccd62",
+      "version": 1,
+      "commitment": "01e5a6d209e8ec0398bf7e5c95bac13cbad041bb809fc6b5bed7514952d39643",
+      "definitionCommitment": "verified",
+      "head": "7d2716e27982a306728ae2c3d9f9e4c784c60208be9180666cde5ba2d025514d",
+      "sequence": 2,
+      "decisions": 1,
+      "fills": 0
+    }
+  ],
+  "boundary": "This verifies publication attribution and evidence consistency. Historical model execution is not hardware-attested."
+}

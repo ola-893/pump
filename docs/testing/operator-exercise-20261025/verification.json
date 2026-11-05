@@ -1,0 +1,91 @@
+{
+  "capturedAt": "2026-10-25T00:56:56.416Z",
+  "scope": "Operator-directed model execution exercise, not autonomous strategy performance. Live dry-run quotes; virtual balances; no token transfers.",
+  "tests": 218,
+  "agents": [
+    {
+      "name": "katana",
+      "sessionId": "22bc2cee-a345-4c78-b4ee-e73f2ac07252",
+      "exerciseId": "d4755ed9-1211-4e2c-bea8-6f1033a17f04",
+      "modelSha256": "82bece304887a313ece08400bc030f6066c7bff5b906b0cd40308ec8a409fd38",
+      "manifestCommitment": "8c0cbcdd8d03c66b023f0fe9e23121280e675a845e9e724d1ac097696a61c464",
+      "actions": [
+        {
+          "action": "BUY",
+          "at": "2026-10-25T00:50:45.296Z",
+          "amountIn": "2000000",
+          "amountOut": "443627180270939868602535",
+          "hash": "02dab5ab1d5190cfdeb222d2673488c0ef46c558fc9800f7064531fbde869f08"
+        },
+        {
+          "action": "SELL",
+          "at": "2026-10-25T00:53:41.093Z",
+          "amountIn": "443627180270939868602535",
+          "amountOut": "1993251",
+          "hash": "73e943b0ea8a1f8712b19d3f2e47eecd324983a68ff9b76a996cf804af759213"
+        }
+      ],
+      "equity": "99993251",
+      "realized": "-6749",
+      "returnBps": 0,
+      "events": 16,
+      "journalHead": "ecf635873f541baeecada59c4c7b999eab71fd80d376c1a09ea95aebb810d4ba"
+    },
+    {
+      "name": "okina",
+      "sessionId": "ffcee7d2-3454-4e8b-9d50-b8b7ec2b7e8b",
+      "exerciseId": "aacbefeb-8771-4004-9f2a-e222e1108e29",
+      "modelSha256": "40fac4050e940397dbf13087afd50f4734a11805bf9d65ef8ddd7483470e6199",
+      "manifestCommitment": "878052fcfc2af4a61eb421e74b522a86c8f94898886831481802970b03d55628",
+      "actions": [
+        {
+          "action": "BUY",
+          "at": "2026-10-25T00:52:01.175Z",
+          "amountIn": "2000000",
+          "amountOut": "443180016352820044800394",
+          "hash": "1b9178459ec9b885f911bb075bbd8108767d038caed5eb33070a8798292ea864"
+        },
+        {
+          "action": "SELL",
+          "at": "2026-10-25T00:55:01.123Z",
+          "amountIn": "443180016352820044800394",
+          "amountOut": "1987768",
+          "hash": "82d50f7c6a5dbcf13868f960148b593cede5c12a16b3cd91cb1fd2fa3c4171ca"
+        }
+      ],
+      "equity": "99987768",
+      "realized": "-12232",
+      "returnBps": -1,
+      "events": 15,
+      "journalHead": "68ed2650490cd7f83bf43e17de63875813622889009f903a1d95aef2eca74a27"
+    },
+    {
+      "name": "nagakiba",
+      "sessionId": "67f8db7b-4682-4eb9-93e1-f38f4f20fcad",
+      "exerciseId": "3b5e933c-5b13-4454-8977-4b3c705638b1",
+      "modelSha256": "f2c28b3dc4776931ac6f879e11f203dec637ea0f14267a86ec8f6165f63f293f",
+      "manifestCommitment": "eaf6b8beaa745f16c7f30fcd35c1c53e961d3b73435cc42eb1b27ab4892fcb33",
+      "actions": [
+        {
+          "action": "BUY",
+          "at": "2026-10-25T00:52:39.756Z",
+          "amountIn": "2000000",
+          "amountOut": "443133213251212393778356",
+          "hash": "94e2679a76505d10f5f4d112ebeff54aef9f520aeae8a37dc2b652a258c0acb2"
+        },
+        {
+          "action": "SELL",
+          "at": "2026-10-25T00:55:43.496Z",
+          "amountIn": "443133213251212393778356",
+          "amountOut": "1987673",
+          "hash": "1a77535cceb1e51eeca66570421ac3b32a630d34dc2a4e05f329ccb0bd54672e"
+        }
+      ],
+      "equity": "99987673",
+      "realized": "-12327",
+      "returnBps": -1,
+      "events": 14,
+      "journalHead": "cf755c4a5643946c5c8df0e3c38b1baf229e752727465fbd4300263b20971372"
+    }
+  ]
+}

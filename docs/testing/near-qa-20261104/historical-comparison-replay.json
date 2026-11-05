@@ -1,0 +1,59 @@
+{
+  "schema": "PUMP-COMPARISON-ACCEPTANCE-v1",
+  "comparisonId": "52f2bcc5-2500-45a3-ab50-49a05a4d0354",
+  "datasetId": "514268e8a953cfb55b1518affe32ce2ede5efac6d5fd8857dea0945e4008f9fb",
+  "replay": {
+    "consistent": true,
+    "agents": 3,
+    "decisions": 72,
+    "declarationsChecked": true,
+    "independentAttestation": false
+  },
+  "policy": {
+    "dailyTurnoverCap": "100000000",
+    "decisions": 24,
+    "exposureCap": "80000000",
+    "feeBps": 10,
+    "fill": "Next hourly candle open with adverse slippage and a fee on each side; fractional spot position; no leverage; liquidation marks include exit costs. Gas and market impact excluded.",
+    "intervalHours": 24,
+    "positionCurrency": "NEAR",
+    "quoteCurrency": "USDT",
+    "slippageBps": 10,
+    "startingCash": "100000000",
+    "tradeCap": "20000000",
+    "version": "NEAR-SHARED-HISTORY-v1"
+  },
+  "results": [
+    {
+      "agent": "katana",
+      "model": "Muse-Glimmer-30B",
+      "decisions": 24,
+      "fills": 0,
+      "errors": 0,
+      "returnPct": 0,
+      "maxDrawdownPct": 0,
+      "equity": "100000000"
+    },
+    {
+      "agent": "okina",
+      "model": "Qwen3.8-27B",
+      "decisions": 24,
+      "fills": 1,
+      "errors": 0,
+      "returnPct": -3.29,
+      "maxDrawdownPct": 4.94,
+      "equity": "96700949"
+    },
+    {
+      "agent": "nagakiba",
+      "model": "gemma-4-26B-A4B-it",
+      "decisions": 24,
+      "fills": 7,
+      "errors": 0,
+      "returnPct": -7.9,
+      "maxDrawdownPct": 17.02,
+      "equity": "92097439"
+    }
+  ],
+  "boundary": "Replayed historical NEAR/USDT observations, with modeled next-bar fills and explicit costs. This is a small historical sample."
+}

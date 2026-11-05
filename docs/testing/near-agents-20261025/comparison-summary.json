@@ -1,0 +1,1707 @@
+{
+  "createdAt": "2026-10-24T23:41:57.288Z",
+  "datasetId": "514268e8a953cfb55b1518affe32ce2ede5efac6d5fd8857dea0945e4008f9fb",
+  "finishedAt": "2026-10-25T00:23:58.580Z",
+  "id": "52f2bcc5-2500-45a3-ab50-49a05a4d0354",
+  "ownerPid": 55886,
+  "policy": {
+    "dailyTurnoverCap": "100000000",
+    "decisions": 24,
+    "exposureCap": "80000000",
+    "feeBps": 10,
+    "fill": "Next hourly candle open with adverse slippage and a fee on each side; fractional spot position; no leverage; liquidation marks include exit costs. Gas and market impact excluded.",
+    "intervalHours": 24,
+    "positionCurrency": "NEAR",
+    "quoteCurrency": "USDT",
+    "slippageBps": 10,
+    "startingCash": "100000000",
+    "tradeCap": "20000000",
+    "version": "NEAR-SHARED-HISTORY-v1"
+  },
+  "results": [
+    {
+      "agentId": "8350fcee-969a-4e1b-88dc-53d9835a90c8",
+      "commitment": "8c0cbcdd8d03c66b023f0fe9e23121280e675a845e9e724d1ac097696a61c464",
+      "equity": "100000000",
+      "maxDrawdownBps": 0,
+      "modelId": "Muse-Glimmer-30B",
+      "peak": "100000000",
+      "returnBps": 0,
+      "runtime": {
+        "batch": 128,
+        "binarySHA256": "1579d2139003a9f1b5ddccbab0a019054859fa546f724657ca7c301819240cf5",
+        "build": "b11429-d81235049",
+        "chatTemplateSHA256": "fa922fe422b6e83dd86560df7037f3ad2e7b5aa1c51b39fcc51bc48258e54e89",
+        "context": 4096,
+        "evidence": "local process and server metadata; no hardware attestation",
+        "keyCache": "q8_0",
+        "microbatch": 64,
+        "parallel": 1,
+        "reasoningBudget": 64,
+        "template": "Muse direct-answer recipient prefill",
+        "valueCache": "q8_0",
+        "version": "PUMPCOIN-LOCAL-RUNTIME-v1"
+      },
+      "state": "complete",
+      "steps": [
+        {
+          "at": "2026-09-30T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "0f1bc9c32fda9571a69f48a271376f752ff124332df6776bd512279547f450c5",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": null,
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy consolidation around 5.28-5.33 USDT with mixed closes and no sustained volume-driven breakout; trend is unclear so capital is protected by holding."
+          },
+          "reason": "Recent hourly candles show choppy consolidation around 5.28-5.33 USDT with mixed closes and no sustained volume-driven breakout; trend is unclear so capital is protected by holding.",
+          "status": "hold",
+          "through": 143,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-01T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "64020f34937f5f597b77755e63d02321117bef235e47d5f1b9ab462bb4017eba",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "0f1bc9c32fda9571a69f48a271376f752ff124332df6776bd512279547f450c5",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy price with a sharp drop on 2026-10-02 and mixed volume; no clear sustained uptrend or volume confirmation to justify a new unleveraged spot entry, so capital is protected by holding."
+          },
+          "reason": "Recent hourly candles show choppy price with a sharp drop on 2026-10-02 and mixed volume; no clear sustained uptrend or volume confirmation to justify a new unleveraged spot entry, so capital is protected by holding.",
+          "status": "hold",
+          "through": 167,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-02T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "3695f33c5553567ff16f22fb0cf9b13528187a26761391b1cc5a4d3431712cf1",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "64020f34937f5f597b77755e63d02321117bef235e47d5f1b9ab462bb4017eba",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy price action with declining momentum and mixed volume; no clear trend to justify a new spot position."
+          },
+          "reason": "Recent hourly candles show choppy price action with declining momentum and mixed volume; no clear trend to justify a new spot position.",
+          "status": "hold",
+          "through": 191,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-03T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "7967488d3c42b504aa9190e1c4749c3979ce7216d4c8a01a90f11cd92a21521d",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "3695f33c5553567ff16f22fb0cf9b13528187a26761391b1cc5a4d3431712cf1",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy sideways price around 4.75-4.76 USDT with mixed volume and no clear sustained uptrend; daily data shows recent pullback from highs. Insufficient momentum and volume confirmation to justify a new unleveraged"
+          },
+          "reason": "Recent hourly candles show choppy sideways price around 4.75-4.76 USDT with mixed volume and no clear sustained uptrend; daily data shows recent pullback from highs. Insufficient momentum and volume confirmation to justify a new unleveraged",
+          "status": "hold",
+          "through": 215,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-04T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "00225506cf90381b977eb23c31b22899bff1f01e70be4ff1937c0297115ccd50",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "7967488d3c42b504aa9190e1c4749c3979ce7216d4c8a01a90f11cd92a21521d",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy consolidation around 4.9-5.0 USDT with mixed closes and no sustained volume-driven breakout; trend is unclear so capital is protected by holding."
+          },
+          "reason": "Recent hourly candles show choppy consolidation around 4.9-5.0 USDT with mixed closes and no sustained volume-driven breakout; trend is unclear so capital is protected by holding.",
+          "status": "hold",
+          "through": 239,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-05T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "3207fbb50ce27a00ac27c384368f7b095585a7e7e40c3d768485b926d96007f5",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "00225506cf90381b977eb23c31b22899bff1f01e70be4ff1937c0297115ccd50",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "No position yet and recent hourly candles show mixed momentum with a pullback after a spike; volume is elevated but trend not clearly sustained for a new entry."
+          },
+          "reason": "No position yet and recent hourly candles show mixed momentum with a pullback after a spike; volume is elevated but trend not clearly sustained for a new entry.",
+          "status": "hold",
+          "through": 263,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-06T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "93b62e0f577d5a4ec2d9f6389a3c882f70f8560cf01ab50ed2d56073cf97ffa9",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "3207fbb50ce27a00ac27c384368f7b095585a7e7e40c3d768485b926d96007f5",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy consolidation around 5.06-5.18 USDT with declining volume and no clear directional momentum; daily data remains mixed. No trend/volume support for a new unleveraged spot entry, so hold to protect capital."
+          },
+          "reason": "Recent hourly candles show choppy consolidation around 5.06-5.18 USDT with declining volume and no clear directional momentum; daily data remains mixed. No trend/volume support for a new unleveraged spot entry, so hold to protect capital.",
+          "status": "hold",
+          "through": 287,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-07T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "a7e97a05aaacc17a49c7746b1210dfc1e728dcc77ff52f4808406b5965da8cf7",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "93b62e0f577d5a4ec2d9f6389a3c882f70f8560cf01ab50ed2d56073cf97ffa9",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy momentum with a pullback after the 5.34 peak and mixed volume; no clear trend or volume confirmation to justify a new unleveraged spot entry within caps."
+          },
+          "reason": "Recent hourly candles show choppy momentum with a pullback after the 5.34 peak and mixed volume; no clear trend or volume confirmation to justify a new unleveraged spot entry within caps.",
+          "status": "hold",
+          "through": 311,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-08T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "d5ed86bf8d6b6c31b800ea32483f88976529e8335915540072761c1dad457742",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "a7e97a05aaacc17a49c7746b1210dfc1e728dcc77ff52f4808406b5965da8cf7",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy price action with a sharp drop around 2026-08-05 09:00 UTC and mixed volume; no clear sustained uptrend or volume confirmation to justify a new unleveraged spot entry, so capital is protected by holding."
+          },
+          "reason": "Recent hourly candles show choppy price action with a sharp drop around 2026-08-05 09:00 UTC and mixed volume; no clear sustained uptrend or volume confirmation to justify a new unleveraged spot entry, so capital is protected by holding.",
+          "status": "hold",
+          "through": 335,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-09T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "499256ff7f26037fcd1eb688e1a0a230e5ebdb0e4c132db21e91664d58e47cc0",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "d5ed86bf8d6b6c31b800ea32483f88976529e8335915540072761c1dad457742",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy consolidation around 4.7-4.9 USDT with declining volume and no clear directional momentum; daily data shows mixed swings. No sufficient trend/volume support for a new unleveraged spot entry, so hold capital"
+          },
+          "reason": "Recent hourly candles show choppy consolidation around 4.7-4.9 USDT with declining volume and no clear directional momentum; daily data shows mixed swings. No sufficient trend/volume support for a new unleveraged spot entry, so hold capital",
+          "status": "hold",
+          "through": 359,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-10T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "f13fce84a189a5deb6ca7cf72a5b197778b8885c5418f737b101b25ba77301bf",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "499256ff7f26037fcd1eb688e1a0a230e5ebdb0e4c132db21e91664d58e47cc0",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy consolidation around 5.32-5.37 USDT with declining volume and no clear directional momentum; daily data remains mixed. No sufficient trend/volume support for a new unleveraged spot entry, so hold to protect"
+          },
+          "reason": "Recent hourly candles show choppy consolidation around 5.32-5.37 USDT with declining volume and no clear directional momentum; daily data remains mixed. No sufficient trend/volume support for a new unleveraged spot entry, so hold to protect",
+          "status": "hold",
+          "through": 383,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-11T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "a65fe63e552639ae777ca1639a422be70dfc57e41e1105467790df7b12fec131",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "f13fce84a189a5deb6ca7cf72a5b197778b8885c5418f737b101b25ba77301bf",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy price around 5.7-5.8 USDT with mixed volume spikes but no sustained directional momentum; daily trend remains sideways with no clear breakout, so holding preserves capital."
+          },
+          "reason": "Recent hourly candles show choppy price around 5.7-5.8 USDT with mixed volume spikes but no sustained directional momentum; daily trend remains sideways with no clear breakout, so holding preserves capital.",
+          "status": "hold",
+          "through": 407,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-12T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "baea6da445df03fdcfed2ff222a0858a4fafbe2924e907c96419daa666495027",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "a65fe63e552639ae777ca1639a422be70dfc57e41e1105467790df7b12fec131",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show a weakening downtrend with declining prices and mixed volume; no clear momentum or volume support for a new unleveraged spot entry, so capital is protected by holding."
+          },
+          "reason": "Recent hourly candles show a weakening downtrend with declining prices and mixed volume; no clear momentum or volume support for a new unleveraged spot entry, so capital is protected by holding.",
+          "status": "hold",
+          "through": 431,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-13T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "3a769113e3f372b49a64d840970061a170357a3f7abafcf42504219ad35b7c8e",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "baea6da445df03fdcfed2ff222a0858a4fafbe2924e907c96419daa666495027",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy consolidation around 5.07 USDT with declining volume and no clear directional momentum; daily trend remains mixed, so no evidence supports a new spot entry now."
+          },
+          "reason": "Recent hourly candles show choppy consolidation around 5.07 USDT with declining volume and no clear directional momentum; daily trend remains mixed, so no evidence supports a new spot entry now.",
+          "status": "hold",
+          "through": 455,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-14T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "35c34e1daa189c4e7a3372e95a425eaf104b820da39f37d61164e87ce69f9354",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "3a769113e3f372b49a64d840970061a170357a3f7abafcf42504219ad35b7c8e",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy price action with declining momentum and elevated volume on down moves; no clear trend or volume support for a new unleveraged entry, so capital is protected by holding."
+          },
+          "reason": "Recent hourly candles show choppy price action with declining momentum and elevated volume on down moves; no clear trend or volume support for a new unleveraged entry, so capital is protected by holding.",
+          "status": "hold",
+          "through": 479,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-15T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "dfd2fdb9ed0bc73f465c4620e750ea4a666d8c97e7d4e242167ec42f79fbeb2b",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "35c34e1daa189c4e7a3372e95a425eaf104b820da39f37d61164e87ce69f9354",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy consolidation after a sharp up move, with declining volume and no clear continuation signal; holding preserves capital."
+          },
+          "reason": "Recent hourly candles show choppy consolidation after a sharp up move, with declining volume and no clear continuation signal; holding preserves capital.",
+          "status": "hold",
+          "through": 503,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-16T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "3816ff388d34aea1107dc480f680162cce13fcfa712c0d0c318eae007ebb00d1",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "dfd2fdb9ed0bc73f465c4620e750ea4a666d8c97e7d4e242167ec42f79fbeb2b",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy price around 5.0 USDT with sharp intraday drops and mixed volume; no clear sustained uptrend or volume confirmation to justify a new unleveraged spot entry, so capital is protected by holding."
+          },
+          "reason": "Recent hourly candles show choppy price around 5.0 USDT with sharp intraday drops and mixed volume; no clear sustained uptrend or volume confirmation to justify a new unleveraged spot entry, so capital is protected by holding.",
+          "status": "hold",
+          "through": 527,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-17T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "991d4c03b1b17f907fb7e6a630810b111ff1ac3b93af8be556acaba9f466562e",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "3816ff388d34aea1107dc480f680162cce13fcfa712c0d0c318eae007ebb00d1",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy price around 4.85-5.17 USDT with sharp intraday drops and spikes in volume, no clear sustained uptrend or volume confirmation to justify a new unleveraged spot entry; holding preserves capital."
+          },
+          "reason": "Recent hourly candles show choppy price around 4.85-5.17 USDT with sharp intraday drops and spikes in volume, no clear sustained uptrend or volume confirmation to justify a new unleveraged spot entry; holding preserves capital.",
+          "status": "hold",
+          "through": 551,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-18T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "08d2df91b26556fd1f6902de5468c058c5aa2a54326eb42e8eef35caf02721d6",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "991d4c03b1b17f907fb7e6a630810b111ff1ac3b93af8be556acaba9f466562e",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy price around 4.75-5.00 with mixed volume spikes and no clear sustained trend; daily data also oscillates. Insufficient momentum/volume evidence for a confident BUY/SELL, so protect capital by holding."
+          },
+          "reason": "Recent hourly candles show choppy price around 4.75-5.00 with mixed volume spikes and no clear sustained trend; daily data also oscillates. Insufficient momentum/volume evidence for a confident BUY/SELL, so protect capital by holding.",
+          "status": "hold",
+          "through": 575,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-19T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "d653e5bcee9596e3ed33c32f3fb3e5e6aafaa57a97d9b90f5fd57b85cc124514",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "08d2df91b26556fd1f6902de5468c058c5aa2a54326eb42e8eef35caf02721d6",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy consolidation around 4.89-4.99 with declining momentum and mixed volume; no clear trend or volume confirmation for a new unleveraged entry."
+          },
+          "reason": "Recent hourly candles show choppy consolidation around 4.89-4.99 with declining momentum and mixed volume; no clear trend or volume confirmation for a new unleveraged entry.",
+          "status": "hold",
+          "through": 599,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-20T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "7c101633b6650a4d18bede0314b47ee8cfe4b22351890d977f20127a6af315e6",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "d653e5bcee9596e3ed33c32f3fb3e5e6aafaa57a97d9b90f5fd57b85cc124514",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy price around 4.93-4.98 USDT with mixed volume spikes but no sustained directional momentum; daily context remains range-bound near 4.9 USDT. Insufficient trend/volume confirmation for a new unleveraged spot"
+          },
+          "reason": "Recent hourly candles show choppy price around 4.93-4.98 USDT with mixed volume spikes but no sustained directional momentum; daily context remains range-bound near 4.9 USDT. Insufficient trend/volume confirmation for a new unleveraged spot",
+          "status": "hold",
+          "through": 623,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-21T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "62d9992c3533740ef1853771a6fb621c8bf339c44e60197b6eb1e1f459222be6",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "7c101633b6650a4d18bede0314b47ee8cfe4b22351890d977f20127a6af315e6",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show a choppy consolidation around 5.30 USDT with declining volume after a spike; no clear trend or volume confirmation for a new unleveraged entry, so capital is protected by holding."
+          },
+          "reason": "Recent hourly candles show a choppy consolidation around 5.30 USDT with declining volume after a spike; no clear trend or volume confirmation for a new unleveraged entry, so capital is protected by holding.",
+          "status": "hold",
+          "through": 647,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-22T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "60bd2da381235adf3276889c80c0765c8247a2e85f337f1fb40548f6a6d5892e",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "62d9992c3533740ef1853771a6fb621c8bf339c44e60197b6eb1e1f459222be6",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy decline with falling closes and mixed volume; no clear momentum or volume support for a new unleveraged spot entry, so capital is protected by holding."
+          },
+          "reason": "Recent hourly candles show choppy decline with falling closes and mixed volume; no clear momentum or volume support for a new unleveraged spot entry, so capital is protected by holding.",
+          "status": "hold",
+          "through": 671,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-23T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "hash": "55ed1b3889245f32d588b7286d1e058b477b81ac8392bd094a3db031d1ed6131",
+          "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+          "previousHash": "60bd2da381235adf3276889c80c0765c8247a2e85f337f1fb40548f6a6d5892e",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Recent hourly candles show choppy price action with declining momentum and rising volatility; volume spikes on down moves. No clear trend support for a new unleveraged entry, so hold to protect capital."
+          },
+          "reason": "Recent hourly candles show choppy price action with declining momentum and rising volatility; volume spikes on down moves. No clear trend support for a new unleveraged entry, so hold to protect capital.",
+          "status": "hold",
+          "through": 695,
+          "wallet": {
+            "cash": "100000000",
+            "cost": "0",
+            "position": "0",
+            "realized": "0"
+          }
+        }
+      ],
+      "wallet": {
+        "cash": "100000000",
+        "cost": "0",
+        "position": "0",
+        "realized": "0"
+      }
+    },
+    {
+      "agentId": "3fe5f9d3-0a29-45d8-b8aa-37666a79880e",
+      "commitment": "878052fcfc2af4a61eb421e74b522a86c8f94898886831481802970b03d55628",
+      "equity": "96700949",
+      "maxDrawdownBps": 494,
+      "modelId": "Qwen3.8-27B",
+      "peak": "101731400",
+      "returnBps": -329,
+      "runtime": {
+        "batch": 128,
+        "binarySHA256": "1579d2139003a9f1b5ddccbab0a019054859fa546f724657ca7c301819240cf5",
+        "build": "b11429-d81235049",
+        "chatTemplateSHA256": "12827f24b742ea4e80cdc12dbcf9622227056b9f797252a3149263d4f9aaadce",
+        "context": 4096,
+        "evidence": "local process and server metadata; no hardware attestation",
+        "keyCache": "q8_0",
+        "microbatch": 64,
+        "parallel": 1,
+        "reasoningBudget": 64,
+        "template": "Embedded model template",
+        "valueCache": "q8_0",
+        "version": "PUMPCOIN-LOCAL-RUNTIME-v1"
+      },
+      "state": "complete",
+      "steps": [
+        {
+          "at": "2026-09-30T23:00:00.000Z",
+          "drawdownBps": 211,
+          "equity": "97884804",
+          "hash": "5ca231abb02ca2f111be21de9483c1090aa7d15b1459929292844fa69faab280",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": null,
+          "proposal": {
+            "action": "BUY",
+            "quoteUnits": "20000000",
+            "reason": "Strong upward momentum with price near highs and rising volume. Daily trend is bullish. Building initial unleveraged spot position to capture trend continuation."
+          },
+          "reason": "Strong upward momentum with price near highs and rising volume. Daily trend is bullish. Building initial unleveraged spot position to capture trend continuation.",
+          "status": "fill",
+          "through": 143,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-01T23:00:00.000Z",
+          "drawdownBps": 260,
+          "equity": "97399311",
+          "hash": "e8742fe7d6b981b22ac7e0afd0539ee69183a70492c3fc0eeb2b1e68b7b98674",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "5ca231abb02ca2f111be21de9483c1090aa7d15b1459929292844fa69faab280",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price dropped 8% on massive volume (8.5M NEAR) then failed to recover, closing near lows. Momentum is bearish with no confirmed reversal. Holding to protect capital until trend stabilizes."
+          },
+          "reason": "Price dropped 8% on massive volume (8.5M NEAR) then failed to recover, closing near lows. Momentum is bearish with no confirmed reversal. Holding to protect capital until trend stabilizes.",
+          "status": "hold",
+          "through": 167,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-02T23:00:00.000Z",
+          "drawdownBps": 222,
+          "equity": "97772767",
+          "hash": "6d6791ee778d61373e8cabfe5576bece2bd863b23fb6adf850b67402fe29fffd",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "e8742fe7d6b981b22ac7e0afd0539ee69183a70492c3fc0eeb2b1e68b7b98674",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating near 4.66 after a sharp drop from 5.05. Volume is declining, and the trend is flat-to-down. No clear momentum signal to justify buying or selling. Holding preserves capital until a clearer trend emerges."
+          },
+          "reason": "Price is consolidating near 4.66 after a sharp drop from 5.05. Volume is declining, and the trend is flat-to-down. No clear momentum signal to justify buying or selling. Holding preserves capital until a clearer trend emerges.",
+          "status": "hold",
+          "through": 191,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-03T23:00:00.000Z",
+          "drawdownBps": 144,
+          "equity": "98553290",
+          "hash": "50973f5fb9e65e41ed3ab2a0c242677584fb9bc48b02f908748f48178c6d71db",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "6d6791ee778d61373e8cabfe5576bece2bd863b23fb6adf850b67402fe29fffd",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating in a tight 4.64-4.76 range with no clear breakout. Recent hourly candles show mixed momentum and volume is not expanding to confirm a new trend. Holding to protect capital until a decisive move occurs."
+          },
+          "reason": "Price is consolidating in a tight 4.64-4.76 range with no clear breakout. Recent hourly candles show mixed momentum and volume is not expanding to confirm a new trend. Holding to protect capital until a decisive move occurs.",
+          "status": "hold",
+          "through": 215,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-04T23:00:00.000Z",
+          "drawdownBps": 27,
+          "equity": "99722208",
+          "hash": "86225281c96caed75ddadd8f4375ac99aa7f505a850c3629f3ce6659bb54dee9",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "50973f5fb9e65e41ed3ab2a0c242677584fb9bc48b02f908748f48178c6d71db",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating near 4.96 after a pullback from 5.05. Volume is declining, and the trend is flat. No clear momentum signal to justify entering or exiting. Holding preserves capital and avoids unnecessary fees."
+          },
+          "reason": "Price is consolidating near 4.96 after a pullback from 5.05. Volume is declining, and the trend is flat. No clear momentum signal to justify entering or exiting. Holding preserves capital and avoids unnecessary fees.",
+          "status": "hold",
+          "through": 239,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-05T23:00:00.000Z",
+          "drawdownBps": 109,
+          "equity": "98900604",
+          "hash": "200768f99dd2fc130ff12385dc18103a39c89ce5ac6c248a9565ea40d13c5f5f",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "86225281c96caed75ddadd8f4375ac99aa7f505a850c3629f3ce6659bb54dee9",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating near 5.02 after a pullback from 5.28. Momentum is flat and volume is declining. No clear trend signal to justify entering or exiting. Holding preserves capital and avoids fees/slippage in a range-bound market."
+          },
+          "reason": "Price is consolidating near 5.02 after a pullback from 5.28. Momentum is flat and volume is declining. No clear trend signal to justify entering or exiting. Holding preserves capital and avoids fees/slippage in a range-bound market.",
+          "status": "hold",
+          "through": 263,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-06T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "100062052",
+          "hash": "f4a8c943d592301d2f7fae92ce4a6eb955d890ab1cf69e691debf6000a8a7e28",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "200768f99dd2fc130ff12385dc18103a39c89ce5ac6c248a9565ea40d13c5f5f",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating in a tight range (5.06-5.30) with declining volume. No clear momentum or breakout signal. Holding preserves capital and avoids fees/slippage in a neutral market."
+          },
+          "reason": "Price is consolidating in a tight range (5.06-5.30) with declining volume. No clear momentum or breakout signal. Holding preserves capital and avoids fees/slippage in a neutral market.",
+          "status": "hold",
+          "through": 287,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-07T23:00:00.000Z",
+          "drawdownBps": 311,
+          "equity": "96943695",
+          "hash": "a2e23398c6fe7495a7090a06653761b01f9a7dbcc0673b2148f89fdfaf64436d",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "f4a8c943d592301d2f7fae92ce4a6eb955d890ab1cf69e691debf6000a8a7e28",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating near 5.37 after a pullback from 5.45. Volume is declining, and the trend is flat. No clear momentum signal to justify entering or exiting. Protect capital by holding current position."
+          },
+          "reason": "Price is consolidating near 5.37 after a pullback from 5.45. Volume is declining, and the trend is flat. No clear momentum signal to justify entering or exiting. Protect capital by holding current position.",
+          "status": "hold",
+          "through": 311,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-08T23:00:00.000Z",
+          "drawdownBps": 164,
+          "equity": "98411377",
+          "hash": "870108c71f6030013b374459a41551765e64a91e29b9fc8c1ed0f3f131fa0087",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "a2e23398c6fe7495a7090a06653761b01f9a7dbcc0673b2148f89fdfaf64436d",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price dropped from 5.37 to 4.53 with high volume, indicating strong bearish momentum. Current position is large; adding risk is unsafe. No clear reversal signal to justify selling yet. Wait for stabilization."
+          },
+          "reason": "Price dropped from 5.37 to 4.53 with high volume, indicating strong bearish momentum. Current position is large; adding risk is unsafe. No clear reversal signal to justify selling yet. Wait for stabilization.",
+          "status": "hold",
+          "through": 335,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-09T23:00:00.000Z",
+          "drawdownBps": 19,
+          "equity": "99871590",
+          "hash": "155faa764c92e0facbbae7af3cf457d122f7d7f71b7aaa6148e1c82e52ce4190",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "870108c71f6030013b374459a41551765e64a91e29b9fc8c1ed0f3f131fa0087",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price dropped 16% on the last daily candle with 61.5M volume, indicating strong downward momentum. Recent hourly bars show consolidation near lows. Evidence supports reducing exposure, but no specific sell trigger is met; HOLD to protect."
+          },
+          "reason": "Price dropped 16% on the last daily candle with 61.5M volume, indicating strong downward momentum. Recent hourly bars show consolidation near lows. Evidence supports reducing exposure, but no specific sell trigger is met; HOLD to protect.",
+          "status": "hold",
+          "through": 359,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-10T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "101731400",
+          "hash": "b1caf210a1a4695a119ad481aada45596b4afb9cef8f337816ae0db61e32ccef",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "155faa764c92e0facbbae7af3cf457d122f7d7f71b7aaa6148e1c82e52ce4190",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating near 5.32 after a sharp drop from 5.59. Volume is declining, and the trend is flat. No clear momentum signal to justify buying or selling. Protect capital by holding current position."
+          },
+          "reason": "Price is consolidating near 5.32 after a sharp drop from 5.59. Volume is declining, and the trend is flat. No clear momentum signal to justify buying or selling. Protect capital by holding current position.",
+          "status": "hold",
+          "through": 383,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-11T23:00:00.000Z",
+          "drawdownBps": 278,
+          "equity": "98893135",
+          "hash": "1e61b6511eee3356a9459e3c7945544d624c96b786e410ac27080ddbc83fcb44",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "b1caf210a1a4695a119ad481aada45596b4afb9cef8f337816ae0db61e32ccef",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating near 5.82 after a sharp spike, with declining volume and no clear breakout. Current exposure is high (75% of cap). Evidence does not support adding or reducing; holding preserves capital."
+          },
+          "reason": "Price is consolidating near 5.82 after a sharp spike, with declining volume and no clear breakout. Current exposure is high (75% of cap). Evidence does not support adding or reducing; holding preserves capital.",
+          "status": "hold",
+          "through": 407,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-12T23:00:00.000Z",
+          "drawdownBps": 274,
+          "equity": "98937950",
+          "hash": "04ef08c35b1a089655d27b921f21a4350e13b8debd300de071bf1766ca0462b8",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "1e61b6511eee3356a9459e3c7945544d624c96b786e410ac27080ddbc83fcb44",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price dropped 13% from 5.89 to 5.06 with rising volume, indicating strong downward momentum. No reversal signal yet. Holding to protect capital until trend stabilizes."
+          },
+          "reason": "Price dropped 13% from 5.89 to 5.06 with rising volume, indicating strong downward momentum. No reversal signal yet. Holding to protect capital until trend stabilizes.",
+          "status": "hold",
+          "through": 431,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-13T23:00:00.000Z",
+          "drawdownBps": 343,
+          "equity": "98235852",
+          "hash": "f7e38d87b72b91b0a29e4011597e4a82cad8324e6ff44cc25381ceac9be63df4",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "04ef08c35b1a089655d27b921f21a4350e13b8debd300de071bf1766ca0462b8",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price dropped 13.5% from 5.896 to 5.093 on high volume, indicating strong downward momentum. Recent hourly candles show consolidation near lows with no reversal signal. Holding to protect capital until trend stabilizes."
+          },
+          "reason": "Price dropped 13.5% from 5.896 to 5.093 on high volume, indicating strong downward momentum. Recent hourly candles show consolidation near lows with no reversal signal. Holding to protect capital until trend stabilizes.",
+          "status": "hold",
+          "through": 455,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-14T23:00:00.000Z",
+          "drawdownBps": 184,
+          "equity": "99852917",
+          "hash": "0ec2af960f2d2ded9ac5b2860f7f738b7ee79487cf45725ea0eb2405cb617634",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "f7e38d87b72b91b0a29e4011597e4a82cad8324e6ff44cc25381ceac9be63df4",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating near 4.85-4.90 after a sharp drop from 5.90. Volume is declining, and the trend is flat-to-down. No clear momentum signal to buy or sell. Holding to protect capital until a clearer direction emerges."
+          },
+          "reason": "Price is consolidating near 4.85-4.90 after a sharp drop from 5.90. Volume is declining, and the trend is flat-to-down. No clear momentum signal to buy or sell. Holding to protect capital until a clearer direction emerges.",
+          "status": "hold",
+          "through": 479,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-15T23:00:00.000Z",
+          "drawdownBps": 268,
+          "equity": "98997703",
+          "hash": "99916304fa5a958eaa64eec56d33bdcc52cd107565eb02da49259c365baa78b6",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "0ec2af960f2d2ded9ac5b2860f7f738b7ee79487cf45725ea0eb2405cb617634",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating near 5.32 after a sharp spike to 5.44. Volume has dropped significantly from the breakout levels, indicating a lack of momentum to justify adding risk. Holding preserves capital while waiting for a clearer trend or a "
+          },
+          "reason": "Price is consolidating near 5.32 after a sharp spike to 5.44. Volume has dropped significantly from the breakout levels, indicating a lack of momentum to justify adding risk. Holding preserves capital while waiting for a clearer trend or a ",
+          "status": "hold",
+          "through": 503,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-16T23:00:00.000Z",
+          "drawdownBps": 346,
+          "equity": "98209711",
+          "hash": "4e97c6c3f29408e8f7be8ca8e68f39088ca3d52124ebdbdcbb526e04bfb5aa66",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "99916304fa5a958eaa64eec56d33bdcc52cd107565eb02da49259c365baa78b6",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating near 5.05 after a sharp drop from 5.93. Recent hourly candles show low volume and lack of directional momentum. No clear trend to justify adding or reducing exposure."
+          },
+          "reason": "Price is consolidating near 5.05 after a sharp drop from 5.93. Recent hourly candles show low volume and lack of directional momentum. No clear trend to justify adding or reducing exposure.",
+          "status": "hold",
+          "through": 527,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-17T23:00:00.000Z",
+          "drawdownBps": 315,
+          "equity": "98523414",
+          "hash": "b0aaca52f821791bfac42e8929cc7796d4faae4e74ebfe4dd5b71f33b3e9ad48",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "4e97c6c3f29408e8f7be8ca8e68f39088ca3d52124ebdbdcbb526e04bfb5aa66",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating near 4.88 after a sharp drop from 5.16. Volume is elevated but direction is ambiguous. No clear trend or breakout signal to justify adding or reducing exposure. Protect capital by holding current position."
+          },
+          "reason": "Price is consolidating near 4.88 after a sharp drop from 5.16. Volume is elevated but direction is ambiguous. No clear trend or breakout signal to justify adding or reducing exposure. Protect capital by holding current position.",
+          "status": "hold",
+          "through": 551,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-18T23:00:00.000Z",
+          "drawdownBps": 328,
+          "equity": "98392704",
+          "hash": "45ed836278696324c331c9ad08324fa46c57246da7e9667a9389b1381fac3ba7",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "b0aaca52f821791bfac42e8929cc7796d4faae4e74ebfe4dd5b71f33b3e9ad48",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating near 4.96 after a sharp drop from 5.04. Volume is declining, and the trend is flat. No clear momentum signal to justify entering or exiting. Protect capital by holding current position."
+          },
+          "reason": "Price is consolidating near 4.96 after a sharp drop from 5.04. Volume is declining, and the trend is flat. No clear momentum signal to justify entering or exiting. Protect capital by holding current position.",
+          "status": "hold",
+          "through": 575,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-19T23:00:00.000Z",
+          "drawdownBps": 325,
+          "equity": "98415111",
+          "hash": "aa551efd561c9b5f99e057a9d988b43898051796157070324320811f3fbcd2be",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "45ed836278696324c331c9ad08324fa46c57246da7e9667a9389b1381fac3ba7",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating near 4.92 with no clear trend. Recent hourly candles show low volume and tight range, lacking momentum to justify entry or exit. Capital preservation preferred until a breakout with volume confirmation occurs."
+          },
+          "reason": "Price is consolidating near 4.92 with no clear trend. Recent hourly candles show low volume and tight range, lacking momentum to justify entry or exit. Capital preservation preferred until a breakout with volume confirmation occurs.",
+          "status": "hold",
+          "through": 599,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-20T23:00:00.000Z",
+          "drawdownBps": 191,
+          "equity": "99781960",
+          "hash": "f6c22e38e1a923755c4c544321eb88d1e111ebdf7654ad7db2bab887f0687d4a",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "aa551efd561c9b5f99e057a9d988b43898051796157070324320811f3fbcd2be",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating near 4.93 after a failed breakout to 5.09. Recent hourly candles show low volume and lack of directional momentum. No clear trend to justify adding or reducing exposure."
+          },
+          "reason": "Price is consolidating near 4.93 after a failed breakout to 5.09. Recent hourly candles show low volume and lack of directional momentum. No clear trend to justify adding or reducing exposure.",
+          "status": "hold",
+          "through": 623,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-21T23:00:00.000Z",
+          "drawdownBps": 350,
+          "equity": "98164896",
+          "hash": "015d8dc588bc34f0e8e6d5cc7229eeca489e40e46fe8742d663897f5ae875198",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "f6c22e38e1a923755c4c544321eb88d1e111ebdf7654ad7db2bab887f0687d4a",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating near 5.30 after a pullback from 5.40. Momentum is flat with declining volume in the last 6 hours. No clear trend continuation or reversal signal to justify entry or exit."
+          },
+          "reason": "Price is consolidating near 5.30 after a pullback from 5.40. Momentum is flat with declining volume in the last 6 hours. No clear trend continuation or reversal signal to justify entry or exit.",
+          "status": "hold",
+          "through": 647,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-22T23:00:00.000Z",
+          "drawdownBps": 435,
+          "equity": "97305947",
+          "hash": "ba178964cce429c2831f61adfe36c19bb2f47f254b04f920fc4cd6527019d3c8",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "015d8dc588bc34f0e8e6d5cc7229eeca489e40e46fe8742d663897f5ae875198",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is in a downtrend from 5.30 to 4.86 over the last 24 hours with high volume, indicating bearish momentum. No clear reversal signal or support bounce is visible in the closed candles. Holding to protect capital until trend stabilizes."
+          },
+          "reason": "Price is in a downtrend from 5.30 to 4.86 over the last 24 hours with high volume, indicating bearish momentum. No clear reversal signal or support bounce is visible in the closed candles. Holding to protect capital until trend stabilizes.",
+          "status": "hold",
+          "through": 671,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-23T23:00:00.000Z",
+          "drawdownBps": 494,
+          "equity": "96700949",
+          "hash": "934dcc1dd7baab90abecfe3292499289c5e1d1bd2aa7927d5881c5f6018cae0d",
+          "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+          "previousHash": "ba178964cce429c2831f61adfe36c19bb2f47f254b04f920fc4cd6527019d3c8",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price broke below 4.90 support with a high-volume bearish candle (2.8M NEAR), indicating strong downward momentum. Existing position is large; adding risk during a breakdown is unfavorable. Wait for stabilization or a confirmed reversal."
+          },
+          "reason": "Price broke below 4.90 support with a high-volume bearish candle (2.8M NEAR), indicating strong downward momentum. Existing position is large; adding risk during a breakdown is unfavorable. Wait for stabilization or a confirmed reversal.",
+          "status": "hold",
+          "through": 695,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        }
+      ],
+      "wallet": {
+        "cash": "80000000",
+        "cost": "20000000",
+        "position": "3742039737540299969996257",
+        "realized": "0"
+      }
+    },
+    {
+      "agentId": "9949ff19-b995-4325-ae94-f03920c17504",
+      "commitment": "eaf6b8beaa745f16c7f30fcd35c1c53e961d3b73435cc42eb1b27ab4892fcb33",
+      "equity": "92097439",
+      "maxDrawdownBps": 1702,
+      "modelId": "gemma-4-26B-A4B-it",
+      "peak": "110994519",
+      "returnBps": -790,
+      "runtime": {
+        "batch": 128,
+        "binarySHA256": "1579d2139003a9f1b5ddccbab0a019054859fa546f724657ca7c301819240cf5",
+        "build": "b11429-d81235049",
+        "chatTemplateSHA256": "aa3185dfc65051046349995de1cfc2fbb275491b9a3832b71595f1ff5b31d61b",
+        "context": 4096,
+        "evidence": "local process and server metadata; no hardware attestation",
+        "keyCache": "q8_0",
+        "microbatch": 64,
+        "parallel": 1,
+        "reasoningBudget": 64,
+        "template": "Embedded model template",
+        "valueCache": "q8_0",
+        "version": "PUMPCOIN-LOCAL-RUNTIME-v1"
+      },
+      "state": "complete",
+      "steps": [
+        {
+          "at": "2026-09-30T23:00:00.000Z",
+          "drawdownBps": 211,
+          "equity": "97884804",
+          "hash": "46ff4a5302b418b078bf1e1e5e1db98c0917ebfd3a03dda0270b2387ab36a6c7",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": null,
+          "proposal": {
+            "action": "BUY",
+            "quoteUnits": "20000000",
+            "reason": "Strong bullish momentum confirmed by rising price and high volume. Recent hourly candles show a breakout from 5.00 to 5.33 with increasing volume, supporting a trend-following entry."
+          },
+          "reason": "Strong bullish momentum confirmed by rising price and high volume. Recent hourly candles show a breakout from 5.00 to 5.33 with increasing volume, supporting a trend-following entry.",
+          "status": "fill",
+          "through": 143,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-01T23:00:00.000Z",
+          "drawdownBps": 260,
+          "equity": "97399311",
+          "hash": "c465737d15573b8206e6f843d9a28e067b76ef27a49f51382069e49be27f2ed2",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "46ff4a5302b418b078bf1e1e5e1db98c0917ebfd3a03dda0270b2387ab36a6c7",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "The recent trend is bearish with declining prices and high volatility. Momentum is negative as the price has dropped from 5.49 to 4.78. No reversal signal or volume support for a buy is present."
+          },
+          "reason": "The recent trend is bearish with declining prices and high volatility. Momentum is negative as the price has dropped from 5.49 to 4.78. No reversal signal or volume support for a buy is present.",
+          "status": "hold",
+          "through": 167,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-02T23:00:00.000Z",
+          "drawdownBps": 222,
+          "equity": "97772767",
+          "hash": "550121f644fa083f310b636c5f6ef96bc0c170e8480ce6e71f63812cf7e2f7ec",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "c465737d15573b8206e6f843d9a28e067b76ef27a49f51382069e49be27f2ed2",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price momentum has turned negative following a sharp drop in the last few hours. Volatility is increasing on the downside, and volume spiked during the decline. I will wait for a stabilization or reversal signal."
+          },
+          "reason": "Price momentum has turned negative following a sharp drop in the last few hours. Volatility is increasing on the downside, and volume spiked during the decline. I will wait for a stabilization or reversal signal.",
+          "status": "hold",
+          "through": 191,
+          "wallet": {
+            "cash": "80000000",
+            "cost": "20000000",
+            "position": "3742039737540299969996257",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-03T23:00:00.000Z",
+          "drawdownBps": 65,
+          "equity": "99348259",
+          "hash": "9deea050a195f81cc832266c7ca9aec010b2fd1e0633c12b4d910bdd36270699",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "550121f644fa083f310b636c5f6ef96bc0c170e8480ce6e71f63812cf7e2f7ec",
+          "proposal": {
+            "action": "BUY",
+            "quoteUnits": "20000000",
+            "reason": "Recent hourly trend shows positive momentum with increasing volume and higher highs (4.759 close). Price is recovering from a local low and breaking above recent resistance levels."
+          },
+          "reason": "Recent hourly trend shows positive momentum with increasing volume and higher highs (4.759 close). Price is recovering from a local low and breaking above recent resistance levels.",
+          "status": "fill",
+          "through": 215,
+          "wallet": {
+            "cash": "60000000",
+            "cost": "40000000",
+            "position": "7936206570917051396758190",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-04T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "103002498",
+          "hash": "6e54b2739347cc828941497c81fd03442e329ee64187a7161e1ffddcb8931e9d",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "9deea050a195f81cc832266c7ca9aec010b2fd1e0633c12b4d910bdd36270699",
+          "proposal": {
+            "action": "BUY",
+            "quoteUnits": "20000000",
+            "reason": "Recent hourly momentum is strongly bullish, with price breaking above 5.00 and volume increasing on the recovery. The trend shows strong support as price stabilizes near the recent highs."
+          },
+          "reason": "Recent hourly momentum is strongly bullish, with price breaking above 5.00 and volume increasing on the recovery. The trend shows strong support as price stabilizes near the recent highs.",
+          "status": "fill",
+          "through": 239,
+          "wallet": {
+            "cash": "40000000",
+            "cost": "60000000",
+            "position": "11953927979942808248601998",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-05T23:00:00.000Z",
+          "drawdownBps": 254,
+          "equity": "100377891",
+          "hash": "29261c98c37ad2f7488f97faff537435e51cc7e8b4ebb881b0859305df80c621",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "6e54b2739347cc828941497c81fd03442e329ee64187a7161e1ffddcb8931e9d",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is in a strong uptrend with increasing volume and higher highs. However, current momentum is already high and I have significant exposure. I will wait for a clearer consolidation or pullback before adding more."
+          },
+          "reason": "Price is in a strong uptrend with increasing volume and higher highs. However, current momentum is already high and I have significant exposure. I will wait for a clearer consolidation or pullback before adding more.",
+          "status": "hold",
+          "through": 263,
+          "wallet": {
+            "cash": "40000000",
+            "cost": "60000000",
+            "position": "11953927979942808248601998",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-06T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "104088131",
+          "hash": "3a0311ce3e70a39a799dd7441a881e6729a5a1678a0295fef06f80684c8b21cd",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "29261c98c37ad2f7488f97faff537435e51cc7e8b4ebb881b0859305df80c621",
+          "proposal": {
+            "action": "SELL",
+            "quoteUnits": "22815000000",
+            "reason": "Price momentum has turned bearish with a series of lower highs and lower lows in the hourly candles. Recent volume on the downward move suggests weakening support. Reducing exposure to protect capital."
+          },
+          "reason": "Proposal exceeds the comparison per-trade cap.",
+          "status": "blocked",
+          "through": 287,
+          "wallet": {
+            "cash": "40000000",
+            "cost": "60000000",
+            "position": "11953927979942808248601998",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-07T23:00:00.000Z",
+          "drawdownBps": 1262,
+          "equity": "90947264",
+          "hash": "ceed94fc10b260b79a39be00478686ca7ecbfcf25efb8469be1cd832b2294aa2",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "3a0311ce3e70a39a799dd7441a881e6729a5a1678a0295fef06f80684c8b21cd",
+          "proposal": {
+            "action": "BUY",
+            "quoteUnits": "20000000",
+            "reason": "Recent hourly trend shows strong bullish momentum with increasing volume and higher highs (5.41 close). Price is recovering from a dip, suggesting a trend reversal or continuation of the upward move."
+          },
+          "reason": "Recent hourly trend shows strong bullish momentum with increasing volume and higher highs (5.41 close). Price is recovering from a dip, suggesting a trend reversal or continuation of the upward move.",
+          "status": "fill",
+          "through": 311,
+          "wallet": {
+            "cash": "20000000",
+            "cost": "80000000",
+            "position": "15668806066680191468397278",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-08T23:00:00.000Z",
+          "drawdownBps": 672,
+          "equity": "97092796",
+          "hash": "5a682b6e7f1bcf27e0b8662fb75c417c18afaabc780013e08fcf27bacd223544",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "ceed94fc10b260b79a39be00478686ca7ecbfcf25efb8469be1cd832b2294aa2",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is showing high volatility and a recent sharp decline from 5.50 to 4.43. While momentum is currently stabilizing around 4.53, the trend is bearish and lacks a clear reversal signal to justify a new position."
+          },
+          "reason": "Price is showing high volatility and a recent sharp decline from 5.50 to 4.43. While momentum is currently stabilizing around 4.53, the trend is bearish and lacks a clear reversal signal to justify a new position.",
+          "status": "hold",
+          "through": 335,
+          "wallet": {
+            "cash": "20000000",
+            "cost": "80000000",
+            "position": "15668806066680191468397278",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-09T23:00:00.000Z",
+          "drawdownBps": 84,
+          "equity": "103207052",
+          "hash": "44899dcd5f7228738a6fe5f8f2626890e9fd21bf12b02b9bf61dcde8123b9780",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "5a682b6e7f1bcf27e0b8662fb75c417c18afaabc780013e08fcf27bacd223544",
+          "proposal": {
+            "action": "BUY",
+            "quoteUnits": "20000000",
+            "reason": "Strong bullish momentum observed in the last hourly candle (4.93 close) with significant volume surge (2.3M), breaking recent resistance and suggesting a trend reversal from the previous decline."
+          },
+          "reason": "Insufficient cash or allocated-cost cap exceeded.",
+          "status": "blocked",
+          "through": 359,
+          "wallet": {
+            "cash": "20000000",
+            "cost": "80000000",
+            "position": "15668806066680191468397278",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-10T23:00:00.000Z",
+          "drawdownBps": 0,
+          "equity": "110994519",
+          "hash": "37badc835e533d2a8d0b5923391da0a38b8171cacf26657b77b51e7145cddb48",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "44899dcd5f7228738a6fe5f8f2626890e9fd21bf12b02b9bf61dcde8123b9780",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is showing signs of exhaustion and a weakening trend. Recent hourly candles show lower highs and decreasing volume, suggesting a potential local top or consolidation phase. Protecting capital until trend clarity returns."
+          },
+          "reason": "Price is showing signs of exhaustion and a weakening trend. Recent hourly candles show lower highs and decreasing volume, suggesting a potential local top or consolidation phase. Protecting capital until trend clarity returns.",
+          "status": "hold",
+          "through": 383,
+          "wallet": {
+            "cash": "20000000",
+            "cost": "80000000",
+            "position": "15668806066680191468397278",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-11T23:00:00.000Z",
+          "drawdownBps": 1070,
+          "equity": "99110031",
+          "hash": "ce7f9e9b63e97a6c5e55aea019aa4156ff82b9f46292fcf79a0dc14a1469484f",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "37badc835e533d2a8d0b5923391da0a38b8171cacf26657b77b51e7145cddb48",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price shows strong upward momentum with a significant volume spike at 1791730800000. Recent hourly candles confirm a trend reversal and consolidation at higher levels. No immediate reason to reduce exposure."
+          },
+          "reason": "Price shows strong upward momentum with a significant volume spike at 1791730800000. Recent hourly candles confirm a trend reversal and consolidation at higher levels. No immediate reason to reduce exposure.",
+          "status": "hold",
+          "through": 407,
+          "wallet": {
+            "cash": "20000000",
+            "cost": "80000000",
+            "position": "15668806066680191468397278",
+            "realized": "0"
+          }
+        },
+        {
+          "at": "2026-10-12T23:00:00.000Z",
+          "drawdownBps": 1058,
+          "equity": "99250287",
+          "hash": "9a105870a879d81bc6ab0849621bd1983288c29d497f84c1ab86393cbd2c79d5",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "ce7f9e9b63e97a6c5e55aea019aa4156ff82b9f46292fcf79a0dc14a1469484f",
+          "proposal": {
+            "action": "SELL",
+            "quoteUnits": "20000000",
+            "reason": "Price momentum has turned sharply negative with a breakdown below 5.50 and a significant spike in volume on the downward move. Trend is weakening rapidly; reducing exposure to protect capital."
+          },
+          "reason": "Price momentum has turned sharply negative with a breakdown below 5.50 and a significant spike in volume on the downward move. Trend is weakening rapidly; reducing exposure to protect capital.",
+          "status": "fill",
+          "through": 431,
+          "wallet": {
+            "cash": "39979999",
+            "cost": "59795231",
+            "position": "11711498294389220916900931",
+            "realized": "-224770"
+          }
+        },
+        {
+          "at": "2026-10-13T23:00:00.000Z",
+          "drawdownBps": 1256,
+          "equity": "97052926",
+          "hash": "01cb292b5fe2e5ff3d6dddc86cce34c6c4754e698e806ea8641db12fc211fee5",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "9a105870a879d81bc6ab0849621bd1983288c29d497f84c1ab86393cbd2c79d5",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating after a sharp drop from 6.00 to 5.09. Momentum is neutral to bearish, and volume is declining. No clear trend reversal or bullish support is evident to justify a new position."
+          },
+          "reason": "Price is consolidating after a sharp drop from 6.00 to 5.09. Momentum is neutral to bearish, and volume is declining. No clear trend reversal or bullish support is evident to justify a new position.",
+          "status": "hold",
+          "through": 455,
+          "wallet": {
+            "cash": "39979999",
+            "cost": "59795231",
+            "position": "11711498294389220916900931",
+            "realized": "-224770"
+          }
+        },
+        {
+          "at": "2026-10-14T23:00:00.000Z",
+          "drawdownBps": 648,
+          "equity": "103800427",
+          "hash": "45443312de883a52dcaf0503f24dfcc1f2e27b2bdd1cf7ab08c271ff1ea59ac9",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "01cb292b5fe2e5ff3d6dddc86cce34c6c4754e698e806ea8641db12fc211fee5",
+          "proposal": {
+            "action": "BUY",
+            "quoteUnits": "20000000",
+            "reason": "Recent hourly trend shows a reversal from lows (4.767) with increasing close prices and stabilizing volume. Momentum is shifting upward from the recent downtrend."
+          },
+          "reason": "Recent hourly trend shows a reversal from lows (4.767) with increasing close prices and stabilizing volume. Momentum is shifting upward from the recent downtrend.",
+          "status": "fill",
+          "through": 479,
+          "wallet": {
+            "cash": "19979999",
+            "cost": "79795231",
+            "position": "15799157512091444967681197",
+            "realized": "-224770"
+          }
+        },
+        {
+          "at": "2026-10-15T23:00:00.000Z",
+          "drawdownBps": 973,
+          "equity": "100189652",
+          "hash": "eef4b05b53cf8978f5203d6d5c9a8b8340a03179930afa5eca9f7f2888c35432",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "45443312de883a52dcaf0503f24dfcc1f2e27b2bdd1cf7ab08c271ff1ea59ac9",
+          "proposal": {
+            "action": "SELL",
+            "quoteUnits": "15799157512091444967681197",
+            "reason": "Price momentum is weakening after a peak. The last few hourly candles show declining closes and decreasing volume, suggesting a local top and potential trend reversal."
+          },
+          "reason": "Proposal exceeds the comparison per-trade cap.",
+          "status": "blocked",
+          "through": 503,
+          "wallet": {
+            "cash": "19979999",
+            "cost": "79795231",
+            "position": "15799157512091444967681197",
+            "realized": "-224770"
+          }
+        },
+        {
+          "at": "2026-10-16T23:00:00.000Z",
+          "drawdownBps": 1273,
+          "equity": "96862694",
+          "hash": "e03f85682228ca579e4d618107533cdb310e15de7e5956eadf5e341f0727ff23",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "eef4b05b53cf8978f5203d6d5c9a8b8340a03179930afa5eca9f7f2888c35432",
+          "proposal": {
+            "action": "BUY",
+            "quoteUnits": "20000000",
+            "reason": "Recent hourly trend shows a reversal from local lows (4.983 to 5.087) with increasing volume and a bullish close, suggesting momentum recovery after the recent dip."
+          },
+          "reason": "Insufficient cash or allocated-cost cap exceeded.",
+          "status": "blocked",
+          "through": 527,
+          "wallet": {
+            "cash": "19979999",
+            "cost": "79795231",
+            "position": "15799157512091444967681197",
+            "realized": "-224770"
+          }
+        },
+        {
+          "at": "2026-10-17T23:00:00.000Z",
+          "drawdownBps": 1153,
+          "equity": "98187170",
+          "hash": "36240bef5a54377b5a8bcd8116140a6aa9e600ead08d48eed5c25eb96fedc33c",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "e03f85682228ca579e4d618107533cdb310e15de7e5956eadf5e341f0727ff23",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is experiencing high volatility and a sharp downward trend in the most recent hourly candles, dropping from 5.16 to 4.87. Volume spiked on the drop, indicating strong selling pressure. No reversal signal yet."
+          },
+          "reason": "Price is experiencing high volatility and a sharp downward trend in the most recent hourly candles, dropping from 5.16 to 4.87. Volume spiked on the drop, indicating strong selling pressure. No reversal signal yet.",
+          "status": "hold",
+          "through": 551,
+          "wallet": {
+            "cash": "19979999",
+            "cost": "79795231",
+            "position": "15799157512091444967681197",
+            "realized": "-224770"
+          }
+        },
+        {
+          "at": "2026-10-18T23:00:00.000Z",
+          "drawdownBps": 1203,
+          "equity": "97635304",
+          "hash": "3242249a4da0251aeece19c60e9cce48855dde7e4d6edb1662658052ee70a62b",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "36240bef5a54377b5a8bcd8116140a6aa9e600ead08d48eed5c25eb96fedc33c",
+          "proposal": {
+            "action": "BUY",
+            "quoteUnits": "20000000",
+            "reason": "Strong bullish momentum reversal detected. The last hourly candle closed significantly higher (4.96) with a massive volume spike (1.96M), recovering from a recent low (4.64). Trend is shifting upward."
+          },
+          "reason": "Insufficient cash or allocated-cost cap exceeded.",
+          "status": "blocked",
+          "through": 575,
+          "wallet": {
+            "cash": "19979999",
+            "cost": "79795231",
+            "position": "15799157512091444967681197",
+            "realized": "-224770"
+          }
+        },
+        {
+          "at": "2026-10-19T23:00:00.000Z",
+          "drawdownBps": 1195,
+          "equity": "97729911",
+          "hash": "8164e80db8b2b839adaa2387c1fc8b8822dc4f791bb22dece58162d89a62bc3d",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "3242249a4da0251aeece19c60e9cce48855dde7e4d6edb1662658052ee70a62b",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price has entered a downtrend with declining momentum. Recent hourly candles show lower highs and lower lows, and the daily trend is weakening. No bullish reversal signal is present to justify a buy."
+          },
+          "reason": "Price has entered a downtrend with declining momentum. Recent hourly candles show lower highs and lower lows, and the daily trend is weakening. No bullish reversal signal is present to justify a buy.",
+          "status": "hold",
+          "through": 599,
+          "wallet": {
+            "cash": "19979999",
+            "cost": "79795231",
+            "position": "15799157512091444967681197",
+            "realized": "-224770"
+          }
+        },
+        {
+          "at": "2026-10-20T23:00:00.000Z",
+          "drawdownBps": 675,
+          "equity": "103500843",
+          "hash": "26da60c0a3d1b1611d524dc800d0d913ff8190aad250139531ffc8a4630d3e19",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "8164e80db8b2b839adaa2387c1fc8b8822dc4f791bb22dece58162d89a62bc3d",
+          "proposal": {
+            "action": "HOLD",
+            "quoteUnits": "0",
+            "reason": "Price is consolidating after a spike. Recent hourly candles show a slight downward drift and decreasing volume, suggesting a lack of immediate momentum to support a new long position."
+          },
+          "reason": "Price is consolidating after a spike. Recent hourly candles show a slight downward drift and decreasing volume, suggesting a lack of immediate momentum to support a new long position.",
+          "status": "hold",
+          "through": 623,
+          "wallet": {
+            "cash": "19979999",
+            "cost": "79795231",
+            "position": "15799157512091444967681197",
+            "realized": "-224770"
+          }
+        },
+        {
+          "at": "2026-10-21T23:00:00.000Z",
+          "drawdownBps": 1290,
+          "equity": "96673483",
+          "hash": "39b58832ea0fb451db4938e65313e6c063359036b8ea79573c0f44d6f0317416",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "26da60c0a3d1b1611d524dc800d0d913ff8190aad250139531ffc8a4630d3e19",
+          "proposal": {
+            "action": "SELL",
+            "quoteUnits": "15799157512091444967681197",
+            "reason": "Recent hourly trend shows momentum weakening with price dropping from 5.386 to 5.297 and volume declining. Reducing exposure as the upward trend loses strength."
+          },
+          "reason": "Proposal exceeds the comparison per-trade cap.",
+          "status": "blocked",
+          "through": 647,
+          "wallet": {
+            "cash": "19979999",
+            "cost": "79795231",
+            "position": "15799157512091444967681197",
+            "realized": "-224770"
+          }
+        },
+        {
+          "at": "2026-10-22T23:00:00.000Z",
+          "drawdownBps": 1532,
+          "equity": "93986863",
+          "hash": "ac80c7168e01ce9ab583d4fc168c77b5d3255fee310fbe6ee0e1255411854743",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "39b58832ea0fb451db4938e65313e6c063359036b8ea79573c0f44d6f0317416",
+          "proposal": {
+            "action": "SELL",
+            "quoteUnits": "19979999",
+            "reason": "The recent hourly trend is bearish, with price declining from 5.26 to 4.86 and lower highs/lows. Volume on the downward moves is significant, suggesting momentum is favoring sellers. Reducing exposure to protect capital."
+          },
+          "reason": "The recent hourly trend is bearish, with price declining from 5.26 to 4.86 and lower highs/lows. Volume on the downward moves is significant, suggesting momentum is favoring sellers. Reducing exposure to protect capital.",
+          "status": "fill",
+          "through": 671,
+          "wallet": {
+            "cash": "39940017",
+            "cost": "59023691",
+            "position": "11686470076558029586435259",
+            "realized": "-1036292"
+          }
+        },
+        {
+          "at": "2026-10-23T23:00:00.000Z",
+          "drawdownBps": 1702,
+          "equity": "92097439",
+          "hash": "fab5aba3d0f8e0d3413e2c75072f8e825dfa8c953e285443841861fd88d240db",
+          "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+          "previousHash": "ac80c7168e01ce9ab583d4fc168c77b5d3255fee310fbe6ee0e1255411854743",
+          "proposal": {
+            "action": "SELL",
+            "quoteUnits": "39940017",
+            "reason": "Price momentum is sharply negative with a significant breakdown in the last hourly candle (4.634) on high volume. The trend has weakened significantly, necessitating a reduction in exposure to protect capital."
+          },
+          "reason": "Proposal exceeds the comparison per-trade cap.",
+          "status": "blocked",
+          "through": 695,
+          "wallet": {
+            "cash": "39940017",
+            "cost": "59023691",
+            "position": "11686470076558029586435259",
+            "realized": "-1036292"
+          }
+        }
+      ],
+      "wallet": {
+        "cash": "39940017",
+        "cost": "59023691",
+        "position": "11686470076558029586435259",
+        "realized": "-1036292"
+      }
+    }
+  ],
+  "state": "complete"
+}

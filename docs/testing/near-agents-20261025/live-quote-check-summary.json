@@ -1,0 +1,89 @@
+{
+  "scope": "Actual local inference and signed dry-run quotes in temporary ledgers. Persistent funding sessions remain unchanged. No tokens move.",
+  "results": [
+    {
+      "name": "katana",
+      "agentId": "8350fcee-969a-4e1b-88dc-53d9835a90c8",
+      "modelId": "675dd5a7fd85e224e065f0551b5294288faef42d0f45b32d5f10dbb4dd06be0a",
+      "action": "HOLD",
+      "liveQuoteSignatureVerified": true,
+      "receivedAt": "2026-10-25T00:28:22.353Z",
+      "decisionAt": "2026-10-25T00:28:58.404Z",
+      "simulatedFills": 0,
+      "paperEquity": "100000000",
+      "replay": {
+        "events": 2,
+        "head": "3d3c1f1cfe10a6561f47ac91769bdaf69b08331985f2012ae85dfc282d7ee5bc",
+        "portfolio": {
+          "cash": "100000000",
+          "cost": "0",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "markAt": null,
+          "maxDrawdownBps": 0,
+          "peak": "100000000",
+          "position": "0",
+          "realized": "0"
+        },
+        "scope": "Local consistency and accounting replay; no exchange fill or model-host attestation."
+      },
+      "persistentFundingSessionUnchanged": true
+    },
+    {
+      "name": "okina",
+      "agentId": "3fe5f9d3-0a29-45d8-b8aa-37666a79880e",
+      "modelId": "dc96f374ba0d648ccc9702353a9eec666bf8ae0f83457135fac143749b3ccc07",
+      "action": "HOLD",
+      "liveQuoteSignatureVerified": true,
+      "receivedAt": "2026-10-25T00:29:09.402Z",
+      "decisionAt": "2026-10-25T00:29:59.830Z",
+      "simulatedFills": 0,
+      "paperEquity": "100000000",
+      "replay": {
+        "events": 2,
+        "head": "35f0795a648f5245a7a42fc8a1b7283c5457624e797bdc5b1a34d3bedff8c26b",
+        "portfolio": {
+          "cash": "100000000",
+          "cost": "0",
+          "drawdownBps": 0,
+          "equity": "100000000",
+          "markAt": null,
+          "maxDrawdownBps": 0,
+          "peak": "100000000",
+          "position": "0",
+          "realized": "0"
+        },
+        "scope": "Local consistency and accounting replay; no exchange fill or model-host attestation."
+      },
+      "persistentFundingSessionUnchanged": true
+    },
+    {
+      "name": "nagakiba",
+      "agentId": "9949ff19-b995-4325-ae94-f03920c17504",
+      "modelId": "d4733845ad7ce215c49a7a753ed4af86188d8fd08b7eff6ca5a8bf84df953e0e",
+      "action": "BUY",
+      "liveQuoteSignatureVerified": true,
+      "receivedAt": "2026-10-25T00:30:19.715Z",
+      "decisionAt": "2026-10-25T00:30:32.233Z",
+      "simulatedFills": 1,
+      "paperEquity": "99906971",
+      "replay": {
+        "events": 3,
+        "head": "530ac849517ba06e410ba0d582be18f5c12d67ebd91f16232e0da736e4c4e54e",
+        "portfolio": {
+          "cash": "80000000",
+          "cost": "20000000",
+          "drawdownBps": 9,
+          "equity": "99906971",
+          "markAt": "2026-10-25T00:30:34.882Z",
+          "maxDrawdownBps": 9,
+          "peak": "100000000",
+          "position": "4423766309872466272226769",
+          "realized": "0"
+        },
+        "scope": "Local consistency and accounting replay; no exchange fill or model-host attestation."
+      },
+      "persistentFundingSessionUnchanged": true
+    }
+  ]
+}

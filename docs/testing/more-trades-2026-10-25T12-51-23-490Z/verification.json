@@ -1,0 +1,246 @@
+{
+  "scope": "Operator-directed model execution exercises. Live dry-run quotes; virtual capital; not autonomous strategy performance.",
+  "requestedRounds": 3,
+  "agents": [
+    {
+      "name": "katana",
+      "agentId": "8350fcee-969a-4e1b-88dc-53d9835a90c8",
+      "additionalFills": 6,
+      "totalFills": 8,
+      "cumulativeRealized": "-40447",
+      "position": "0",
+      "head": "5607d2ca842c98928c5eee6842f888efcb1460c2aa13d28c417ca0a080b0758f",
+      "rounds": [
+        {
+          "round": 1,
+          "exerciseId": "4c322f2c-aadc-4fdc-9ab5-9b683c24ecfc",
+          "filled": [
+            {
+              "action": "BUY",
+              "at": "2026-10-25T12:52:29.721Z",
+              "quoteId": "3202554d90182e82b0226232db0ce48d5061edf7c47fc3065b0ad54e3cd930cf",
+              "amountIn": "2000000",
+              "amountOut": "446921305556113009711681",
+              "hash": "d2f7dda697696e346d6ee6c3e5e2520fc3a35e7ad5a94a64f470abe7d3894c5c"
+            },
+            {
+              "action": "SELL",
+              "at": "2026-10-25T12:53:06.761Z",
+              "quoteId": "69edd629a2571c113a43584311241209f7a9642ae5b51862c08d87ee40b12604",
+              "amountIn": "446921305556113009711681",
+              "amountOut": "1987959",
+              "hash": "dcf3ef1ba947f43fa9f95d00c62da591768173c9b3a062413a0351ede9d5aaa8"
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "exerciseId": "344785ff-7402-4bdc-a89a-4d64f9cac983",
+          "filled": [
+            {
+              "action": "BUY",
+              "at": "2026-10-25T12:53:47.044Z",
+              "quoteId": "e6a7cc1e4d021b8ab7171875644fc69d649af74bb1e6e226cea4751083fc8d54",
+              "amountIn": "2000000",
+              "amountOut": "447244741595544977019308",
+              "hash": "cc8b78ce2374cc5f5f60eea14bb82c97e6a23b9f431cca1744f26da0b33264dd"
+            },
+            {
+              "action": "SELL",
+              "at": "2026-10-25T12:54:33.203Z",
+              "quoteId": "043a23e1741b228a57804d564ec1615651e5f94271f4cfe9d7a8fe0062e5d29c",
+              "amountIn": "447244741595544977019308",
+              "amountOut": "1989365",
+              "hash": "1b2eae847586d90705274bf0fa95ab42d4b676da1fd9a58269158fc5118da0f7"
+            }
+          ]
+        },
+        {
+          "round": 3,
+          "exerciseId": "eb5d6fd2-bdf8-4f86-9982-97a664a0afbf",
+          "filled": [
+            {
+              "action": "BUY",
+              "at": "2026-10-25T12:55:17.724Z",
+              "quoteId": "69eef0de24b03c09b391020d8b1b040af53ad8a69bf21583031b913bb1985c3e",
+              "amountIn": "2000000",
+              "amountOut": "447259063701493986302735",
+              "hash": "b1cb2c72eb11d35506fe899ea3332701349614246ce50470b3e443d1d643ff61"
+            },
+            {
+              "action": "SELL",
+              "at": "2026-10-25T12:56:01.351Z",
+              "quoteId": "4bcde03ba3bf327e6ce7d6d22fa2f1988c107de745de3a694fc68dda269d472c",
+              "amountIn": "447259063701493986302735",
+              "amountOut": "1988978",
+              "hash": "aa04335613c5fcb8515da0a4edee7182ab439fc0bf42ff8b659073ab78a418c9"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "okina",
+      "agentId": "3fe5f9d3-0a29-45d8-b8aa-37666a79880e",
+      "additionalFills": 6,
+      "totalFills": 8,
+      "cumulativeRealized": "-38348",
+      "position": "0",
+      "head": "651724df5029cc52985e0169a72167ef93672d1a6124c0a153e44ca4958707a0",
+      "rounds": [
+        {
+          "round": 1,
+          "exerciseId": "8e4cbe59-97ef-436b-a8d1-3efa2dd25cb1",
+          "filled": [
+            {
+              "action": "BUY",
+              "at": "2026-10-25T12:57:03.243Z",
+              "quoteId": "9b21d1464927f11502ab7182bd90971c330d757036389c24b9d2801a601dee4c",
+              "amountIn": "2000000",
+              "amountOut": "447546835669429150751490",
+              "hash": "fc1ca44e5e97fe82225434ee4e18aedb081d78ce990cdfb7110911de16c88a86"
+            },
+            {
+              "action": "SELL",
+              "at": "2026-10-25T12:57:58.729Z",
+              "quoteId": "bda27be995df6172bb420b89e9e39adc598285b68f1d5425da738e7b61ace48b",
+              "amountIn": "447546835669429150751490",
+              "amountOut": "1991921",
+              "hash": "2b88e81f459a873b8c85b45f79f1c1975c995e14a10e6b2d91ae88789ba7b565"
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "exerciseId": "b5330d4d-480e-4bfa-91d4-35be518d2e7e",
+          "filled": [
+            {
+              "action": "BUY",
+              "at": "2026-10-25T12:58:56.307Z",
+              "quoteId": "7bbbf7ee0b0e0b6e3400e028203b5f97975451f6a7f0209db2a7d1258202da06",
+              "amountIn": "2000000",
+              "amountOut": "447553325541794383115122",
+              "hash": "25d80849c127653258787c3a566aed1c4f2dedc5bdd64ba5059e6f53e83ebbfc"
+            },
+            {
+              "action": "SELL",
+              "at": "2026-10-25T12:59:55.595Z",
+              "quoteId": "581622a93c54076882d4e6e608573da2ddd9ec0f51224d97ab8c7dfc7d9b13db",
+              "amountIn": "447553325541794383115122",
+              "amountOut": "1990047",
+              "hash": "b350d138e298fb66b912ee8c1cd4e5577d4d265262c5e14cb262dba2f26ae8e0"
+            }
+          ]
+        },
+        {
+          "round": 3,
+          "exerciseId": "02897151-59b7-4a00-826c-76f0c468c87f",
+          "filled": [
+            {
+              "action": "BUY",
+              "at": "2026-10-25T13:01:37.830Z",
+              "quoteId": "5f5b67bd9a1bbd2cce17ee9cd4ffab3e082e529bcab445a0c409b96326306887",
+              "amountIn": "2000000",
+              "amountOut": "447477748478069873800178",
+              "hash": "86a90780f5eb8e92a4b3c4ac6bca27c09bd850f32b003ceb3874a3a20ab1e5de"
+            },
+            {
+              "action": "SELL",
+              "at": "2026-10-25T13:07:24.981Z",
+              "quoteId": "32a1b714135cb194ac7b35482db24756edac2685283a68e420a881e99d340cbb",
+              "amountIn": "447477748478069873800178",
+              "amountOut": "1991916",
+              "hash": "f8496b15ee447bd02d3b7f9af571b2c474f0b9179c6cd81aca93445c06a7f893"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "nagakiba",
+      "agentId": "9949ff19-b995-4325-ae94-f03920c17504",
+      "additionalFills": 6,
+      "totalFills": 8,
+      "cumulativeRealized": "-43523",
+      "position": "0",
+      "head": "1ef0b1ff9de48941b0c341dc6c6e6f1d88c6de1ccebe3609cb710ec16223ca8b",
+      "rounds": [
+        {
+          "round": 1,
+          "exerciseId": "aca4279c-00c2-444f-a181-d51062a1848b",
+          "filled": [
+            {
+              "action": "BUY",
+              "at": "2026-10-25T13:08:00.823Z",
+              "quoteId": "5ab9f4dc316e9441f258caa3c8f50f993c15ab4d48ba0b25ec59029e5d555ea3",
+              "amountIn": "2000000",
+              "amountOut": "446515866725900515348419",
+              "hash": "931d5eb79932210c5ac9646c881e6ec7f79fb7593e46dfc0683bf67818600413"
+            },
+            {
+              "action": "SELL",
+              "at": "2026-10-25T13:08:19.211Z",
+              "quoteId": "21d905bf42151454ea82f1039902bf473f17cc04214c62ca07c34ed5ec620d34",
+              "amountIn": "446515866725900515348419",
+              "amountOut": "1989241",
+              "hash": "9378783514320c153bcc23543305e7b6b249295e6ea3673ce093ceab34dd0f66"
+            }
+          ]
+        },
+        {
+          "round": 2,
+          "exerciseId": "4298eec5-8823-4849-a3f5-d0fb7a69fdbd",
+          "filled": [
+            {
+              "action": "BUY",
+              "at": "2026-10-25T13:08:37.892Z",
+              "quoteId": "619371201e3e9d9c14bc11cbfaf8f4bb98315a34072c258bd19afdfc5d64f135",
+              "amountIn": "2000000",
+              "amountOut": "446686373661192079073415",
+              "hash": "9df895f16fdb3165f19c30148baad725e5eed96ac78641ceb323238e08140609"
+            },
+            {
+              "action": "SELL",
+              "at": "2026-10-25T13:08:58.825Z",
+              "quoteId": "3ad061c70f8818c4cf3ec75fec299d118b6b287c39d282aa0c1daf3fa68883ee",
+              "amountIn": "446686373661192079073415",
+              "amountOut": "1988931",
+              "hash": "334c814bd5ee8ec8a6d792fa55ad6bde16ecc7c6d0243f8c6286fe4f5295d61a"
+            }
+          ]
+        },
+        {
+          "round": 3,
+          "exerciseId": "88151b11-63e7-4b31-8ee0-7f90c85fb456",
+          "filled": [
+            {
+              "action": "BUY",
+              "at": "2026-10-25T13:09:18.494Z",
+              "quoteId": "d60b96710ea8ce693e26ce2e0a1187f89b7becc6af50d44691a372b8abb88001",
+              "amountIn": "2000000",
+              "amountOut": "446767513643049792089860",
+              "hash": "7337b57f19d46648ced0d3b17df0ec6c33543d9db4a13a5860e54080ea1f5529"
+            },
+            {
+              "action": "SELL",
+              "at": "2026-10-25T13:09:40.797Z",
+              "quoteId": "9343a52935525eb9df30c64bad1f58e4efd41e6cb859372eef8ac2897df7622e",
+              "amountIn": "446767513643049792089860",
+              "amountOut": "1990632",
+              "hash": "4ea674162a41692eb24768c2db82a0fe2e9d841288ac4479195af0b9caec6659"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "capturedAt": "2026-10-25T13:10:06.372Z",
+  "validation": {
+    "tests": 219,
+    "typecheck": "passed",
+    "build": "passed",
+    "allPreviousEventsPreserved": true,
+    "allPositionsClosed": true,
+    "manualScenarioFills": 0
+  }
+}
