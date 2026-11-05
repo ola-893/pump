@@ -1,0 +1,30 @@
+{
+  "network": "testnet",
+  "account": "157ebee42ecb62b60325ac8a31c8da0d60cc6f97d2604d71d68e52cab1c918ba",
+  "contract": "pumpcoin-demo-472db8.testnet",
+  "session": "fd1bff8d-a301-4dfe-ab34-daa4ae95fb44",
+  "walletUSDC": "20000000",
+  "prepare": [
+    {
+      "network": "testnet",
+      "signerId": "157ebee42ecb62b60325ac8a31c8da0d60cc6f97d2604d71d68e52cab1c918ba",
+      "receiverId": "pumpcoin-demo-472db8.testnet",
+      "actions": [
+        {
+          "type": "FunctionCall",
+          "params": {
+            "methodName": "register",
+            "args": {},
+            "gas": "70000000000000",
+            "deposit": "20000000000000000000000"
+          }
+        }
+      ],
+      "description": "Register demo claim account · 0.02 test NEAR"
+    }
+  ],
+  "proposedPrincipal": "10000000",
+  "proposedReserve": "10000000",
+  "depositPlanStatus": "Requires confirmed registration first",
+  "broadcast": false
+}

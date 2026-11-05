@@ -1,0 +1,421 @@
+{
+  "version": "PUMPCOIN-NEAR-PAPER-v1",
+  "session": {
+    "config": {
+      "dailyTurnoverCap": "100000000",
+      "endpoint": "http://127.0.0.1:8080/v1",
+      "executionDelayMs": 1500,
+      "exposureCap": "15000000",
+      "initialCash": "20000000",
+      "intervalMs": 60000,
+      "maxQuoteAgeMs": 30000,
+      "name": "Live quote · manual acceptance",
+      "slippageBps": 50,
+      "source": "live",
+      "strategy": "Trade wNEAR against USDC. Protect capital; HOLD when evidence is insufficient. Explain the decision.",
+      "tradeCap": "5000000"
+    },
+    "createdAt": "2026-10-20T18:23:32.629Z",
+    "head": "e3d116f94882636397f39697dcbd7b7a1e86f0a211528372b76f87740b0e5c70",
+    "id": "b77acea0-cf81-4e76-a849-0e0928d1dfc1",
+    "portfolio": {
+      "cash": "19940081",
+      "cost": "0",
+      "drawdownBps": 29,
+      "equity": "19940081",
+      "markAt": "2026-10-20T18:36:53.410Z",
+      "maxDrawdownBps": 29,
+      "peak": "20000000",
+      "position": "0",
+      "realized": "-59919"
+    },
+    "revision": 6,
+    "sequence": 6,
+    "state": "stopped",
+    "turnover": {
+      "day": "2026-10-20",
+      "used": "9940081"
+    },
+    "version": 1
+  },
+  "events": [
+    {
+      "after": {
+        "cash": "20000000",
+        "cost": "0",
+        "drawdownBps": 0,
+        "equity": "20000000",
+        "markAt": null,
+        "maxDrawdownBps": 0,
+        "peak": "20000000",
+        "position": "0",
+        "realized": "0"
+      },
+      "at": "2026-10-20T18:23:44.587Z",
+      "before": {
+        "cash": "20000000",
+        "cost": "0",
+        "drawdownBps": 0,
+        "equity": "20000000",
+        "markAt": null,
+        "maxDrawdownBps": 0,
+        "peak": "20000000",
+        "position": "0",
+        "realized": "0"
+      },
+      "evidence": "manual-scenario",
+      "hash": "1c579d3200d35675b6cfb4015e3e3d8e9981e243ebf72bcda8b6cf21d5aabc9c",
+      "id": "b77acea0-cf81-4e76-a849-0e0928d1dfc1:1",
+      "kind": "model",
+      "previousHash": null,
+      "reason": "User-triggered manual scenario; not an autonomous model decision.",
+      "sequence": 1,
+      "sessionId": "b77acea0-cf81-4e76-a849-0e0928d1dfc1"
+    },
+    {
+      "action": "BUY",
+      "after": {
+        "cash": "15000000",
+        "cost": "5000000",
+        "drawdownBps": null,
+        "equity": null,
+        "markAt": null,
+        "maxDrawdownBps": 0,
+        "peak": "20000000",
+        "position": "1009869371623081686137253",
+        "realized": "0"
+      },
+      "at": "2026-10-20T18:23:47.667Z",
+      "before": {
+        "cash": "20000000",
+        "cost": "0",
+        "drawdownBps": 0,
+        "equity": "20000000",
+        "markAt": null,
+        "maxDrawdownBps": 0,
+        "peak": "20000000",
+        "position": "0",
+        "realized": "0"
+      },
+      "evidence": "manual-scenario",
+      "hash": "4b94fcb8077316605a546b88458deeabd113373fdbd71c9a42dcdad357825ca6",
+      "id": "b77acea0-cf81-4e76-a849-0e0928d1dfc1:2",
+      "kind": "fill",
+      "previousHash": "1c579d3200d35675b6cfb4015e3e3d8e9981e243ebf72bcda8b6cf21d5aabc9c",
+      "quote": {
+        "amountIn": "5000000",
+        "amountOut": "1009869371623081686137253",
+        "id": "0846dba2d2e55c3cc9ec3daedba4ddcd6745dd131b4302ad61461d576993f11c",
+        "minimumOut": "1004820024764966277706566",
+        "observedAt": "2026-10-20T18:23:47.209Z",
+        "raw": {
+          "correlationId": "cc454bd0-0144-4a0f-a1e3-8b100672c880",
+          "quote": {
+            "amountIn": "5000000",
+            "amountInFormatted": "5.0",
+            "amountInUsd": "4.999000000000",
+            "amountOut": "1009869371623081686137253",
+            "amountOutFormatted": "1.009869371623081686137253",
+            "amountOutUsd": "4.988754695818",
+            "minAmountIn": "5000000",
+            "minAmountOut": "1004820024764966277706566",
+            "refundFee": "0",
+            "timeEstimate": 20,
+            "withdrawFee": "0"
+          },
+          "quoteRequest": {
+            "amount": "5000000",
+            "appFees": [
+              {
+                "fee": 20,
+                "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd"
+              }
+            ],
+            "confidentiality": "public",
+            "deadline": "2026-10-20T18:33:46.089Z",
+            "depositMode": "SIMPLE",
+            "depositType": "ORIGIN_CHAIN",
+            "destinationAsset": "nep141:wrap.near",
+            "dry": true,
+            "insured": false,
+            "originAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+            "quoteWaitingTimeMs": 0,
+            "recipient": "intents.near",
+            "recipientType": "DESTINATION_CHAIN",
+            "refundTo": "intents.near",
+            "refundType": "ORIGIN_CHAIN",
+            "slippageTolerance": 50,
+            "swapType": "EXACT_INPUT"
+          },
+          "signature": "ed25519:2ECc7FxwxTsXjU8ndHQSFcnCta1BaFuSLACtiTJt4BtkvAeo1xPV99n4BEL9fPGXihkUXUE59aWeF7kfb6D2fukx",
+          "timestamp": "2026-10-20T18:23:47.209Z"
+        },
+        "receivedAt": "2026-10-20T18:23:47.662Z",
+        "signatureVerified": true,
+        "source": "live",
+        "tokenIn": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+        "tokenOut": "nep141:wrap.near"
+      },
+      "reason": "User-triggered manual scenario; not an autonomous model decision.",
+      "sequence": 2,
+      "sessionId": "b77acea0-cf81-4e76-a849-0e0928d1dfc1"
+    },
+    {
+      "after": {
+        "cash": "15000000",
+        "cost": "5000000",
+        "drawdownBps": 13,
+        "equity": "19973562",
+        "markAt": "2026-10-20T18:23:48.472Z",
+        "maxDrawdownBps": 13,
+        "peak": "20000000",
+        "position": "1009869371623081686137253",
+        "realized": "0"
+      },
+      "at": "2026-10-20T18:23:48.477Z",
+      "before": {
+        "cash": "15000000",
+        "cost": "5000000",
+        "drawdownBps": null,
+        "equity": null,
+        "markAt": null,
+        "maxDrawdownBps": 0,
+        "peak": "20000000",
+        "position": "1009869371623081686137253",
+        "realized": "0"
+      },
+      "evidence": "quote-mark",
+      "hash": "d23b29e3228c5a99f3a41abe8afaa39b08999fffc710eb24fb3c656100837977",
+      "id": "b77acea0-cf81-4e76-a849-0e0928d1dfc1:3",
+      "kind": "mark",
+      "previousHash": "4b94fcb8077316605a546b88458deeabd113373fdbd71c9a42dcdad357825ca6",
+      "quote": {
+        "amountIn": "1009869371623081686137253",
+        "amountOut": "4973562",
+        "id": "4507efeb2172987aa6d88a4961eec8945ed29f9cf56c64d5e6b8be81ec19e8ef",
+        "minimumOut": "4948694",
+        "observedAt": "2026-10-20T18:23:48.082Z",
+        "raw": {
+          "correlationId": "4eaeb3c3-44bb-46da-9ab8-93a401e87692",
+          "quote": {
+            "amountIn": "1009869371623081686137253",
+            "amountInFormatted": "1.009869371623081686137253",
+            "amountInUsd": "4.988754695818",
+            "amountOut": "4973562",
+            "amountOutFormatted": "4.973562",
+            "amountOutUsd": "4.972567287600",
+            "minAmountIn": "1009869371623081686137253",
+            "minAmountOut": "4948694",
+            "refundFee": "0",
+            "timeEstimate": 20,
+            "withdrawFee": "0"
+          },
+          "quoteRequest": {
+            "amount": "1009869371623081686137253",
+            "appFees": [
+              {
+                "fee": 20,
+                "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd"
+              }
+            ],
+            "confidentiality": "public",
+            "deadline": "2026-10-20T18:33:47.668Z",
+            "depositMode": "SIMPLE",
+            "depositType": "ORIGIN_CHAIN",
+            "destinationAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+            "dry": true,
+            "insured": false,
+            "originAsset": "nep141:wrap.near",
+            "quoteWaitingTimeMs": 0,
+            "recipient": "intents.near",
+            "recipientType": "DESTINATION_CHAIN",
+            "refundTo": "intents.near",
+            "refundType": "ORIGIN_CHAIN",
+            "slippageTolerance": 50,
+            "swapType": "EXACT_INPUT"
+          },
+          "signature": "ed25519:2hBo33i9unFga1XF8m7UXJ74gGi32NUjqyBiaEg1gSFhz4sDqtxHUugezNZhsTgwfASXRkhjVmQ4QwUxmuWaHyR8",
+          "timestamp": "2026-10-20T18:23:48.082Z"
+        },
+        "receivedAt": "2026-10-20T18:23:48.472Z",
+        "signatureVerified": true,
+        "source": "live",
+        "tokenIn": "nep141:wrap.near",
+        "tokenOut": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1"
+      },
+      "reason": "Portfolio marked with whole-position exit quote.",
+      "sequence": 3,
+      "sessionId": "b77acea0-cf81-4e76-a849-0e0928d1dfc1"
+    },
+    {
+      "after": {
+        "cash": "15000000",
+        "cost": "5000000",
+        "drawdownBps": 13,
+        "equity": "19973562",
+        "markAt": "2026-10-20T18:23:48.472Z",
+        "maxDrawdownBps": 13,
+        "peak": "20000000",
+        "position": "1009869371623081686137253",
+        "realized": "0"
+      },
+      "at": "2026-10-20T18:36:49.156Z",
+      "before": {
+        "cash": "15000000",
+        "cost": "5000000",
+        "drawdownBps": 13,
+        "equity": "19973562",
+        "markAt": "2026-10-20T18:23:48.472Z",
+        "maxDrawdownBps": 13,
+        "peak": "20000000",
+        "position": "1009869371623081686137253",
+        "realized": "0"
+      },
+      "evidence": "manual-scenario",
+      "hash": "bad86a4315707bc4c35bff837e426f4556e56ce701597a5dc79a1ad1871ceaa8",
+      "id": "b77acea0-cf81-4e76-a849-0e0928d1dfc1:4",
+      "kind": "model",
+      "previousHash": "d23b29e3228c5a99f3a41abe8afaa39b08999fffc710eb24fb3c656100837977",
+      "reason": "User-triggered manual scenario; not an autonomous model decision.",
+      "sequence": 4,
+      "sessionId": "b77acea0-cf81-4e76-a849-0e0928d1dfc1"
+    },
+    {
+      "action": "SELL",
+      "after": {
+        "cash": "19940081",
+        "cost": "0",
+        "drawdownBps": null,
+        "equity": null,
+        "markAt": null,
+        "maxDrawdownBps": 13,
+        "peak": "20000000",
+        "position": "0",
+        "realized": "-59919"
+      },
+      "at": "2026-10-20T18:36:53.410Z",
+      "before": {
+        "cash": "15000000",
+        "cost": "5000000",
+        "drawdownBps": 13,
+        "equity": "19973562",
+        "markAt": "2026-10-20T18:23:48.472Z",
+        "maxDrawdownBps": 13,
+        "peak": "20000000",
+        "position": "1009869371623081686137253",
+        "realized": "0"
+      },
+      "evidence": "manual-scenario",
+      "hash": "5b568f66a573af35831fd17a4024eef69da51c5cdd123bb8b84187bbd6eff632",
+      "id": "b77acea0-cf81-4e76-a849-0e0928d1dfc1:5",
+      "kind": "fill",
+      "previousHash": "bad86a4315707bc4c35bff837e426f4556e56ce701597a5dc79a1ad1871ceaa8",
+      "quote": {
+        "amountIn": "1009869371623081686137253",
+        "amountOut": "4940081",
+        "id": "962ec59e2f9e3a82c4e3668daf4341650c588e226b84d6fc53f72fa3aabb5d4f",
+        "minimumOut": "4915380",
+        "observedAt": "2026-10-20T18:36:52.960Z",
+        "raw": {
+          "correlationId": "6aa210d9-3b85-44ca-aa4a-23b9e4179156",
+          "quote": {
+            "amountIn": "1009869371623081686137253",
+            "amountInFormatted": "1.009869371623081686137253",
+            "amountInUsd": "4.968557308386",
+            "amountOut": "4940081",
+            "amountOutFormatted": "4.940081",
+            "amountOutUsd": "4.939206605663",
+            "minAmountIn": "1009869371623081686137253",
+            "minAmountOut": "4915380",
+            "refundFee": "0",
+            "timeEstimate": 20,
+            "withdrawFee": "0"
+          },
+          "quoteRequest": {
+            "amount": "1009869371623081686137253",
+            "appFees": [
+              {
+                "fee": 20,
+                "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd"
+              }
+            ],
+            "confidentiality": "public",
+            "deadline": "2026-10-20T18:46:52.222Z",
+            "depositMode": "SIMPLE",
+            "depositType": "ORIGIN_CHAIN",
+            "destinationAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+            "dry": true,
+            "insured": false,
+            "originAsset": "nep141:wrap.near",
+            "quoteWaitingTimeMs": 0,
+            "recipient": "intents.near",
+            "recipientType": "DESTINATION_CHAIN",
+            "refundTo": "intents.near",
+            "refundType": "ORIGIN_CHAIN",
+            "slippageTolerance": 50,
+            "swapType": "EXACT_INPUT"
+          },
+          "signature": "ed25519:3fiALxbybdLagwyPCfinmqjJRJw1DPmWsWqraNsUY3uPXuYdXk4TzywYzFcTbWUVGCLJKnTpZeouzcrSX95m8BwJ",
+          "timestamp": "2026-10-20T18:36:52.960Z"
+        },
+        "receivedAt": "2026-10-20T18:36:53.405Z",
+        "signatureVerified": true,
+        "source": "live",
+        "tokenIn": "nep141:wrap.near",
+        "tokenOut": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1"
+      },
+      "reason": "User-triggered manual scenario; not an autonomous model decision.",
+      "sequence": 5,
+      "sessionId": "b77acea0-cf81-4e76-a849-0e0928d1dfc1"
+    },
+    {
+      "after": {
+        "cash": "19940081",
+        "cost": "0",
+        "drawdownBps": 29,
+        "equity": "19940081",
+        "markAt": "2026-10-20T18:36:53.410Z",
+        "maxDrawdownBps": 29,
+        "peak": "20000000",
+        "position": "0",
+        "realized": "-59919"
+      },
+      "at": "2026-10-20T18:36:53.410Z",
+      "before": {
+        "cash": "19940081",
+        "cost": "0",
+        "drawdownBps": null,
+        "equity": null,
+        "markAt": null,
+        "maxDrawdownBps": 13,
+        "peak": "20000000",
+        "position": "0",
+        "realized": "-59919"
+      },
+      "evidence": "quote-mark",
+      "hash": "e3d116f94882636397f39697dcbd7b7a1e86f0a211528372b76f87740b0e5c70",
+      "id": "b77acea0-cf81-4e76-a849-0e0928d1dfc1:6",
+      "kind": "mark",
+      "previousHash": "5b568f66a573af35831fd17a4024eef69da51c5cdd123bb8b84187bbd6eff632",
+      "reason": "Portfolio marked with whole-position exit quote.",
+      "sequence": 6,
+      "sessionId": "b77acea0-cf81-4e76-a849-0e0928d1dfc1"
+    }
+  ],
+  "replay": {
+    "events": 6,
+    "head": "e3d116f94882636397f39697dcbd7b7a1e86f0a211528372b76f87740b0e5c70",
+    "portfolio": {
+      "cash": "19940081",
+      "cost": "0",
+      "drawdownBps": 29,
+      "equity": "19940081",
+      "markAt": "2026-10-20T18:36:53.410Z",
+      "maxDrawdownBps": 29,
+      "peak": "20000000",
+      "position": "0",
+      "realized": "-59919"
+    },
+    "scope": "Local consistency and accounting replay; no exchange fill or model-host attestation."
+  }
+}

@@ -1,0 +1,301 @@
+{
+  "at": "2026-11-03T10:18:12.336Z",
+  "environment": "local NEAR Sandbox 2.13.4",
+  "token": "Sandbox FT fixture only, NOT Circle-issued USDC",
+  "observations": [
+    {
+      "label": "Isolated deposits and per-agent pumpcoin balances",
+      "states": [
+        {
+          "vault": "katana.controller.testnet",
+          "state": {
+            "version": "PUMP-AGENT-VAULT-v1",
+            "environment": "testnet-paper-rounds",
+            "agent_id": "00000000-0000-4000-8000-000000000001",
+            "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "name": "katana",
+            "controller_id": "controller.testnet",
+            "reporter_id": "controller.testnet",
+            "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+            "assets": "40000000",
+            "reserve": "30000000",
+            "total_supply": "40000000",
+            "nonce": 3,
+            "paused": false,
+            "round": null,
+            "pending": null,
+            "last_evidence_hash": ""
+          },
+          "balance": "70000000"
+        },
+        {
+          "vault": "okina.controller.testnet",
+          "state": {
+            "version": "PUMP-AGENT-VAULT-v1",
+            "environment": "testnet-paper-rounds",
+            "agent_id": "00000000-0000-4000-8000-000000000002",
+            "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "name": "okina",
+            "controller_id": "controller.testnet",
+            "reporter_id": "controller.testnet",
+            "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+            "assets": "10000000",
+            "reserve": "40000000",
+            "total_supply": "10000000",
+            "nonce": 2,
+            "paused": false,
+            "round": null,
+            "pending": null,
+            "last_evidence_hash": ""
+          },
+          "balance": "50000000"
+        }
+      ]
+    },
+    {
+      "label": "Proportional gain consumes only Katana reserve; late deposit uses current NAV",
+      "states": [
+        {
+          "vault": "katana.controller.testnet",
+          "state": {
+            "version": "PUMP-AGENT-VAULT-v1",
+            "environment": "testnet-paper-rounds",
+            "agent_id": "00000000-0000-4000-8000-000000000001",
+            "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "name": "katana",
+            "controller_id": "controller.testnet",
+            "reporter_id": "controller.testnet",
+            "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+            "assets": "55000000",
+            "reserve": "26000000",
+            "total_supply": "50000000",
+            "nonce": 6,
+            "paused": false,
+            "round": null,
+            "pending": null,
+            "last_evidence_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "balance": "81000000"
+        },
+        {
+          "vault": "okina.controller.testnet",
+          "state": {
+            "version": "PUMP-AGENT-VAULT-v1",
+            "environment": "testnet-paper-rounds",
+            "agent_id": "00000000-0000-4000-8000-000000000002",
+            "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "name": "okina",
+            "controller_id": "controller.testnet",
+            "reporter_id": "controller.testnet",
+            "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+            "assets": "10000000",
+            "reserve": "40000000",
+            "total_supply": "10000000",
+            "nonce": 2,
+            "paused": false,
+            "round": null,
+            "pending": null,
+            "last_evidence_hash": ""
+          },
+          "balance": "50000000"
+        }
+      ]
+    },
+    {
+      "label": "Redeem burns shares and pays actual fixture tokens",
+      "states": [
+        {
+          "vault": "katana.controller.testnet",
+          "state": {
+            "version": "PUMP-AGENT-VAULT-v1",
+            "environment": "testnet-paper-rounds",
+            "agent_id": "00000000-0000-4000-8000-000000000001",
+            "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "name": "katana",
+            "controller_id": "controller.testnet",
+            "reporter_id": "controller.testnet",
+            "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+            "assets": "44000000",
+            "reserve": "26000000",
+            "total_supply": "40000000",
+            "nonce": 8,
+            "paused": false,
+            "round": null,
+            "pending": null,
+            "last_evidence_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "balance": "70000000"
+        },
+        {
+          "vault": "okina.controller.testnet",
+          "state": {
+            "version": "PUMP-AGENT-VAULT-v1",
+            "environment": "testnet-paper-rounds",
+            "agent_id": "00000000-0000-4000-8000-000000000002",
+            "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "name": "okina",
+            "controller_id": "controller.testnet",
+            "reporter_id": "controller.testnet",
+            "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+            "assets": "10000000",
+            "reserve": "40000000",
+            "total_supply": "10000000",
+            "nonce": 2,
+            "paused": false,
+            "round": null,
+            "pending": null,
+            "last_evidence_hash": ""
+          },
+          "balance": "50000000"
+        }
+      ]
+    },
+    {
+      "label": "Failed token transfer restores exactly the burned shares and assets",
+      "states": [
+        {
+          "vault": "katana.controller.testnet",
+          "state": {
+            "version": "PUMP-AGENT-VAULT-v1",
+            "environment": "testnet-paper-rounds",
+            "agent_id": "00000000-0000-4000-8000-000000000001",
+            "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "name": "katana",
+            "controller_id": "controller.testnet",
+            "reporter_id": "controller.testnet",
+            "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+            "assets": "44000000",
+            "reserve": "26000000",
+            "total_supply": "40000000",
+            "nonce": 10,
+            "paused": false,
+            "round": null,
+            "pending": null,
+            "last_evidence_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "balance": "70000000"
+        },
+        {
+          "vault": "okina.controller.testnet",
+          "state": {
+            "version": "PUMP-AGENT-VAULT-v1",
+            "environment": "testnet-paper-rounds",
+            "agent_id": "00000000-0000-4000-8000-000000000002",
+            "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "name": "okina",
+            "controller_id": "controller.testnet",
+            "reporter_id": "controller.testnet",
+            "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+            "assets": "10000000",
+            "reserve": "40000000",
+            "total_supply": "10000000",
+            "nonce": 2,
+            "paused": false,
+            "round": null,
+            "pending": null,
+            "last_evidence_hash": ""
+          },
+          "balance": "50000000"
+        }
+      ]
+    },
+    {
+      "label": "Okina loss replenishes only its own reserve",
+      "states": [
+        {
+          "vault": "katana.controller.testnet",
+          "state": {
+            "version": "PUMP-AGENT-VAULT-v1",
+            "environment": "testnet-paper-rounds",
+            "agent_id": "00000000-0000-4000-8000-000000000001",
+            "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "name": "katana",
+            "controller_id": "controller.testnet",
+            "reporter_id": "controller.testnet",
+            "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+            "assets": "33000000",
+            "reserve": "26000000",
+            "total_supply": "30000000",
+            "nonce": 12,
+            "paused": false,
+            "round": null,
+            "pending": null,
+            "last_evidence_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "balance": "59000000"
+        },
+        {
+          "vault": "okina.controller.testnet",
+          "state": {
+            "version": "PUMP-AGENT-VAULT-v1",
+            "environment": "testnet-paper-rounds",
+            "agent_id": "00000000-0000-4000-8000-000000000002",
+            "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "name": "okina",
+            "controller_id": "controller.testnet",
+            "reporter_id": "controller.testnet",
+            "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+            "assets": "9000000",
+            "reserve": "41000000",
+            "total_supply": "10000000",
+            "nonce": 4,
+            "paused": false,
+            "round": null,
+            "pending": null,
+            "last_evidence_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "balance": "50000000"
+        }
+      ]
+    },
+    {
+      "label": "Transferable shares preserve separation between agents",
+      "states": [
+        {
+          "vault": "katana.controller.testnet",
+          "state": {
+            "version": "PUMP-AGENT-VAULT-v1",
+            "environment": "testnet-paper-rounds",
+            "agent_id": "00000000-0000-4000-8000-000000000001",
+            "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "name": "katana",
+            "controller_id": "controller.testnet",
+            "reporter_id": "controller.testnet",
+            "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+            "assets": "33000000",
+            "reserve": "26000000",
+            "total_supply": "30000000",
+            "nonce": 12,
+            "paused": false,
+            "round": null,
+            "pending": null,
+            "last_evidence_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "balance": "59000000"
+        },
+        {
+          "vault": "okina.controller.testnet",
+          "state": {
+            "version": "PUMP-AGENT-VAULT-v1",
+            "environment": "testnet-paper-rounds",
+            "agent_id": "00000000-0000-4000-8000-000000000002",
+            "manifest_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "name": "okina",
+            "controller_id": "controller.testnet",
+            "reporter_id": "controller.testnet",
+            "token_id": "3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af",
+            "assets": "9000000",
+            "reserve": "41000000",
+            "total_supply": "10000000",
+            "nonce": 4,
+            "paused": false,
+            "round": null,
+            "pending": null,
+            "last_evidence_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+          },
+          "balance": "50000000"
+        }
+      ]
+    }
+  ]
+}

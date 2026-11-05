@@ -1,0 +1,78 @@
+{
+  "source": "https://1click.chaindefuser.com/v0/quote",
+  "scope": "Read-only dry quotes on 20 October 2026. No wallet was connected and no funds moved. A placeholder protocol account was used for quote-only recipient/refund fields. These are indicative quotes, not settlement evidence or executable payment instructions. User account setup, token storage registration and sender gas are unverified and excluded.",
+  "cases": [
+    {
+      "label": "one-usdc-to-wnear",
+      "timestamp": "2026-10-20T17:28:33.972Z",
+      "correlationId": "78d8eaa2-af4a-40e8-9c0b-68fd711e1d04",
+      "dry": true,
+      "originAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+      "destinationAsset": "nep141:wrap.near",
+      "depositType": "ORIGIN_CHAIN",
+      "recipientType": "DESTINATION_CHAIN",
+      "slippageToleranceBps": 100,
+      "quote": {
+        "amountIn": "1000000",
+        "amountInFormatted": "1.0",
+        "amountInUsd": "0.999819000000",
+        "minAmountIn": "1000000",
+        "amountOut": "201437843602649909486671",
+        "amountOutFormatted": "0.201437843602649909486671",
+        "amountOutUsd": "0.995102947397",
+        "minAmountOut": "199423465166623410391804",
+        "timeEstimate": 20,
+        "refundFee": "0",
+        "withdrawFee": "0"
+      }
+    },
+    {
+      "label": "wnear-back-to-usdc",
+      "timestamp": "2026-10-20T17:28:51.075Z",
+      "correlationId": "297de3d1-2830-473a-8996-f82fa52c61b3",
+      "dry": true,
+      "originAsset": "nep141:wrap.near",
+      "destinationAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+      "depositType": "ORIGIN_CHAIN",
+      "recipientType": "DESTINATION_CHAIN",
+      "slippageToleranceBps": 100,
+      "quote": {
+        "amountIn": "201437843602649909486671",
+        "amountInFormatted": "0.201437843602649909486671",
+        "amountInUsd": "0.995102947397",
+        "minAmountIn": "201437843602649909486671",
+        "amountOut": "993753",
+        "amountOutFormatted": "0.993753",
+        "amountOutUsd": "0.993573130707",
+        "minAmountOut": "983815",
+        "timeEstimate": 22,
+        "refundFee": "0",
+        "withdrawFee": "0"
+      }
+    },
+    {
+      "label": "quarter-usdc-to-wnear",
+      "timestamp": "2026-10-20T17:28:51.078Z",
+      "correlationId": "044bf3cf-9abe-4ada-ae61-687a9214b53f",
+      "dry": true,
+      "originAsset": "nep141:17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1",
+      "destinationAsset": "nep141:wrap.near",
+      "depositType": "ORIGIN_CHAIN",
+      "recipientType": "DESTINATION_CHAIN",
+      "slippageToleranceBps": 100,
+      "quote": {
+        "amountIn": "250000",
+        "amountInFormatted": "0.25",
+        "amountInUsd": "0.249954750000",
+        "minAmountIn": "250000",
+        "amountOut": "50302613368580270597738",
+        "amountOutFormatted": "0.050302613368580270597738",
+        "amountOutUsd": "0.248494910041",
+        "minAmountOut": "49799587234894467891760",
+        "timeEstimate": 22,
+        "refundFee": "0",
+        "withdrawFee": "0"
+      }
+    }
+  ]
+}

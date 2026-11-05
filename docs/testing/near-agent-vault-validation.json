@@ -1,0 +1,61 @@
+{
+  "observedAt": "2026-10-26T15:21:40.417788+00:00",
+  "environment": "NEAR testnet + local sandbox",
+  "javascriptTests": {
+    "passed": 237,
+    "failed": 0,
+    "log": ".local/agent-vault-final-tests.log"
+  },
+  "rustAgentVaultTests": {
+    "passed": 17,
+    "failed": 0
+  },
+  "typecheck": "passed",
+  "frontendBuild": "passed",
+  "changedFrontendLint": "passed",
+  "sandboxAcceptance": "docs/testing/near-agent-vault-sandbox.json",
+  "sandboxToken": "Local FT fixture, not Circle-issued USDC",
+  "deployedVaults": [
+    {
+      "name": "katana",
+      "contractId": "v8350fcee969a.pumpcoin-demo-472db8.testnet",
+      "codeHash": "8FUcmrzx5ihszax9gjto5eU9Qt6J5ZLGFPZPSijzLjUQ",
+      "accessKeys": 0,
+      "transactionHash": "Ec8TkCmmT9xTvNgNucYYVAwNA1SfAbHLsRChHtLx4bGm"
+    },
+    {
+      "name": "okina",
+      "contractId": "v3fe5f9d30a29.pumpcoin-demo-472db8.testnet",
+      "codeHash": "8FUcmrzx5ihszax9gjto5eU9Qt6J5ZLGFPZPSijzLjUQ",
+      "accessKeys": 0,
+      "transactionHash": "F61YP57XPqQqKU1iqKjBYxydwyP3Aik2aeXDDpaCzfKX"
+    },
+    {
+      "name": "nagakiba",
+      "contractId": "v9949ff19b995.pumpcoin-demo-472db8.testnet",
+      "codeHash": "8FUcmrzx5ihszax9gjto5eU9Qt6J5ZLGFPZPSijzLjUQ",
+      "accessKeys": 0,
+      "transactionHash": "BprrgyXLQncG4vak7Yh71GzozQTHkhiC4iHFEbpj41mA"
+    }
+  ],
+  "publicReadChecks": {
+    "allThreeVaults": "verified via local API and FastNear finalized state",
+    "initialAssetsAndSupply": "0",
+    "controllerCircleTestUSDC": "20"
+  },
+  "browserChecks": [
+    "per-agent selection",
+    "deployed contract account and finalized balances",
+    "disconnected wallet amounts unavailable",
+    "navigation from console to selected investor vault",
+    "mobile layout on existing viewport"
+  ],
+  "publicCircleDepositRedemptionAcceptance": "Awaiting wallet approvals; no investor deposits or shares fabricated",
+  "boundaries": [
+    "Per-agent keyless testnet custody",
+    "Agent-specific NEP-141 shares",
+    "Trusted surplus-backed simulated round returns",
+    "No mainnet swap or investment path",
+    "No independent security audit"
+  ]
+}

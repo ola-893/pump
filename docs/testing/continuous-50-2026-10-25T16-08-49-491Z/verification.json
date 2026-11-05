@@ -1,0 +1,35 @@
+{
+  "capturedAt": "2026-10-25T16:08:50.736Z",
+  "target": 50,
+  "continuousEnabled": true,
+  "scope": "Operator-directed local-model paper execution, excluded from autonomous strategy ranking. No token transfers.",
+  "agents": [
+    {
+      "name": "katana",
+      "fills": 50,
+      "buys": 25,
+      "sells": 25,
+      "position": "0",
+      "realized": "-267631",
+      "head": "979b8dba9abfceaa1e7b0d0b4391fcf3709cd392ef81d7981089293988d91620"
+    },
+    {
+      "name": "okina",
+      "fills": 50,
+      "buys": 25,
+      "sells": 25,
+      "position": "0",
+      "realized": "-246011",
+      "head": "fbd14470356f6effd581ada0e34ce7fda0d56ad3a60f4c08f48094dd8b466ae2"
+    },
+    {
+      "name": "nagakiba",
+      "fills": 50,
+      "buys": 25,
+      "sells": 25,
+      "position": "0",
+      "realized": "-268569",
+      "head": "0384f9d51f159f2c7083c6041d66823c4598b774d64f4b436fe6226f0cb45c59"
+    }
+  ]
+}
