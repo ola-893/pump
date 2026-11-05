@@ -1,0 +1,12 @@
+[package]
+name = "pumpcoin-sandbox-token"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+near-sdk = { version = "=5.17.2", features = ["legacy"] }
+near-contract-standards = "=5.17.2"
