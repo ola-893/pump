@@ -1,0 +1,4 @@
+import {writeFileSync} from 'node:fs';
+import {DemoStore} from './store.js';import {PaperDemo} from './service.js';import {NearAgents} from './agents.js';import {AgentVaults} from './agent-vaults.js';import {TestnetDemo} from './testnet.js';import {readFileSync} from 'node:fs';import {vaultReadiness} from './vault-readiness.js';
+const store=new DemoStore('.local/near-demo/paper.sqlite'),paper=new PaperDemo(store),agents=new NearAgents(paper),vaults=new AgentVaults(agents,new TestnetDemo(JSON.parse(readFileSync('deployments/near-demo-testnet.json','utf8'))));
+try{const audit=await vaultReadiness(vaults);writeFileSync('.local/near-demo/demo-readiness-20261104.json',JSON.stringify(audit,null,2)+'\n');console.log(JSON.stringify(audit,null,2));process.exitCode=audit.ready?0:2;}finally{paper.close();await agents.close();store.close();}

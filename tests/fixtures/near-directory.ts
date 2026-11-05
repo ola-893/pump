@@ -1,0 +1,8 @@
+import {randomUUID} from 'node:crypto';
+import {initialPortfolio,digest,metrics} from '../../near-demo/ledger.js';
+export function directoryFixture(owner:string){const id=randomUUID(),rid=randomUUID(),sid=randomUUID(),config={name:'HTTP fixture',initialCash:'100000000',tradeCap:'5000000',exposureCap:'10000000',dailyTurnoverCap:'50000000',slippageBps:50,maxQuoteAgeMs:30000,source:'live',intervalMs:30000,executionDelayMs:1500,strategy:'Fixture strategy stays local unless public.'};
+ const manifest={name:'Agent '+owner,controller:owner,model:{id:'fixture-only',sha256:'a'.repeat(64)}};
+ const session:any={id:sid,version:1,createdAt:new Date().toISOString(),config,portfolio:initialPortfolio(config.initialCash),revision:0,sequence:0,head:null,state:'stopped',turnover:{day:'',used:'0'},agent:{id,modelId:'fixture-only',weightsHash:manifest.model.sha256,strategyRunId:rid}};
+ const definition={schema:'PUMP-STRATEGY-RUN-v1',id:rid,agentId:id,sessionId:sid,version:1,label:'Public HTTP fixture',createdAt:session.createdAt,config,registrationCommitment:digest(manifest)};
+ const run:any={...definition,definition:{...definition,commitment:digest(definition)},id:rid,agentId:id,sessionId:sid,version:1,label:'Public HTTP fixture',createdAt:session.createdAt,config,registrationCommitment:digest(manifest),commitment:digest(definition),session:{...session,metrics:{total:'999999999'}},activity:{fills:9999}};
+ return {agent:{id,sessionId:sid,visibility:'public',createdAt:session.createdAt,manifest,commitment:digest(manifest),session:{...session,metrics:metrics(session)},activity:{fills:0,decisions:0}},runs:[run],vaults:[],histories:{[rid]:{session,events:[]}}};}

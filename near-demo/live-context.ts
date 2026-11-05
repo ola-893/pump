@@ -1,0 +1,9 @@
+import type { MarketContext } from './market-context.js';
+import { researchWindow, type MarketDataset } from './market-history.js';
+/** Keep the ordinary live prompt comfortably within the declared 4,096-token context. */
+export function liveContext(context:MarketContext,data:MarketDataset){
+  const samples=context.samples.slice(-6),first=samples[0],last=samples.at(-1)!;
+  if(!first)throw new Error('A recorded route quote is required for live inference.');
+  const window=researchWindow(data),start=data.bars[0],end=data.bars.at(-1)!;
+  return {...context,samples,sampleCount:samples.length,spanMs:Date.parse(last.receivedAt)-Date.parse(first.receivedAt),outputChangeBps:samples.length<2?null:Number((BigInt(last.outputBaseUnits??last.outputWNEAR!)-BigInt(first.outputBaseUnits??first.outputWNEAR!))*10000n/BigInt(first.outputBaseUnits??first.outputWNEAR!)),scope:'Up to six recent recorded one-USDC route quotes. These are route observations, not candles, order-book depth or a safety assessment.',research:{...window,hourly:window.hourly.slice(-12),daily:window.daily.slice(-14),fullRangeSummary:{closedHourlyBars:data.bars.length,from:new Date(start.openAt).toISOString(),through:new Date(end.closeAt).toISOString(),firstOpen:start.open,lastClose:end.close,priceChangeBps:Math.round((Number(end.close)/Number(start.open)-1)*10000),high:String(Math.max(...data.bars.map(b=>Number(b.high)))),low:String(Math.min(...data.bars.map(b=>Number(b.low)))),meanClose:(data.bars.reduce((n,b)=>n+Number(b.close),0)/data.bars.length).toFixed(8),[data.symbol==='ETHUSDC'?'totalETHVolume':'totalNEARVolume']:Math.round(data.bars.reduce((n,b)=>n+Number(b.volume),0))},scope:data.scope+' Live input is compacted to 12 recent closed hourly candles, 14 complete UTC daily aggregates, and a summary of the full saved range. No future or unfinished candle is included.'}};
+}

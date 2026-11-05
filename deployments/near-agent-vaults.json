@@ -1,0 +1,22 @@
+{
+  "network": "testnet",
+  "parentId": "pumpcoin-demo-472db8.testnet",
+  "vaults": [
+    {
+      "agentId": "8350fcee-969a-4e1b-88dc-53d9835a90c8",
+      "runId": "6a15b99c-0453-4058-a5e2-62a40de404e2",
+      "strategyHash": "f6d354d535a4439ce45f54d408eb0142d93cf79d1b1d45053f97e8263fd668cb",
+      "manifestHash": "8c0cbcdd8d03c66b023f0fe9e23121280e675a845e9e724d1ac097696a61c464",
+      "contractId": "s6a15b99c04534058a5e262a40de404e2.pumpcoin-demo-472db8.testnet",
+      "codeHash": "4GLBqSrCu5aAZdyx4NShE8anzkksTiQobzdf9292zYqu"
+    }
+  ],
+  "factory": {
+    "liveNav": true,
+    "reporterId": "pumpcoin-demo-472db8.testnet",
+    "id": "pl.pumpcoin-demo-472db8.testnet",
+    "codeHash": "EWvJp4r5W9YZ8PD9r3WTLYDYJxxmKrNMv6eHFQ3aapdG",
+    "vaultCodeHash": "DA3fw1YZtuikYWyoQHVE1bKkQWXoRwQXeTb7CTr6Zh3a",
+    "funding": "4362350000000000000000000"
+  }
+}

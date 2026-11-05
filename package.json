@@ -1,0 +1,57 @@
+{
+  "name": "pump",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npm --prefix app run dev",
+    "demo:api": "node --import tsx near-demo/run.ts",
+    "test:near": "npm test",
+    "build:near": "cargo build --manifest-path contracts-near/Cargo.toml --target wasm32-unknown-unknown --release --locked",
+    "test:near-contract": "cargo test --manifest-path contracts-near/Cargo.toml --locked",
+    "build": "npm --prefix app run build",
+    "lint": "npm --prefix app run lint",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "test:near-sandbox": "node --import tsx tests/near-sandbox.ts",
+    "build:near-fixture": "cargo build --manifest-path contracts-near/Cargo.toml -p pumpcoin-sandbox-token --target wasm32-unknown-unknown --release --locked",
+    "demo:deploy-plan": "node --import tsx near-demo/deploy-plan.ts",
+    "demo:create-account": "node --import tsx near-demo/create-testnet-account.ts",
+    "demo:deploy-testnet": "node --import tsx near-demo/deploy-testnet.ts",
+    "demo:setup-testnet": "node --import tsx near-demo/setup-testnet.ts",
+    "demo:register-local": "node --import tsx near-demo/register-local.ts",
+    "demo:compare-local": "node --import tsx near-demo/run-comparison.ts",
+    "demo:verify-agents": "node --import tsx near-demo/verify-local-agents.ts",
+    "demo:live": "node --import tsx near-demo/live-local.ts",
+    "demo:more-trades": "node --import tsx near-demo/more-trades.ts",
+    "build:agent-vault": "cargo build --manifest-path contracts-near/Cargo.toml -p pump-agent-vault --target wasm32-unknown-unknown --release --locked",
+    "test:agent-vault": "cargo test --manifest-path contracts-near/Cargo.toml -p pump-agent-vault --locked",
+    "test:agent-vault-sandbox": "node --import tsx tests/near-agent-vault-sandbox.ts",
+    "vaults:factory-build": "cargo build --manifest-path contracts-near/Cargo.toml --target wasm32-unknown-unknown --release --locked -p pump-agent-vault -p pump-vault-factory",
+    "vaults:factory-plan": "node --import tsx near-demo/deploy-vault-factory.ts",
+    "vaults:factory-deploy": "node --import tsx near-demo/deploy-vault-factory.ts --broadcast",
+    "vaults:plan": "node --import tsx near-demo/deploy-agent-vaults.ts",
+    "vaults:deploy": "node --import tsx near-demo/deploy-agent-vaults.ts --broadcast",
+    "demo:revalidate-models": "node --import tsx near-demo/revalidate-models.ts",
+    "directory:serve": "node --import tsx near-demo/directory/server.ts",
+    "demo:audit": "node --import tsx near-demo/audit-demo.ts",
+    "nav:verify": "node --import tsx near-demo/verify-nav.ts",
+    "strategy:verify": "node --import tsx near-demo/verify-strategy.ts"
+  },
+  "dependencies": {
+    "@defuse-protocol/one-click-sdk-typescript": "0.1.26",
+    "@hot-labs/near-connect": "0.11.4",
+    "near-api-js": "7.3.1",
+    "react": "19.3.0",
+    "@noble/curves": "1.9.7",
+    "@scure/base": "1.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.1",
+    "@types/react": "19.3.0",
+    "tsx": "4.23.13",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.13"
+  }
+}
