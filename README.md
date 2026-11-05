@@ -1,13 +1,71 @@
-# Pump
+# Pump Documentation
 
-Pump lets people run local trading agents, inspect their decisions and compare
-paper portfolios. NEAR Intents supplies signed dry-run quotes; NEAR testnet
-contracts provide per-strategy vaults, test-USDC deposits, shares and redemptions.
-Paper results are hypothetical, and vault NAV depends on a trusted reporter.
+Welcome to Pump — **Local AI Trading Agents on NEAR**.
 
-## Try it locally
+Pump brings local model inference, inspectable paper trading, and strategy-bound
+NEAR testnet vaults into one workspace.
 
-Use Node.js 22.13 or newer and npm. From this checkout:
+## What is Pump?
+
+Pump lets operators register local models, define trading strategies, and run
+agents that propose BUY, SELL, or HOLD decisions within configured limits.
+Users can explore public agents, inspect their decision journals, compare paper
+performance, and try strategy vaults with Circle test USDC on NEAR testnet.
+
+NEAR Intents provides signed live dry-run quotes for simulated trades. NEAR
+contracts handle test-token deposits, shares, and redemptions. Trading returns
+are hypothetical; vault NAV uses a trusted reporter and separately funded surplus.
+
+### Key Innovation
+
+**Each saved strategy version has its own portfolio, commitment, and vault.**
+
+This connects the strategy an operator runs to the records an investor inspects.
+
+| Component | Pump Approach |
+| --- | --- |
+| Decisions | Local model proposals checked against saved strategy limits |
+| Pricing | Signed NEAR Intents dry-run quotes and whole-position valuations |
+| Strategy versions | Immutable configuration commitments and separate portfolios |
+| Investor accounting | Per-strategy testnet vaults with NEP-141 PUMP shares |
+| Evidence | Exportable journals with quote, signature, and accounting verification |
+
+## Quick Links
+
+- [Getting Started](docs/NEAR-DEMO-RUNBOOK.md)
+- [Agent Console](docs/AGENT-CONSOLE.md)
+- [Smart Contracts and Strategy Vaults](docs/NEAR-AGENT-VAULTS.md)
+- [Investor Flow](docs/INVESTOR-FLOW.md)
+- [Shared Directory and Local Runners](docs/NEAR-SHARED-DIRECTORY.md)
+- [Independent Verifier](staging/verifier/README.md)
+- [Test and Demo Evidence](docs/testing/)
+
+## Current Deployment (NEAR Testnet)
+
+| Contract | Account |
+| --- | --- |
+| Strategy Vault Factory | `pl.pumpcoin-demo-472db8.testnet` |
+| Demo Clearing | `pumpcoin-demo-472db8.testnet` |
+| Circle Test USDC | `3e2210e1184b45b64c8a434c0a7e7b23cc04ea7eb7a6c3c32520d03d4afcb8af` |
+
+These are the accounts recorded in the [deployment configuration](deployments/).
+Each strategy vault has a separate account shown in the app. Testnet tokens have
+no monetary value; mainnet trade settlement is not enabled.
+
+## Features
+
+- ✅ **Local AI Agents** — Run locally supplied models and inspect BUY/SELL/HOLD decisions.
+- ✅ **NEAR Intents Quotes** — Verify signed live dry-run quotes for paper trades.
+- ✅ **Versioned Strategies** — Save strategy settings, risk limits, and model bindings.
+- ✅ **Strategy Vaults** — Try test-USDC deposits, PUMP shares, and redemptions on NEAR testnet.
+- ✅ **Safety Controls** — Apply trade, exposure, turnover, and slippage limits; stop future agent decisions.
+- ✅ **Agent Dashboard** — Inspect portfolios, journals, drawdown, and comparable performance.
+- ✅ **Public Agent Directory** — Publish wallet-authorized records while running inference locally.
+- ✅ **Replayable Evidence** — Check signatures, journal continuity, and portfolio accounting.
+
+## Getting Started
+
+Use Node.js 22.13 or newer and npm:
 
 ```sh
 npm ci
@@ -15,26 +73,24 @@ npm --prefix app ci
 npm run dev
 ```
 
-1. Open <http://127.0.0.1:5197/> to see the agent directory. A fresh installation
-   starts with no locally registered agents.
-2. Open <http://127.0.0.1:5197/demo> to create a paper session and inspect its
-   portfolio and journal.
-3. For model-generated decisions, run an OpenAI-compatible inference server on
-   loopback, then enter its endpoint when creating the session. Pump does not
-   download model weights. The default endpoint is `http://127.0.0.1:8080/v1`.
-4. Select live dry-run quotes and run a decision. Inspect the proposal, any
-   assumed fill, and the evidence export. HOLD or a blocked decision is a valid
-   result when the model or market conditions do not support a trade.
+1. Open [Pump](http://127.0.0.1:5197/) to explore the agent directory. A fresh
+   installation starts without locally registered agents.
+2. Open the [paper workbench](http://127.0.0.1:5197/demo) and create a session.
+3. Start an OpenAI-compatible inference server on loopback and enter its endpoint
+   in the session. The default is `http://127.0.0.1:8080/v1`; model weights are
+   supplied separately.
+4. Select live dry-run quotes, run a decision, and inspect the resulting journal.
+   The model may HOLD; invalid proposals or unavailable quotes record a blocked cycle.
 
-The offline tests below use fixtures and do not need a wallet, API key or model
-download. Live quote requests need internet access. The optional 1Click API key
-belongs in a private `.env` file; see [`.env.example`](.env.example).
+Live quotes require internet access. An optional server-side 1Click API key can
+be set in a private `.env` file using [`.env.example`](.env.example).
+The frontend runs with a local API and SQLite ledger; a static build alone does
+not run the agent worker. Follow the [runbook](docs/NEAR-DEMO-RUNBOOK.md) for
+testnet wallet setup and verification.
 
-For wallet and testnet flows, follow the [runbook](docs/NEAR-DEMO-RUNBOOK.md) and
-[vault documentation](docs/NEAR-AGENT-VAULTS.md). A static upload of `app/dist`
-alone does not supply the local API, SQLite ledger or model worker.
+## Verification
 
-## Verify
+The offline regression tests use fixtures and require no wallet, API key, or model download:
 
 ```sh
 npm run typecheck
@@ -43,7 +99,7 @@ npm run lint
 npm run build
 ```
 
-Install Rust for contract checks:
+With Rust installed, run the contract tests and build the WASM:
 
 ```sh
 cargo test --manifest-path contracts-near/Cargo.toml --workspace --locked
@@ -51,41 +107,24 @@ rustup target add wasm32-unknown-unknown
 npm run build:near
 ```
 
-The publication check on November 5, 2026 passed 190 TypeScript tests and 39
-Rust tests, typechecking and the production build. Lint completed with existing
-warnings. Historical sandbox and testnet observations are under
-[`docs/testing/`](docs/testing/); they describe their recorded runs, not a fresh
-deployment each time this repository is checked out.
+The November 5, 2026 publication checks passed 190 TypeScript tests, 39 Rust tests,
+typechecking, and the production build. Lint completed with existing warnings.
+Recorded sandbox and testnet results are available in [test evidence](docs/testing/).
 
-## Source map
+## Built With
 
-| Path | Purpose |
-| --- | --- |
-| `app/` | React frontend, wallet flows, agent console and portfolio views |
-| `near-demo/` | Local API, paper ledger, model adapter, signed evidence and directory |
-| `contracts-near/` | Rust clearing, agent vault, vault factory and sandbox token fixture |
-| `tests/` | TypeScript regression tests and isolated sandbox runners |
-| `deployments/` | Public testnet deployment references |
-| `staging/verifier/` | Independent verification Worker source |
-| `docs/` | Architecture, runbooks and recorded verification evidence |
+React, Vite, TypeScript, Tailwind CSS, Lucide, React Router, `near-api-js`,
+`near-sdk`, `@hot-labs/near-connect`, the 1Click SDK, `@noble/curves`, and
+`@scure/base`. Dependency versions are recorded in the npm and Cargo lockfiles.
+Development includes AI-assisted code and documentation.
 
-## NEAR HACKATHON
+Built for NEAR HACKATHON on the dedicated `hackathon/near-2026` branch.
+See the [source publication diff](https://github.com/ola-893/pump/compare/publication-start...hackathon/near-2026).
 
-The NEAR work is published on the dedicated `hackathon/near-2026` branch. Review
-the [source publication diff](https://github.com/ola-893/pump/compare/publication-start...hackathon/near-2026)
-and the [NEAR demo runbook](docs/NEAR-DEMO-RUNBOOK.md).
-`publication-start` marks repository setup, not a pre-hackathon source snapshot.
-These commits publish work prepared locally; their timestamps record when the
-commits were made.
+## Community
 
-The implementation includes signed NEAR Intents dry-run quote verification,
-testnet wallet authorization, strategy vaults and reproducible evidence checks.
-Mainnet trade settlement is not enabled. The [official rules](https://nearhackathon.com/HACKATHON.md)
-allow libraries, templates and AI-assisted code. The project uses React, Vite,
-TypeScript, Tailwind CSS, Lucide, React Router, `near-api-js`, `near-sdk`,
-`@hot-labs/near-connect`, the 1Click SDK, `@noble/curves`, `@scure/base`, and
-AI-assisted code and documentation. Dependency versions are recorded in the
-npm and Cargo lockfiles. Model weights are supplied separately by the operator.
+- [GitHub Repository](https://github.com/ola-893/pump)
+- [Issues and Feedback](https://github.com/ola-893/pump/issues)
 
 ## License
 
