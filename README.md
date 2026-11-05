@@ -32,6 +32,9 @@ This connects the strategy an operator runs to the records an investor inspects.
 
 ## Quick Links
 
+- [Documentation Hub](docs/README.md) — also available from the app’s **Docs** tab at `/docs`
+- [Quick Setup](docs/QUICK-SETUP.md)
+
 - [Getting Started](docs/NEAR-DEMO-RUNBOOK.md)
 - [Agent Console](docs/AGENT-CONSOLE.md)
 - [Smart Contracts and Strategy Vaults](docs/NEAR-AGENT-VAULTS.md)

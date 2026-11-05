@@ -10,3 +10,12 @@
 
 .na-legacy-practice{margin:20px 0 30px}.na-legacy-practice>summary{color:var(--muted);font-size:11px;cursor:pointer}.na-legacy-practice .na-comparison{margin-top:18px}
 @media(min-width:721px) and (max-width:1250px){.na-shell .nd-header-right>.nd-button{display:none}.na-shell .nd-header{gap:22px}.na-shell .nd-header nav{gap:18px}}
+
+@media(min-width:721px) and (max-width:1000px){
+ .na-shell .nd-header{height:68px;position:relative;gap:16px}
+ .na-shell .nd-header nav{display:none}
+ .na-shell .nd-header .na-menu-toggle{display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--line);border-radius:5px;padding:8px;color:#d8e5ce;font-size:10px;margin-left:auto}
+ .na-shell .nd-header-right{margin-left:0}
+ .na-shell .nd-header nav.na-nav-open{display:flex;position:absolute;top:68px;left:0;right:0;z-index:60;background:#151e14;border-bottom:1px solid var(--line);padding:18px 24px;gap:0;flex-direction:column;height:auto}
+ .na-shell .nd-header nav.na-nav-open a{padding:13px 0;display:block;border:0}
+}
