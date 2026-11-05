@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build:netlify"
+  publish = "app/dist"
+
+[build.environment]
+  NODE_VERSION = "22.23.1"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"

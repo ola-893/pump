@@ -35,7 +35,9 @@
     "directory:serve": "node --import tsx near-demo/directory/server.ts",
     "demo:audit": "node --import tsx near-demo/audit-demo.ts",
     "nav:verify": "node --import tsx near-demo/verify-nav.ts",
-    "strategy:verify": "node --import tsx near-demo/verify-strategy.ts"
+    "strategy:verify": "node --import tsx near-demo/verify-strategy.ts",
+    "start:public": "node --import tsx near-demo/public-server.ts",
+    "build:netlify": "node scripts/build-netlify.mjs"
   },
   "dependencies": {
     "@defuse-protocol/one-click-sdk-typescript": "0.1.26",

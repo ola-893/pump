@@ -1,0 +1,12 @@
+*
+!package.json
+!package-lock.json
+!tsconfig.json
+!near-demo/
+!near-demo/**
+!app/
+!app/src/
+!app/src/lib/
+!app/src/lib/**
+!deployments/
+!deployments/**
