@@ -21,18 +21,18 @@ import { StrategyDeployment } from './strategy-deployment.js';
 import {StrategyVaultUpgrade} from './strategy-vault-upgrade.js';
 import {vaultReadiness} from './vault-readiness.js';
 const PREFIX='/api/near-demo';
-export function nearDemoApi(options:{paper?:PaperDemo;testnet?:TestnetDemo;vaultConfig?:VaultConfig;vaultFetcher?:typeof fetch;directoryKeyPermission?:(account:string,key:string)=>Promise<string>}={}){
+export function nearDemoApi(options:{publicOnly?:boolean;paper?:PaperDemo;testnet?:TestnetDemo;vaultConfig?:VaultConfig;vaultFetcher?:typeof fetch;directoryKeyPermission?:(account:string,key:string)=>Promise<string>}={}){
   const paper=options.paper??new PaperDemo(new DemoStore(fileURLToPath(new URL('../.local/near-demo/paper.sqlite',import.meta.url))));
   const testnet=options.testnet??new TestnetDemo(JSON.parse(readFileSync(new URL('../deployments/near-demo-testnet.json',import.meta.url),'utf8')) as TestnetConfig);
   const agents=new NearAgents(paper);
-  const continuous=new ContinuousTrading(agents);
+  const continuous=new ContinuousTrading(agents,{autoResume:!options.publicOnly});
   const vaults=new AgentVaults(agents,testnet,options.vaultConfig,options.vaultFetcher);
   const strategyDeployment=new StrategyDeployment(vaults);
   const vaultUpgrade=new StrategyVaultUpgrade(vaults);
   const directory=new PumpDirectory(paper.store.db,process.env.PUMP_DIRECTORY_ORIGIN??'http://127.0.0.1:5197',options.directoryKeyPermission);
   const directoryRunner=new DirectoryRunner(agents,vaults,directory);
-  const navSources=new DirectoryNavSource(vaults,directoryRunner);
-  const liveNav=new LiveVaultNav(navSources.facade);
+  const navSources=new DirectoryNavSource(vaults,directoryRunner,{autoStart:!options.publicOnly});
+  const liveNav=new LiveVaultNav(navSources.facade,{autoStart:!options.publicOnly});
   const sharedHandler=directoryHandler(directory,new Set((process.env.PUMP_DIRECTORY_CLIENT_ORIGINS??'http://127.0.0.1:5197').split(',')));
   const token=randomBytes(32).toString('hex');
   async function externalCatalog(){
@@ -47,7 +47,12 @@ export function nearDemoApi(options:{paper?:PaperDemo;testnet?:TestnetDemo;vault
   async function handle(req:IncomingMessage,res:ServerResponse,next:()=>void){
     if(req.url?.startsWith('/api/pump-directory/')){const original=req.url;req.url=req.url.slice('/api/pump-directory'.length);try{await sharedHandler(req,res);}finally{req.url=original;}return;}
     if(!req.url?.startsWith(PREFIX)){next();return;}
-    if(!allowedRequest(req)){send(res,403,{error:'Demo controls accept only this loopback application origin.'});return;}
+    if(options.publicOnly){
+      const reads=new Set(['/public-nav-evidence','/public-strategy-report','/public-strategy-history','/public-history','/public-vault-state','/public-vault-plan','/public-vault-receipt']);
+      if(!(req.method==='GET'&&req.url===PREFIX+'/public-status')&&!(req.method==='POST'&&reads.has(req.url.slice(PREFIX.length)))){
+        send(res,403,{error:'Agent controls run on your computer. Open your local Pump workspace.'});return;
+      }
+    }else if(!allowedRequest(req)){send(res,403,{error:'Demo controls accept only this loopback application origin.'});return;}
     if(req.url===PREFIX+'/public-status'&&req.method==='GET'){const registry=agents.publicStatus();let directoryError='';let external:any[]=[];try{external=await externalCatalog();}catch{directoryError='Shared directory unavailable; local public agents shown.';}
       registry.agents.push(...external.map(x=>({...x.entry.agent,directoryProof:x.proof,runnerOffline:x.offline})));
       registry.strategyRuns.push(...external.flatMap(x=>x.entry.runs.map((r:any)=>({...r,session:{...r.session,state:x.offline?'stopped':r.session.state,valuationStale:x.offline||r.session.portfolio.position!=='0'&&(!r.session.portfolio.markAt||Date.now()-Date.parse(r.session.portfolio.markAt)>30000)}}))));

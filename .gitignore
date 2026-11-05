@@ -21,3 +21,8 @@ dist/
 *.zip
 staging/verifier/worker/
 staging/verifier/.git/
+
+# Provider account state and persistent hosted data
+.netlify/
+.railway/
+.data/

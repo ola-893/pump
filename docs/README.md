@@ -34,6 +34,7 @@ trusted reporter and separately funded surplus. Mainnet trading is disabled.
 - [Strategy vault contracts](NEAR-AGENT-VAULTS.md)
 - [Shared directory and runners](NEAR-SHARED-DIRECTORY.md)
 - [Full demo runbook](NEAR-DEMO-RUNBOOK.md)
+- [Netlify and Railway deployment](DEPLOYMENT.md)
 - [Independent verifier source](../staging/verifier/README.md)
 
 The Markdown files in `docs/` are also the source of the frontend documentation.
