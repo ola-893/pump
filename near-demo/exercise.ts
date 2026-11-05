@@ -1,0 +1,9 @@
+import { units, type Event, type Session } from './types.js';
+export type ExecutionExercise={version:'PUMPCOIN-EXECUTION-EXERCISE-v1';id:string;startedAt:string;buyQuoteUnits:'2000000';objective:'One model-generated paper BUY followed by a full model-generated paper SELL.';disclosure:'Operator-directed execution exercise; exclude from autonomous performance rankings.'};
+export function executionExercise(id:string,startedAt:string):ExecutionExercise{return {version:'PUMPCOIN-EXECUTION-EXERCISE-v1',id,startedAt,buyQuoteUnits:'2000000',objective:'One model-generated paper BUY followed by a full model-generated paper SELL.',disclosure:'Operator-directed execution exercise; exclude from autonomous performance rankings.'};}
+export function exerciseGuidance(s:Session,history:Event[]){
+  const directive=s.exercise;if(!directive)return undefined;
+  const fills=history.filter(e=>e.kind==='fill'&&e.exerciseId===directive.id),bought=fills.some(e=>e.action==='BUY');
+  const phase=!bought?'BUY':units(s.portfolio.position)>0n?'SELL':'COMPLETE';
+  return {...directive,phase,requestedQuoteUnits:phase==='BUY'?directive.buyQuoteUnits:phase==='SELL'?s.config.tradeCap:'0',instruction:phase==='BUY'?'This is an authorized execution test, not an alpha trade. Propose BUY of exactly 2000000 USDC base units (2 virtual USDC) to test the paper route even in a bearish market. Explain that this is operator-directed. HOLD only if the supplied data or hard limits prevent the test.':phase==='SELL'?'Complete the authorized test by proposing SELL now. Set quoteUnits to the supplied per-trade cap as a proceeds ceiling; the engine will sell the existing whole position when its fresh quoted value fits that ceiling. This exits the test inventory, not a short sale. Explain that this is operator-directed.':'The requested paper round trip is complete. Do not open another exercise position.',priorHoldCount:history.filter(e=>e.kind==='hold'&&e.exerciseId===directive.id).length};
+}

@@ -1,0 +1,73 @@
+.av-agent-tabs{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 24px}.av-vault,.av-operator{padding:28px;margin-bottom:24px}.av-vault h2{display:flex;align-items:center;gap:12px}.av-address{overflow-wrap:anywhere;font-size:12px;color:var(--nd-muted,#94a198)}.av-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:#ffffff0c;border:1px solid #ffffff0c;border-radius:10px;overflow:hidden;margin:24px 0}.av-metrics>div{background:#151c15;padding:20px}.av-metrics small{display:block;color:#94a198;font-size:11px;margin-bottom:12px}.av-metrics strong{font-size:22px;font-weight:500;overflow-wrap:anywhere}.av-status{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.av-status small{color:#94a198}.av-invest{display:grid;grid-template-columns:1fr 1fr;gap:40px;border-top:1px solid #ffffff0c;margin-top:28px;padding-top:24px}.av-invest p,.av-operator p{color:#94a198;line-height:1.7;font-size:13px}.av-invest label,.av-operator label{display:grid;gap:10px;margin:20px 0;color:#b7c1b7;font-size:12px}.av-invest input,.av-operator select{background:#101710;color:#e4e9df;border:1px solid #ffffff20;border-radius:8px;padding:12px;font:inherit}.av-vault pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}.av-invest a{display:inline-flex;gap:7px;align-items:center;font-size:12px;color:#b9e992;margin-top:16px}@media(max-width:700px){.av-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.av-invest{grid-template-columns:1fr;gap:12px}.av-vault,.av-operator{padding:18px}.av-metrics strong{font-size:18px}.av-metrics>div{padding:14px}}
+
+.av-flow-tabs{display:flex;gap:8px;margin-bottom:20px}.av-amount-field{display:flex;align-items:center;gap:8px}.av-amount-field input{min-width:0;flex:1}.av-amount-field button{padding:10px}.av-invest-submit{width:100%;justify-content:center}.av-invest .av-available{margin-top:-8px}.av-invest .av-help{font-size:12px}.av-invest details{margin-top:16px;color:var(--nd-muted,#94a198);font-size:12px}.av-vault [role=status] details{margin-top:8px}
+
+.av-invest-cta{border-color:#546b40;margin:20px 0 30px;scroll-margin-top:24px}.av-invest-cta .av-invest{margin-top:18px;padding-top:18px}.av-cta-copy{align-self:center;min-width:0}.av-cta-copy h3{font-size:23px;line-height:1.35;margin:12px 0}.av-cta-copy ul{padding-left:18px;margin:16px 0;color:var(--nd-muted,#94a198);font-size:12px;line-height:1.9}.av-ownership-details{border-top:1px solid #ffffff0c;margin-top:20px;padding-top:16px}.av-ownership-details>summary{cursor:pointer;color:var(--accent);font-size:12px}.av-ownership-details .av-metrics{margin:18px 0}.av-invest-cta h2{text-transform:none}@media(max-width:700px){.av-invest-cta{margin-top:16px}.av-cta-copy h3{font-size:20px}.av-cta-copy{border-top:1px solid #ffffff0c;padding-top:20px}.av-invest-cta .nd-card-top{align-items:flex-start}}
+
+.av-invest-cta .av-flow-tabs{margin-bottom:12px}.av-invest-cta .av-invest label{margin:12px 0}.av-invest-cta .av-available{margin-top:0;line-height:1.4}
+
+.ip-investor-sidebar .av-vault,.ip-investor-sidebar .av-operator{padding:22px}
+.ip-investor-sidebar .nd-card-top{align-items:flex-start;gap:12px;flex-wrap:nowrap}
+.ip-investor-sidebar .av-vault h2{font-size:21px;line-height:1.4;gap:8px;margin:12px 0 8px}
+.ip-investor-sidebar .av-vault h2 svg{flex-shrink:0;width:18px}
+.ip-investor-sidebar .nd-eyebrow{font-size:9px;letter-spacing:1.5px;line-height:1.7}
+.ip-investor-sidebar .av-refresh{flex-shrink:0}
+.ip-investor-sidebar .av-address{font-size:11px;line-height:1.7}
+.ip-investor-sidebar .av-invest{grid-template-columns:minmax(0,1fr);gap:0;margin-top:18px;padding-top:18px}
+.ip-investor-sidebar .av-status{margin-top:14px}
+.ip-investor-sidebar .av-status .nd-pill{white-space:normal;line-height:1.5;font-size:9px}
+.ip-investor-sidebar .av-invest .av-help{font-size:10px;line-height:1.8;margin-top:12px}
+.ip-investor-sidebar .av-invest p{font-size:11px}
+.ip-investor-sidebar .av-invest .av-available{margin-bottom:12px}
+.ip-investor-sidebar .av-ownership-details{margin-top:18px;padding-top:14px;font-size:11px;line-height:1.8}
+.ip-investor-sidebar .av-ownership-details>summary{font-size:11px}
+.ip-investor-sidebar .av-ownership-details p{color:var(--nd-muted,#94a198);margin-top:12px;overflow-wrap:anywhere}
+.ip-investor-sidebar .av-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+.ip-investor-sidebar .av-metrics>div{padding:12px}
+.ip-investor-sidebar .av-metrics small{font-size:9px;margin-bottom:8px}
+.ip-investor-sidebar .av-metrics strong{font-size:16px}
+.ip-investor-sidebar .ag-switch-note h2{font-size:21px}
+@media(max-width:600px){.ip-investor-sidebar .av-vault{padding:18px}}
+
+.av-balance .av-available{margin-bottom:4px}
+.av-balance-source{overflow-wrap:anywhere;margin-bottom:12px}
+.av-invest .av-balance-source a{display:inline;margin:0;font-size:inherit}
+
+/* The action panel must stay usable with long names, expanded receipts and zoom. */
+.av-card-heading{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 12px;align-items:start}
+.av-card-heading>.nd-eyebrow{align-self:center;min-width:0;overflow-wrap:anywhere}
+.av-card-heading>.av-refresh{grid-column:2;grid-row:1}
+.av-card-heading>h2,.av-card-heading>p{grid-column:1/-1;min-width:0}
+.av-card-heading>h2{align-items:flex-start;line-height:1.35;margin:0;overflow-wrap:anywhere}
+.av-card-heading>h2 svg{flex:none;margin-top:.2em}
+.av-card-heading>h2 span{min-width:0}
+.av-vault,.av-operator,.av-invest>div{min-width:0;overflow-wrap:anywhere}
+.av-vault .nd-alert,.av-vault .nd-notice{display:block;line-height:1.65;max-width:100%;margin:14px 0}
+.av-vault .nd-notice>svg{display:inline;vertical-align:middle;margin-right:6px}
+.av-vault .nd-notice>span{white-space:normal}
+.av-invest .av-balance{margin:10px 0 16px}
+.av-invest .av-balance-source{font-size:10px;line-height:1.65;margin-top:6px}
+.av-invest .av-balance-source a{overflow-wrap:anywhere}
+.av-vault .av-flow-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.av-vault .av-flow-tabs .nd-button{min-width:0;white-space:normal}
+.av-amount-field{min-width:0;padding:2px}
+.av-amount-field input{width:0;min-height:42px}
+.av-amount-field .nd-text-button{flex:none;margin:0;min-height:40px}
+.av-vault .av-invest-submit{white-space:normal;min-height:42px;line-height:1.5}
+.av-live-price{border-top:1px solid var(--line);padding-top:14px;margin-top:16px}
+.av-live-price small{display:block;font-size:10px;line-height:1.6;color:var(--muted)}
+.av-live-price h3{font-size:25px;font-variant-numeric:tabular-nums;margin:4px 0}
+.av-live-price p{font-size:11px;line-height:1.65;color:var(--muted);margin:6px 0}
+.av-ownership-details summary{line-height:1.65;overflow-wrap:anywhere;padding:3px 0}
+.av-ownership-details[open]{padding-bottom:8px}
+.ip-investor-sidebar .av-vault h2{margin:0;font-size:21px;line-height:1.35}
+.ip-investor-sidebar .av-address{margin:0}
+.ip-investor-sidebar .av-invest .av-help{font-size:11px;line-height:1.65}
+.ip-investor-sidebar .av-vault .av-invest label{margin:16px 0 8px}
+.ip-investor-sidebar .av-metrics{grid-template-columns:minmax(0,1fr)}
+
+
+.av-receipt-lookup form,.av-receipt-lookup label{display:grid;gap:8px}
+.av-receipt-lookup form{margin-top:12px}
+.av-receipt-lookup input{width:100%;min-width:0;background:#101710;color:inherit;border:1px solid #ffffff20;border-radius:8px;padding:10px;font:inherit}
+.av-receipt-lookup button{justify-self:start}

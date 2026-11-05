@@ -1,0 +1,110 @@
+{
+  "entry": {
+    "source": "live",
+    "id": "8552438a5b67f44182b423e8ef85648c40c14836e75ca9ae38f1b0801c98b5f3",
+    "observedAt": "2026-11-05T08:39:23.393Z",
+    "receivedAt": "2026-11-05T08:39:23.814Z",
+    "tokenIn": "nep141:arb-0xaf88d065e77c8cc2239327c5edb3a432268e5831.omft.near",
+    "tokenOut": "nep141:eth.omft.near",
+    "amountIn": "5000000",
+    "amountOut": "2021026540318906",
+    "minimumOut": "2010921407617311",
+    "signatureVerified": true,
+    "raw": {
+      "quote": {
+        "amountIn": "5000000",
+        "amountInFormatted": "5.0",
+        "amountInUsd": "4.999090000000",
+        "minAmountIn": "5000000",
+        "amountOut": "2021026540318906",
+        "amountOutFormatted": "0.002021026540318906",
+        "amountOutUsd": "4.901595668235",
+        "minAmountOut": "2010921407617311",
+        "timeEstimate": 34,
+        "refundFee": "5300",
+        "withdrawFee": "35000000000000"
+      },
+      "quoteRequest": {
+        "dry": true,
+        "depositMode": "SIMPLE",
+        "swapType": "EXACT_INPUT",
+        "slippageTolerance": 50,
+        "originAsset": "nep141:arb-0xaf88d065e77c8cc2239327c5edb3a432268e5831.omft.near",
+        "depositType": "ORIGIN_CHAIN",
+        "destinationAsset": "nep141:eth.omft.near",
+        "amount": "5000000",
+        "refundTo": "0x2527D02599Ba641c19FEa793cD0F167589a0f10D",
+        "refundType": "ORIGIN_CHAIN",
+        "recipient": "0x2527D02599Ba641c19FEa793cD0F167589a0f10D",
+        "recipientType": "DESTINATION_CHAIN",
+        "deadline": "2026-11-05T08:49:23.261Z",
+        "confidentiality": "public",
+        "quoteWaitingTimeMs": 0,
+        "insured": false,
+        "appFees": [
+          {
+            "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+            "fee": 20
+          }
+        ]
+      },
+      "signature": "ed25519:3fa6kNMpfSPx3eYAdoL7zpnTYssSb72UmfpYtNrugmiPNGvwkWLibVMHfUNcrshYSvDdLZtAJLTXjLNgR9GfZFFX",
+      "timestamp": "2026-11-05T08:39:23.393Z",
+      "correlationId": "9841b326-10ac-417b-995e-b1e2400a9713"
+    }
+  },
+  "exit": {
+    "source": "live",
+    "id": "442ad0db6a0e2adb1e5b52ce830fcbf0700035936c9098db4e95812bd277e36d",
+    "observedAt": "2026-11-05T08:39:23.935Z",
+    "receivedAt": "2026-11-05T08:39:24.350Z",
+    "tokenIn": "nep141:eth.omft.near",
+    "tokenOut": "nep141:arb-0xaf88d065e77c8cc2239327c5edb3a432268e5831.omft.near",
+    "amountIn": "2021026540318906",
+    "amountOut": "4872823",
+    "minimumOut": "4848458",
+    "signatureVerified": true,
+    "raw": {
+      "quote": {
+        "amountIn": "2021026540318906",
+        "amountInFormatted": "0.002021026540318906",
+        "amountInUsd": "4.901595668235",
+        "minAmountIn": "2021026540318906",
+        "amountOut": "4872823",
+        "amountOutFormatted": "4.872823",
+        "amountOutUsd": "4.871936146214",
+        "minAmountOut": "4848458",
+        "timeEstimate": 46,
+        "refundFee": "35000000000000",
+        "withdrawFee": "5300"
+      },
+      "quoteRequest": {
+        "dry": true,
+        "depositMode": "SIMPLE",
+        "swapType": "EXACT_INPUT",
+        "slippageTolerance": 50,
+        "originAsset": "nep141:eth.omft.near",
+        "depositType": "ORIGIN_CHAIN",
+        "destinationAsset": "nep141:arb-0xaf88d065e77c8cc2239327c5edb3a432268e5831.omft.near",
+        "amount": "2021026540318906",
+        "refundTo": "0x2527D02599Ba641c19FEa793cD0F167589a0f10D",
+        "refundType": "ORIGIN_CHAIN",
+        "recipient": "0x2527D02599Ba641c19FEa793cD0F167589a0f10D",
+        "recipientType": "DESTINATION_CHAIN",
+        "deadline": "2026-11-05T08:49:23.815Z",
+        "confidentiality": "public",
+        "quoteWaitingTimeMs": 0,
+        "insured": false,
+        "appFees": [
+          {
+            "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+            "fee": 20
+          }
+        ]
+      },
+      "signature": "ed25519:5gAfn3y8AUy7nfYnHwPcgZyHMCQRHtpkDxmayeEgHntKkYShRwsZo84amc1nHmf847ypEYREZL5SucVYot1rCQnH",
+      "timestamp": "2026-11-05T08:39:23.935Z",
+      "correlationId": "2f621c31-ad64-4158-8e98-5f830fe457b3"
+    }
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "market": {
+    "base": {
+      "assetId": "nep141:sol.omft.near",
+      "blockchain": "sol",
+      "decimals": 9,
+      "symbol": "SOL"
+    },
+    "quote": {
+      "assetId": "nep141:eth.omft.near",
+      "blockchain": "eth",
+      "decimals": 18,
+      "symbol": "ETH"
+    }
+  },
+  "entry": {
+    "source": "live",
+    "id": "34d5e83b7bbcacc75ab44ad151843f477da786662a3735b05cbee39250807057",
+    "observedAt": "2026-11-05T09:04:28.638Z",
+    "receivedAt": "2026-11-05T09:04:29.028Z",
+    "tokenIn": "nep141:eth.omft.near",
+    "tokenOut": "nep141:sol.omft.near",
+    "amountIn": "10000000000000000",
+    "amountOut": "249374438",
+    "minimumOut": "246880693",
+    "signatureVerified": true,
+    "raw": {
+      "quote": {
+        "amountIn": "10000000000000000",
+        "amountInFormatted": "0.01",
+        "amountInUsd": "24.179800000000",
+        "minAmountIn": "10000000000000000",
+        "amountOut": "249374438",
+        "amountOutFormatted": "0.249374438",
+        "amountOutUsd": "24.114508154600",
+        "minAmountOut": "246880693",
+        "timeEstimate": 10,
+        "refundFee": "0",
+        "withdrawFee": "0"
+      },
+      "quoteRequest": {
+        "dry": true,
+        "depositMode": "SIMPLE",
+        "swapType": "EXACT_INPUT",
+        "slippageTolerance": 100,
+        "originAsset": "nep141:eth.omft.near",
+        "depositType": "INTENTS",
+        "destinationAsset": "nep141:sol.omft.near",
+        "amount": "10000000000000000",
+        "refundTo": "intents.near",
+        "refundType": "INTENTS",
+        "recipient": "intents.near",
+        "recipientType": "INTENTS",
+        "deadline": "2026-11-05T09:14:28.552Z",
+        "confidentiality": "public",
+        "quoteWaitingTimeMs": 0,
+        "insured": false,
+        "appFees": [
+          {
+            "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+            "fee": 20
+          }
+        ]
+      },
+      "signature": "ed25519:2S438z9Xa6coJEPn2x1ABohXPues1PNfdWEoFERKzQs8ifRdQkLEeC6wETGyq2EDVtvvjAx3qWns2LX1JN5jFhUx",
+      "timestamp": "2026-11-05T09:04:28.638Z",
+      "correlationId": "5309f11c-7722-4d6c-b360-2849433771e6"
+    }
+  },
+  "exit": {
+    "source": "live",
+    "id": "9bf7b5f0f1bf9d451830ddac6119e3249f85746881f4cf3907aa35e2ed592405",
+    "observedAt": "2026-11-05T09:04:29.148Z",
+    "receivedAt": "2026-11-05T09:04:29.532Z",
+    "tokenIn": "nep141:sol.omft.near",
+    "tokenOut": "nep141:eth.omft.near",
+    "amountIn": "249374438",
+    "amountOut": "9948521968627666",
+    "minimumOut": "9849036748941389",
+    "signatureVerified": true,
+    "raw": {
+      "quote": {
+        "amountIn": "249374438",
+        "amountInFormatted": "0.249374438",
+        "amountInUsd": "24.114508154600",
+        "minAmountIn": "249374438",
+        "amountOut": "9948521968627666",
+        "amountOutFormatted": "0.009948521968627666",
+        "amountOutUsd": "24.055327149702",
+        "minAmountOut": "9849036748941389",
+        "timeEstimate": 10,
+        "refundFee": "0",
+        "withdrawFee": "0"
+      },
+      "quoteRequest": {
+        "dry": true,
+        "depositMode": "SIMPLE",
+        "swapType": "EXACT_INPUT",
+        "slippageTolerance": 100,
+        "originAsset": "nep141:sol.omft.near",
+        "depositType": "INTENTS",
+        "destinationAsset": "nep141:eth.omft.near",
+        "amount": "249374438",
+        "refundTo": "intents.near",
+        "refundType": "INTENTS",
+        "recipient": "intents.near",
+        "recipientType": "INTENTS",
+        "deadline": "2026-11-05T09:14:29.028Z",
+        "confidentiality": "public",
+        "quoteWaitingTimeMs": 0,
+        "insured": false,
+        "appFees": [
+          {
+            "recipient": "5880ad2b362620fadf759cbceb1cd5737ce8c6ed7fb8e9942881e6731f9247dd",
+            "fee": 20
+          }
+        ]
+      },
+      "signature": "ed25519:28A9CfVAc3XC7TmNtJKYaf3j8kVfsbsSwaNySfCuWttapGt6F3AKHRraZsTptBkd1kEnAXbm1d335jXZVuNbR2bm",
+      "timestamp": "2026-11-05T09:04:29.148Z",
+      "correlationId": "22ee03df-3413-4c7c-9d33-702ab33d3056"
+    }
+  }
+}
