@@ -4,7 +4,7 @@ import { bytesToHex } from '@noble/hashes/utils';
 
 export type BrowserModel = InstalledModel & {
   measure(progress?: (completedBytes: number) => void): Promise<string>;
-  openWeights?: (checksum: string, signal?: AbortSignal) => Promise<File>;
+  openWeights?: (checksum: string, signal?: AbortSignal, progress?: (completedBytes: number) => void) => Promise<File>;
 };
 
 type DirectoryEntries = {
@@ -91,9 +91,9 @@ async function scanModelFiles(files: ModelFiles, signal?: AbortSignal) {
       name, filename, bytes: file.size,
       quantization: filename.match(/(?:I?Q\d[^.]*)/i)?.[0] ?? 'See model metadata',
       runtime: 'llama.cpp',
-    }, async progress => hashFile(await currentFile(), progress), async (checksum, signal) => {
+    }, async progress => hashFile(await currentFile(), progress), async (checksum, signal, progress) => {
       const current = await currentFile();
-      if (await hashFile(current, undefined, signal) !== checksum) throw new Error('The selected weights do not match this agent’s checksum.');
+      if (await hashFile(current, progress, signal) !== checksum) throw new Error('The selected weights do not match this agent’s checksum.');
       return current;
     });
     async function currentFile() {
