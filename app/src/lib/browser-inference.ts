@@ -6,17 +6,19 @@ import type { AgentManifest } from '../../../near-demo/public-types.js';
 import { lastModelDirectory, scanModelDirectory } from './browser-models.js';
 import { BrowserRuntimeCache, runtimeDiagnostics } from './browser-runtime.js';
 import { browserProposalRequest } from './browser-proposal.js';
+import type { ReportInferenceProgress } from './browser-inference-progress.js';
 
 const runtimes=new BrowserRuntimeCache<Wllama>();
 let diagnostics=runtimeDiagnostics();
 
-export async function prepareBrowserModel(manifest: AgentManifest, modelId: string, signal: AbortSignal) {
+export async function prepareBrowserModel(manifest: AgentManifest, modelId: string, signal: AbortSignal, progress: ReportInferenceProgress) {
   signal.throwIfAborted();
   if (manifest.inference.runtime !== 'llama.cpp') {
     throw new Error('This agent uses an MLX classifier bundle. Browser inference currently supports GGUF models.');
   }
   const loaded=runtimes.get(manifest.model.sha256);
   if(loaded)return loaded;
+  progress('scanning');
   const directory = await lastModelDirectory();
   if (!directory || await directory.queryPermission({ mode: 'read' }) !== 'granted') {
     throw new Error('Allow read access to your model folder in Create an agent, then try again.');
@@ -26,7 +28,9 @@ export async function prepareBrowserModel(manifest: AgentManifest, modelId: stri
     models.find(model => model.filename === manifest.model.filename && model.bytes === manifest.model.bytes);
   if (!selected?.openWeights) throw new Error('The registered GGUF file is missing from the permitted model folder.');
   await runtimes.clear();
-  const file = await selected.openWeights(manifest.model.sha256, signal);
+  progress('verifying',0,selected.bytes);
+  const file = await selected.openWeights(manifest.model.sha256, signal, completed=>progress('verifying',completed,selected.bytes));
+  progress('loading');
   const engine = await import('@wllama/wllama/esm/index.js') as unknown as { Wllama: typeof Wllama };
   diagnostics=runtimeDiagnostics();
   const runtime = new engine.Wllama({ default: new URL(wasmUrl, location.origin).href }, { logger:diagnostics.logger });
@@ -50,10 +54,11 @@ export async function prepareBrowserModel(manifest: AgentManifest, modelId: stri
   return runtime;
 }
 
-export function browserInference(runtime: Wllama, strategyVersion: { id: string; commitment: string }, signal: AbortSignal): typeof import('../../../near-demo/model.js').infer {
+export function browserInference(runtime: Wllama, strategyVersion: { id: string; commitment: string }, signal: AbortSignal, progress: ReportInferenceProgress): typeof import('../../../near-demo/model.js').infer {
   return async (session, market, _fetcher, context): Promise<ModelDecision> => {
     const id = session.agent!.modelId;
     const request = browserProposalRequest(session, market, strategyVersion, context);
+    progress('evaluating');
     const response = await runtimes.evaluate(runtime,()=>runtime.createChatCompletion({
       messages: request.messages.map(message => ({ role: message.role as 'system' | 'user', content: message.content })),
       model: id, temperature: 0, max_tokens: 512,

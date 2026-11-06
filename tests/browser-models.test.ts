@@ -27,6 +27,10 @@ test('stopping a browser run cancels GGUF verification between file reads', asyn
   const file = modelFile('Qwen.gguf', 'GGUF' + '0'.repeat(9 * 1024 * 1024));
   const [model] = await scanSelectedModelFiles([file] as unknown as FileList);
   const checksum = await model.measure();
+  const progress: number[] = [];
+  assert.equal(await model.openWeights!(checksum, undefined, completed => progress.push(completed)), file);
+  assert.equal(progress.at(-1), file.size);
+  assert.ok(progress.every((completed, index) => completed > (progress[index - 1] ?? 0)));
   const controller = new AbortController();
   const slice = file.slice.bind(file);
   const reads: number[] = [];
