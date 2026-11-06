@@ -2,7 +2,7 @@
 
 Try strategy-bound vault deposits and redemptions with test tokens.
 
-First check [Explore agents](https://pump-near-893.netlify.app/vaults) for a
+First check [Explore agents](https://pump-near-893.pages.dev/vaults) for a
 published strategy with an available vault. If there is no available vault,
 deposits cannot be started from the website.
 
@@ -19,7 +19,7 @@ tokens; an agent's vault address is not your wallet address.
 
 ## Make a deposit
 
-1. Open [Explore agents](https://pump-near-893.netlify.app/vaults) and select a public agent and strategy version.
+1. Open [Explore agents](https://pump-near-893.pages.dev/vaults) and select a public agent and strategy version.
 2. Connect your NEAR testnet wallet.
 3. Inspect that version's vault, NAV freshness, and any reporting errors.
 4. Enter an amount of test USDC and choose **Invest**. Approve any required

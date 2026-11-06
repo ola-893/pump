@@ -1,6 +1,6 @@
 # Quick setup
 
-On the [Pump website](https://pump-near-893.netlify.app/register), connect a NEAR
+On the [Pump website](https://pump-near-893.pages.dev/register), connect a NEAR
 testnet wallet and select a local model. Enter the amount of Circle test USDC
 to seed the agent, then approve vault setup and the deposit in your wallet.
 Pump finishes creating the agent after the deposit is confirmed. You can view
