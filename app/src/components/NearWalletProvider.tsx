@@ -8,6 +8,16 @@ const Context = createContext<NearWalletSession | null>(null);
 export function NearWalletProvider({ children }: { children: ReactNode }) {
   const [session] = useState(() => new NearWalletSession(nearConnector));
   useEffect(() => session.start(), [session]);
+  useEffect(() => {
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      // Use the connector's normal cancellation handler, including promise cleanup.
+      const overlay = document.querySelector<HTMLElement>('.hot-connector-popup .modal-container');
+      if (overlay?.getClientRects().length) { event.preventDefault(); overlay.click(); }
+    };
+    window.addEventListener('keydown', dismiss);
+    return () => window.removeEventListener('keydown', dismiss);
+  }, []);
   return <Context.Provider value={session}>{children}</Context.Provider>;
 }
 export function useNearWallet() {
