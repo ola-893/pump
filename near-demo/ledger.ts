@@ -2,14 +2,9 @@ import { createHash } from 'node:crypto';
 import { verifyQuoteSignature } from '@defuse-protocol/one-click-sdk-typescript';
 import { paperMarket, units, type Config, type Portfolio, type Quote, type Session, type Event } from './types.js';
 import { executionExercise, type ExecutionExercise } from './exercise.js';
-export function canonical(v: unknown): string {
-  if (v === null || typeof v === 'string' || typeof v === 'boolean' || (typeof v === 'number' && Number.isSafeInteger(v))) return JSON.stringify(v);
-  if (Array.isArray(v)) return '['+v.map(canonical).join(',')+']';
-  if (v && typeof v === 'object' && Object.getPrototypeOf(v) === Object.prototype) return '{'+Object.keys(v).sort().filter(k => (v as any)[k] !== undefined).map(k => JSON.stringify(k)+':'+canonical((v as any)[k])).join(',')+'}';
-  throw new Error('Unsupported evidence encoding.');
-}
+import { canonical, initialPortfolio } from './paper-state.js';
+export { canonical, initialPortfolio, metrics } from './paper-state.js';
 export const digest = (v: unknown) => createHash('sha256').update(canonical(v)).digest('hex');
-export function initialPortfolio(cash: string): Portfolio { units(cash,false); return { cash, position:'0', cost:'0', realized:'0', equity:cash, peak:cash, drawdownBps:0, maxDrawdownBps:0, markAt:null }; }
 export function freshQuote(q: Quote, s: {config:Pick<Config,'source'|'maxQuoteAgeMs'>}, now: number) {
   const age = now - Date.parse(q.receivedAt), sourceAge = now - Date.parse(q.observedAt);
   if (q.source !== s.config.source || !Number.isFinite(age) || age < 0 || age > s.config.maxQuoteAgeMs || !Number.isFinite(sourceAge) || sourceAge < -5000 || sourceAge > s.config.maxQuoteAgeMs) throw new Error('Quote is stale or belongs to a different source.');
@@ -62,10 +57,6 @@ export function retirePaperDust(s:Session,sale:Event|undefined,now:number):Portf
   if(!isPaperDust(s,sale))throw new Error('Position is not an eligible paper rounding residual.');
   const p=s.portfolio;
   return mark({...s,portfolio:{...p,position:'0',cost:'0',realized:String(BigInt(p.realized)-units(p.cost))}},undefined,now);
-}
-export function metrics(s: Session) {
-  const p = s.portfolio, total = p.equity === null ? null : BigInt(p.equity)-units(s.config.initialCash);
-  return { total:total?.toString() ?? null, realized:p.realized, unrealized:total === null ? null : String(total-BigInt(p.realized)), returnBps:total === null ? null : Number(total*10000n/units(s.config.initialCash)), costModel:'Quoted output includes route economics; network gas and setup costs excluded.', exposurePolicy:'Allocated purchase cost; not a continuous marked-exposure guarantee.' };
 }
 export function makeEvent(s: Session, detail: Omit<Event,'id'|'sessionId'|'sequence'|'previousHash'|'before'|'hash'>): Event {
   const body = { id:`${s.id}:${s.sequence+1}`, sessionId:s.id, sequence:s.sequence+1, previousHash:s.head, before:s.portfolio, ...detail };
