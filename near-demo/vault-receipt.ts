@@ -6,7 +6,8 @@ function entries(r:any,executor:string,standard:string,event:string){return (r.r
 /** A finalized transaction is not necessarily an investment: setup and refunds are distinct. */
 export function vaultReceiptEffect(r:any,account:string,vault:string):VaultEffect{
  const tx=r.transaction;
- if(tx?.signer_id!==account||![TEST_USDC,vault].includes(tx?.receiver_id)||tx.actions?.length!==1)throw new Error('Transaction is outside this agent vault.');
+ if(!tx||![TEST_USDC,vault].includes(tx.receiver_id)||tx.actions?.length!==1)throw new Error('Transaction is outside this agent vault.');
+ if(tx.signer_id!==account)throw new Error('Transaction was signed by a different wallet account.');
  const call=tx.actions[0].FunctionCall,args=decoded(call?.args),method=call?.method_name;
  if(!call||!args||typeof args!=='object')throw new Error('Unsupported vault transaction.');
  const final=r.final_execution_status==='FINAL',failed=!!r.status?.Failure||[r.transaction_outcome,...(r.receipts_outcome??[])].some(x=>x?.outcome?.status?.Failure),value=decoded(r.status?.SuccessValue);
