@@ -199,6 +199,12 @@ export async function archiveFundingDraft(id: string, archived: boolean) {
   } finally { db.close(); }
 }
 
+function duplicateFundingMessage(draft: FundingDraft) {
+  return draft.archived
+    ? 'A funding draft already uses this name. Restore it under Archived funding drafts or choose another name.'
+    : 'A funding draft already uses this name. Resume it under Continue vault funding or choose another name.';
+}
+
 export async function prepareBrowserAgent(input: Registration, model: BrowserModel, factory:SeedFactory, progress?: (completedBytes: number) => void) {
   if (input.modelId !== model.id) throw new Error('Select the model again before registering.');
   if (!model.openWeights) throw new Error('Choose GGUF weights for browser inference.');
@@ -209,7 +215,16 @@ export async function prepareBrowserAgent(input: Registration, model: BrowserMod
   const owner = testAccount(controller);
   const ownerName = JSON.stringify([owner, config.name.toLowerCase()]);
   const duplicateMessage = 'This controller already has an agent with this name. Open it in My agents or choose another name.';
-  if ((await listAgents()).some(agent => agent.ownerName === ownerName)) throw new Error(duplicateMessage);
+  const [registeredId, drafts] = await Promise.all([
+    agentStore<IDBValidKey | undefined>('readonly', (store, finish) => {
+      const lookup = store.index('ownerName').getKey(ownerName);
+      lookup.onsuccess = () => finish(lookup.result);
+    }),
+    browserFundingDrafts(),
+  ]);
+  if (registeredId !== undefined) throw new Error(duplicateMessage);
+  const existingDraft = drafts.find(draft => draft.ownerName === ownerName);
+  if (existingDraft) throw new Error(duplicateFundingMessage(existingDraft));
   const weightsHash = await model.measure(progress);
   const manifest: AgentManifest = {
     version: 'PUMPCOIN-NEAR-AGENT-v1', name: config.name, controller: owner, network: 'NEAR testnet',
@@ -230,14 +245,16 @@ export async function prepareBrowserAgent(input: Registration, model: BrowserMod
   try {
     await new Promise<void>((resolve,reject)=>{
       const tx=db.transaction(['agents','funding'],'readwrite');
+      let conflictMessage=duplicateMessage;
       tx.oncomplete=()=>resolve();
-      tx.onabort=()=>reject(tx.error??new Error(duplicateMessage));
+      tx.onabort=()=>reject(tx.error??new Error(conflictMessage));
       const lookup=tx.objectStore('agents').index('ownerName').getKey(ownerName);
       lookup.onsuccess=()=>{
         if(lookup.result!==undefined){tx.abort();return;}
         const pending=tx.objectStore('funding').getAll();
         pending.onsuccess=()=>{
-          if(pending.result.some((item:FundingDraft)=>item.ownerName===ownerName)){tx.abort();return;}
+          const conflict=(pending.result as FundingDraft[]).find(item=>item.ownerName===ownerName);
+          if(conflict){conflictMessage=duplicateFundingMessage(conflict);tx.abort();return;}
           tx.objectStore('funding').add(draft,agentId);
         };
       };

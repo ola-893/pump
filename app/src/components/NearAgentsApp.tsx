@@ -196,7 +196,10 @@ function Register({data,api,refresh}:Props){
       }
       navigate(visibility==='private'?`/console?agent=${agentId}&scope=local&panel=identity`:`/agents/${agentId}`);
       window.scrollTo(0,0);
-    }catch(e){setError((e as Error).message);}finally{setBusy('');}
+    }catch(e){
+      setError((e as Error).message);
+      if(hostedApp)await browserFundingDrafts().then(setSavedFunding).catch(()=>{});
+    }finally{setBusy('');}
   }
   async function finishFunding(){
     if(!funding||!seedFactory)return;
