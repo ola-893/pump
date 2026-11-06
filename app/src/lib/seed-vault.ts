@@ -4,6 +4,7 @@ import { TEST_USDC, testAccount, units, type WalletPlan } from '../../../near-de
 import { RpcQueryError, TestnetReads } from '../../../near-demo/rpc-reads.js';
 import { nearConnector } from './near-demo-wallet.js';
 import type { SeedVault } from '../../../near-demo/workspace-transfer.js';
+import { seedNearBalance, type SeedNearBalance } from './seed-vault-fees.js';
 export type { SeedVault } from '../../../near-demo/workspace-transfer.js';
 
 export type SeedFactory = { id:string; codeHash:string; vaultCodeHash:string; funding:string };
@@ -60,8 +61,19 @@ const plan = (v:SeedVault, receiverId:string, methodName:string, args:Record<str
   ({network:'testnet',signerId:v.owner,receiverId,description:methodName,actions:[{type:'FunctionCall',params:{methodName,args,gas,deposit}}]});
 
 export type SeedStep =
-  | { kind:'deploy'|'storage'|'fund'; plan:WalletPlan }
+  | { kind:'deploy'|'storage'|'fund'; plan:WalletPlan; balance:SeedNearBalance }
   | { kind:'confirmed'; state:SeedState };
+
+async function checkedStep(kind:'deploy'|'storage'|'fund', transaction:WalletPlan):Promise<SeedStep> {
+  const account=await query('view_account',transaction.signerId);
+  if(typeof account.block_hash!=='string'||!account.block_hash)throw new Error('Could not verify your NEAR testnet balance.');
+  const block=account.block_hash;
+  const [gas,protocol]=await Promise.all([
+    reads.query('gas_price',[block],true),
+    reads.query('EXPERIMENTAL_protocol_config',{block_id:block},true),
+  ]);
+  return {kind,plan:transaction,balance:seedNearBalance(transaction,account,gas.gas_price,protocol.runtime_config)};
+}
 
 export async function seedStep(v:SeedVault, factory:SeedFactory):Promise<SeedStep> {
   const state=await readSeedVault(v,factory);
@@ -74,16 +86,16 @@ export async function seedStep(v:SeedVault, factory:SeedFactory):Promise<SeedSte
     if (account.code_hash!==factory.codeHash || keys.keys?.length!==0 || funding!==factory.funding ||
       base58.encode(Uint8Array.from(atob(child),c=>c.charCodeAt(0)))!==factory.vaultCodeHash)
       throw new Error('The NEAR testnet factory did not match Pump’s verified deployment.');
-    return {kind:'deploy',plan:plan(v,factory.id,'deploy_seeded',{agent_id:v.agentId,manifest_hash:v.manifestHash,
-      strategy_id:v.strategyId,strategy_hash:v.strategyHash,seed:v.amount},'220000000000000',factory.funding)};
+    return checkedStep('deploy',plan(v,factory.id,'deploy_seeded',{agent_id:v.agentId,manifest_hash:v.manifestHash,
+      strategy_id:v.strategyId,strategy_hash:v.strategyHash,seed:v.amount},'220000000000000',factory.funding));
   }
   if (state.paused||state.archived||state.pending) throw new Error('The agent vault is not accepting seed deposits.');
   if (!await view(TEST_USDC,'storage_balance_of',{account_id:v.contractId})) {
     const {min}=await view(TEST_USDC,'storage_balance_bounds');
     if (units(min,false)>10n**23n) throw new Error('Unexpected test USDC storage fee.');
-    return {kind:'storage',plan:plan(v,TEST_USDC,'storage_deposit',{account_id:v.contractId,registration_only:true},'25000000000000',min)};
+    return checkedStep('storage',plan(v,TEST_USDC,'storage_deposit',{account_id:v.contractId,registration_only:true},'25000000000000',min));
   }
-  return {kind:'fund',plan:plan(v,TEST_USDC,'ft_transfer_call',{receiver_id:v.contractId,amount:v.amount,msg:'{"kind":"seed"}'},'100000000000000','1')};
+  return checkedStep('fund',plan(v,TEST_USDC,'ft_transfer_call',{receiver_id:v.contractId,amount:v.amount,msg:'{"kind":"seed"}'},'100000000000000','1'));
 }
 
 async function send(v:SeedVault, transaction:WalletPlan) {
@@ -96,7 +108,7 @@ async function send(v:SeedVault, transaction:WalletPlan) {
 /** Recompute the next action after the user clicks; never submit a stale or supplied plan. */
 export async function approveSeedStep(v:SeedVault, factory:SeedFactory, expected:Exclude<SeedStep['kind'],'confirmed'>) {
   const step=await seedStep(v,factory);
-  if (step.kind!==expected) return step;
+  if (step.kind==='confirmed'||step.kind!==expected||step.balance.shortfall>0n) return step;
   await send(v,step.plan);
   if(expected==='fund'){
     const state=await waitFor(()=>readSeedVault(v,factory), next=>next?.received===v.amount);
