@@ -43,10 +43,6 @@ function CodeBlock({ children, ...props }: ComponentPropsWithoutRef<'pre'>) {
 function DocLink({ href = '', children, ...props }: ComponentPropsWithoutRef<'a'>) {
   if (href.startsWith('#')) return <a {...props} href={href}>{children}</a>;
   if (href.startsWith('/') && !href.startsWith('//')) return <Link to={href}>{children}</Link>;
-  if (href.startsWith('http://127.0.0.1:5197/')) {
-    const local = new URL(href);
-    return <Link to={local.pathname + local.search + local.hash}>{children}</Link>;
-  }
   if (/^https?:\/\//.test(href)) return <a {...props} href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
   const resolved = new URL(href, 'https://pump.invalid/docs/');
   const doc = documents.find(item => resolved.pathname === `/docs/${item.file}`);

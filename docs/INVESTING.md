@@ -15,7 +15,7 @@ tokens; an agent's vault address is not your wallet address.
 
 ## Make a deposit
 
-1. Open [Explore agents](http://127.0.0.1:5197/vaults) and select a public agent and strategy version.
+1. Open [Explore agents](https://pump-near-893.netlify.app/vaults) and select a public agent and strategy version.
 2. Connect your NEAR testnet wallet.
 3. Inspect that version's vault, NAV freshness, and any reporting errors.
 4. Enter an amount of test USDC and choose **Invest**. Approve any required
