@@ -1,7 +1,7 @@
 import { LocalRunnerConnection } from './LocalRunnerConnection';
 import { hostedApp, runnerFetch, useLocalRunner } from '../lib/local-runner';
 import { useEffect, useRef, useState } from 'react';
-import { Activity, ArrowUpRight, ArrowDownLeft, ArrowRight, Bot, Download, Layers3, Play, Plus, RefreshCw, ShieldCheck, Square, X } from 'lucide-react';
+import { Activity, ArrowUpRight, ArrowDownLeft, ArrowRight, Bot, Download, Layers3, Menu, Play, Plus, RefreshCw, ShieldCheck, Square, X } from 'lucide-react';
 import type { Event, Session } from '../../../near-demo/types';
 import type { TestnetConfig, WalletPlan } from '../../../near-demo/types';
 import { sendDemoPlan } from '../lib/near-demo-wallet';
@@ -15,16 +15,41 @@ function amount(v:string){if(!/^\d+(?:\.\d{1,6})?$/.test(v))throw new Error('Use
 export function NearDemo(){
   const {account}=useNearWallet();
   const runner=useLocalRunner(),available=!hostedApp||runner.connected;
+  const [menuOpen,setMenuOpen]=useState(false);
   const [sessions,setSessions]=useState<View[]>([]),[id,setId]=useState(new URLSearchParams(window.location.search).get('session')??''),[events,setEvents]=useState<Event[]>([]),[config,setConfig]=useState<TestnetConfig>(),[chain,setChain]=useState<any>();
   const [error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(''),[testAmount,setTestAmount]=useState('5'),[tab,setTab]=useState('activity'),[plans,setPlans]=useState<WalletPlan[]>([]);
   const token=useRef(''),selection=useRef(new URLSearchParams(window.location.search).get('session')??'');const s=sessions.find(x=>x.id===id);
   async function api(path:string,body:unknown){const r=await runnerFetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Pumpcoin-Demo-Token':token.current},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Demo request failed.');return d;}
-  function selectSession(value:string){selection.current=value;setId(value);setEvents([]);setPlans([]);}
-  async function load(){const r=await runnerFetch('/status');if(!r.ok)throw new Error('Local demo API unavailable. Run npm run dev on the operator computer.');const d=await r.json();token.current=d.token;setSessions(d.sessions);setConfig(d.testnet);if(!selection.current&&d.sessions.length)selectSession(d.sessions[0].id);}
+  function selectSession(value:string){
+    const url=new URL(window.location.href);
+    if(value)url.searchParams.set('session',value);
+    else url.searchParams.delete('session');
+    window.history.replaceState(window.history.state,'',url);
+    selection.current=value;
+    setId(value);
+    setEvents([]);
+    setPlans([]);
+  }
+  async function load(){
+    const r=await runnerFetch('/status');
+    if(!r.ok)throw new Error('Local demo API unavailable. Check that the runner is connected.');
+    const d=await r.json() as {token:string;sessions:View[];testnet:TestnetConfig};
+    token.current=d.token;
+    const workbenchSessions=d.sessions.filter(session=>!session.agent?.strategyRunId);
+    setSessions(workbenchSessions);
+    setConfig(d.testnet);
+    if(!workbenchSessions.some(session=>session.id===selection.current))selectSession(workbenchSessions[0]?.id??'');
+  }
   async function history(session=id){if(session){const d=await api('/history',{id:session});if(selection.current===session)setEvents(d.events);}}
   async function task(label:string,run:()=>Promise<void>){if(busy)return;setBusy(label);setError('');setNotice('');try{await run();await load();await history();}catch(e){setError(e instanceof Error?e.message:'Demo action failed.');}finally{setBusy('');}}
-  useEffect(()=>{document.title='pump · NEAR paper trading';if(!available){void Promise.resolve().then(()=>{setSessions([]);setEvents([]);});return;}void Promise.resolve().then(load).catch(e=>setError(e.message));const timer=setInterval(()=>{void load().catch(()=>{});void history(selection.current).catch(()=>{});},4000);return()=>clearInterval(timer);},[available]);
-  useEffect(()=>{void Promise.resolve().then(()=>history(id)).catch(e=>setError(e.message));},[id]);
+  useEffect(()=>{
+    document.title='pump · NEAR paper trading';
+    if(!available){void Promise.resolve().then(()=>{setSessions([]);setEvents([]);});return;}
+    const refresh=async()=>{await load();await history(selection.current);};
+    void refresh().catch(e=>setError(e.message));
+    const timer=setInterval(()=>void refresh().catch(()=>{}),4000);
+    return()=>clearInterval(timer);
+  },[available]);
   useEffect(()=>{setPlans([]);setChain(undefined);},[account]);
   async function prepare(action:string){if(!account)throw new Error('Connect your NEAR testnet wallet first.');const d=await api('/testnet-plan',{action,account,amount:amount(testAmount),id});setPlans(d.plans);if(!d.plans.length)setNotice('Account storage is already prepared.');}
   async function send(){if(!config)return;let remaining=[...plans];while(remaining.length){const r=await sendDemoPlan(remaining[0],account,config),hash=r?.transaction?.hash;remaining=remaining.slice(1);setPlans(remaining);if(!hash)throw new Error('Wallet returned no hash. Inspect its history before retrying.');const receipt=await api('/testnet-receipt',{hash,account});if(receipt.status!=='final')throw new Error(`Transaction ${hash} is ${receipt.status}. Inspect before continuing.`);setChain(receipt.observation);setNotice(`Testnet transaction finalized: ${hash}. Trading remains simulated.`);}}
@@ -32,12 +57,22 @@ export function NearDemo(){
   const sealed=!!s?.testnet?.settlementPrepared;
   const action=(path:string)=>void task(path,async()=>{await api(path,{id});});
   return <div className="near-demo">
-    <header className="nd-header"><a href="/" className="nd-brand"><span className="nd-logo">p.</span>pump</a><nav><a href="#workbench">Agent workbench</a><a href="/agents">Explore agents</a><a href="#funding">Testnet funding</a><a href="#record">Evidence</a></nav><div className="nd-header-right"><span className="nd-network"><i/>NEAR testnet</span><NearWalletButton/></div></header>
+    <header className="nd-header nd-workbench-header">
+      <a href="/" className="nd-brand"><span className="nd-logo">p.</span>pump</a>
+      <button type="button" className="nd-workbench-menu" aria-controls="workbench-navigation" aria-expanded={menuOpen} onClick={()=>setMenuOpen(!menuOpen)}>{menuOpen?<X size={14}/>:<Menu size={14}/>}Menu</button>
+      <nav id="workbench-navigation" className={menuOpen?'nd-workbench-nav-open':''}>
+        <a href="#workbench" onClick={()=>setMenuOpen(false)}>Agent workbench</a>
+        <a href="/vaults" onClick={()=>setMenuOpen(false)}>Explore agents</a>
+        <a href="#funding" onClick={()=>setMenuOpen(false)}>Testnet funding</a>
+        <a href="#record" onClick={()=>setMenuOpen(false)}>Evidence</a>
+      </nav>
+      <div className="nd-header-right"><span className="nd-network"><i/>NEAR testnet</span><NearWalletButton/></div>
+    </header>
     <div className="nd-banner"><ShieldCheck size={14}/><strong>Paper trading</strong><span>Live quotes · Simulated fills · Reserve-funded testnet payouts</span><span>Mainnet trading disabled</span></div>
     <main className="nd-main" id="workbench"><LocalRunnerConnection/><div className="nd-title"><div><div className="nd-eyebrow">YOUR INTELLIGENCE. A VISIBLE RECORD.</div><h1>Let the agent show its work<span>.</span></h1><p>Watch decisions become paper positions. Follow every quote, assumption, and outcome.</p></div><a className="nd-button" href="/register"><Plus size={16}/>Register an agent</a></div>
       {error&&<div className="nd-alert" role="alert">{error}<button onClick={()=>setError('')} aria-label="Dismiss error"><X size={16}/></button></div>}{notice&&<div className="nd-notice" role="status">{notice}</div>}
-      <div className="nd-workspace"><aside className="nd-sidebar"><div className="nd-label">PAPER SESSIONS <span>{sessions.length}</span></div>{!sessions.length&&<p className="nd-muted">Create a session to begin. Paper trading needs no funded wallet.</p>}{sessions.map(a=><button className={`nd-agent ${a.id===id?'selected':''}`} key={a.id} onClick={()=>selectSession(a.id)}><span className="nd-avatar"><Bot size={20}/></span><span><strong>{a.config.name}</strong><small>{a.state==='running'?'● Running':'○ Stopped'} · {a.config.source==='live'?'Live quotes':'Synthetic'}</small></span></button>)}<div className="nd-side-note"><Layers3 size={21}/><h3>Two ledgers.<br/>Clear boundaries.</h3><p>Paper trades track strategy results. The testnet surplus funds demo payouts separately.</p><a href="#funding">View clearing reserve <ArrowRight size={13}/></a></div></aside>
-      <section className="nd-content">{!s?<div className="nd-card nd-welcome"><span className="nd-avatar large"><Bot size={32}/></span><div className="nd-eyebrow">READY WHEN YOUR MODEL IS</div><h2>A small start.<br/>A complete trading record.</h2><p>Connect your local inference server, set a virtual balance, and let your agent decide. Every fill stays simulated.</p><a className="nd-button" href="/register">Register your first agent <ArrowRight size={16}/></a><div className="nd-steps"><span>01 · Local model</span><span>02 · Dry-run quote</span><span>03 · Paper portfolio</span></div></div>:<>
+      <div className="nd-workspace"><aside className="nd-sidebar"><div className="nd-label">PAPER SESSIONS <span>{sessions.length}</span></div>{!sessions.length&&<p className="nd-muted">Register an agent to begin. Paper trading needs no funded wallet.</p>}{sessions.map(a=><button className={`nd-agent ${a.id===id?'selected':''}`} key={a.id} aria-pressed={a.id===id} onClick={()=>{selectSession(a.id);void history(a.id).catch(e=>setError(e.message));}}><span className="nd-avatar"><Bot size={20}/></span><span><strong>{a.config.name}</strong><small>{a.state==='running'?'● Running':'○ Stopped'} · {a.config.source==='live'?'Live quotes':'Synthetic'}</small></span></button>)}<div className="nd-side-note"><Layers3 size={21}/><h3>Two ledgers.<br/>Clear boundaries.</h3><p>Paper trades track strategy results. The testnet surplus funds demo payouts separately.</p><a href="#funding">View clearing reserve <ArrowRight size={13}/></a></div></aside>
+      <section className="nd-content">{!s?<div className="nd-card nd-welcome"><span className="nd-avatar large"><Bot size={32}/></span><div className="nd-eyebrow">READY WHEN YOUR MODEL IS</div><h2>A small start.<br/>A complete trading record.</h2><p>Register an installed model, set a virtual balance, and let your agent decide. Every fill stays simulated.</p><a className="nd-button" href="/register">Register your first agent <ArrowRight size={16}/></a><div className="nd-steps"><span>01 · Local model</span><span>02 · Dry-run quote</span><span>03 · Paper portfolio</span></div></div>:<>
         <div className="nd-agent-heading"><div className="nd-identity"><span className="nd-avatar large"><Bot size={25}/></span><div><h2>{s.config.name} <span className={`nd-pill ${s.config.source==='live'?'':'warning'}`}>{s.config.source==='live'?'1Click live quotes':'Synthetic fixed-price scenario'}</span></h2><p>USDC / wNEAR · Worker {s.state} · {s.testnet?'Linked Circle test USDC':'Virtual capital'}</p></div></div><button className="nd-icon" aria-label="Export replayable evidence" disabled={!!busy} onClick={()=>void task('export',async()=>{const d=await api('/export',{id}),url=URL.createObjectURL(new Blob([JSON.stringify(d.bundle,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=`paper-${id}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);})}><Download size={18}/></button></div>
         <div className="nd-metrics">{[['Quoted equity',fmt(s.portfolio.equity),'USDC',s.valuationStale?'Quote expired · refresh valuation':'Hypothetical liquidation value'],['Total paper P&L',signed(s.metrics.total),'USDC',s.metrics.returnBps===null?'Return unavailable':`${(s.metrics.returnBps/100).toFixed(2)}% return · before modeled gas`],['Available paper cash',fmt(s.portfolio.cash),'USDC',`${(Number(s.portfolio.position)/1e24).toFixed(6)} wNEAR held`],['Maximum drawdown',(s.portfolio.maxDrawdownBps/100).toFixed(2),'%','From observed equity marks']].map(([label,value,unit,sub])=><div key={label}><small>{label}</small><strong className={label==='Total paper P&L'?(Number(s.metrics.total??0)>=0?'positive':'negative'):''}>{value}<span> {unit}</span></strong><p>{sub}</p></div>)}</div>
         <div className="nd-card nd-equity"><div className="nd-card-top"><div><h3>Strategy in motion</h3><p>Quoted equity · hypothetical performance</p></div><span className="nd-pill">{marks.length} valuation observations</span></div><svg viewBox="0 0 800 190" role="img" aria-label="Paper equity from recorded liquidation quotes"><defs><linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#b3ef81" stopOpacity=".2"/><stop offset="100%" stopColor="#b3ef81" stopOpacity="0"/></linearGradient></defs>{[38,88,138].map(y=><line key={y} x1="16" x2="784" y1={y} y2={y} stroke="#ffffff0b" strokeDasharray="3 5"/>)}<polygon points={`16,180 ${points} 784,180`} fill="url(#equityFill)"/><polyline points={points} fill="none" stroke="#b3ef81" strokeWidth="2"/>{!marks.length&&<text x="400" y="70" textAnchor="middle" fill="#94a198" fontSize="12">Your first valuation will appear here.</text>}</svg><div className="nd-breakdown"><span>Realized <b>{signed(s.metrics.realized)}</b></span><span>Unrealized <b>{signed(s.metrics.unrealized)}</b></span><span>Starting balance <b>{fmt(s.config.initialCash)} USDC</b></span></div></div>
