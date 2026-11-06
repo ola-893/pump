@@ -147,13 +147,15 @@ function agentView(agent: StoredAgent) {
 
 function strategySession(run: StoredRun) {
   const execution = executions.get(run.id);
-  return { ...sessionView(run.paper.session), state: execution?.continuous && !execution.controller.signal.aborted ? 'running' as const : 'stopped' as const,
+  return { ...sessionView(run.paper.session), state: execution && !execution.controller.signal.aborted ? 'running' as const : 'stopped' as const,
     error: errors.get(run.id) ?? null };
 }
 
-function strategyView(run: StoredRun, archived: boolean) {
+function strategyView(run: StoredRun, archived: boolean, otherTabRunId?: string) {
   const { paper, ...record } = run;
-  return { ...record, archived, session: strategySession(run), activity: activity(paper.events) };
+  const session = strategySession(run);
+  if (run.id === otherTabRunId) session.state = 'running';
+  return { ...record, archived, session, activity: activity(paper.events) };
 }
 
 export async function browserWorkspace() {
@@ -166,7 +168,7 @@ export async function browserWorkspace() {
     : undefined;
   return {
     agents: records.map(agentView),
-    strategyRuns: records.flatMap(agent => agent.runs.map((run, index) => strategyView(run, index !== 0))),
+    strategyRuns: records.flatMap(agent => agent.runs.map((run, index) => strategyView(run, index !== 0, otherTabRunId))),
     // Runtime and vault state are only populated by an actual runtime or vault.
     vaults: [], execution: { activeId: activeSession, queued: [], runtimeBusy, otherTabBusy, otherTabRunId }, models: [], measurement: null,
     continuous: null, runtime: { modelId: null, phase: runtimePhase }, comparisons: [], market: null,
@@ -455,6 +457,7 @@ async function browserStrategyAction(agent: StoredAgent, run: StoredRun, action:
     return withPaperExecution(run.id, async () => {
       const controller = new AbortController();
       executions.set(run.id, { controller, continuous: false });
+      errors.delete(run.id);
       try {
         return await runPaperCycle(agent, run, controller.signal, action);
       } catch (error) {
