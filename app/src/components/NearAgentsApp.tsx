@@ -119,8 +119,9 @@ function Register({data,api,refresh}:Props){
   const model=models.find(m=>m.id===modelId),effectiveOwner=owner??wallet.account;
 
   function applyBrowserScan(found:BrowserModel[]){
-    setBrowserModels(found);
-    setModelId(current=>found.some(model=>model.id===current)?current:'');
+    const supported=found.filter(model=>model.openWeights);
+    setBrowserModels(supported);
+    setModelId(current=>supported.some(model=>model.id===current)?current:'');
     setScanned(true);
   }
 
@@ -256,7 +257,7 @@ function Register({data,api,refresh}:Props){
             <label>Choose an installed local model
               <select aria-label="Choose an installed local model" value={modelId} onChange={e=>choose(e.target.value)}>
                 <option value="">Select downloaded weights</option>
-                {models.map(m=><option key={m.id} value={m.id} disabled={hostedApp&&m.runtime!=='llama.cpp'}>{m.name} · {(m.bytes/1e9).toFixed(2)} GB{hostedApp&&m.runtime!=='llama.cpp'?' · MLX detected, select GGUF to run in browser':''}</option>)}
+                {models.map(m=><option key={m.id} value={m.id}>{m.name} · {(m.bytes/1e9).toFixed(2)} GB</option>)}
               </select>
             </label>
             {model&&<details>
@@ -271,7 +272,7 @@ function Register({data,api,refresh}:Props){
             </details>}
             {busy==='detect'&&<p role="status">Looking for local models…</p>}
             {busy!=='detect'&&!models.length&&(scanned||!hostedApp&&!error)&&
-              <p role="status">No supported models found{hostedApp?' in that folder':''}.</p>}
+              <p role="status">{hostedApp?'No GGUF models found in that folder.':'No supported models found.'}</p>}
             <button type="button" className="nd-button secondary" disabled={!!busy} onClick={()=>void detect()}><RefreshCw size={14}/>Detect again</button>
             {hostedApp&&!pickModelDirectory&&<input type="file" hidden ref={input=>{
               folderInput.current=input;
