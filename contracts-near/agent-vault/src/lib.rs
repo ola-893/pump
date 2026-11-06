@@ -25,6 +25,10 @@ pub struct Pending {pub id:u64,pub account:AccountId,pub shares:U128,pub assets:
 #[derive(Deserialize)]
 #[serde(crate="near_sdk::serde",deny_unknown_fields)]
 struct Deposit {kind:String,min_shares:Option<U128>,expected_nonce:Option<u64>}
+const SEED_KEY:&[u8]=b"pump-owner-seed-v1";
+#[near(serializers=[borsh,json])]
+#[derive(Clone)]
+pub struct SeedFunding {pub required:U128,pub received:U128}
 #[derive(Serialize)]
 #[serde(crate="near_sdk::serde")]
 pub struct State {pub version:&'static str,pub environment:&'static str,pub agent_id:String,pub manifest_hash:String,pub strategy_id:String,pub strategy_hash:String,pub name:String,pub controller_id:AccountId,pub reporter_id:AccountId,pub token_id:AccountId,pub assets:U128,pub reserve:U128,pub total_supply:U128,pub nonce:u64,pub paused:bool,pub round:Option<Round>,pub pending:Option<Pending>,pub last_evidence_hash:String,pub archived:bool,pub public:bool,pub factory_id:Option<AccountId>,pub live_nav:Option<LiveNav>,pub nav_fresh:bool}
@@ -56,6 +60,17 @@ impl Vault {
   let mut vault=Self::new_owned(agent_id,manifest_hash,strategy_id,strategy_hash,name,owner_id,reporter_id,public,factory_id);
   vault.live_nav=Some(LiveNav{reference_equity:initial_equity,equity:initial_equity,sequence:0,observed_at_ms:env::block_timestamp_ms(),tracking:false});
   vault
+ }
+ #[init]
+ pub fn new_seeded(agent_id:String,manifest_hash:String,strategy_id:String,strategy_hash:String,owner_id:AccountId,factory_id:AccountId,seed:U128)->Self {
+  assert!(seed.0>0&&seed.0<=MAX_ASSETS,"Invalid seed amount");
+  let mut vault=Self::new_owned(agent_id,manifest_hash,strategy_id,strategy_hash,"Pump agent vault".into(),owner_id.clone(),factory_id.clone(),false,factory_id);
+  vault.token.internal_register_account(&owner_id);
+  Self::write_seed(&SeedFunding{required:seed,received:U128(0)});
+  vault
+ }
+ pub fn seed_funding(&self)->Option<SeedFunding>{
+  env::storage_read(SEED_KEY).map(|bytes|near_sdk::borsh::from_slice(&bytes).expect("Invalid seed state"))
  }
  /// Trusted quote reporter updates redeemable assets while positions remain open.
  pub fn report_nav(&mut self,run_id:String,strategy_hash:String,equity:U128,sequence:u64,observed_at_ms:u64,evidence_hash:String,tracking:bool,expected_nonce:u64) {
@@ -93,6 +108,7 @@ impl Vault {
   if !self.archived {self.archived=true;self.paused=true;self.nonce+=1;}
  }
  pub fn publish(&mut self) {
+  assert!(self.seed_funding().is_none(),"Seed vault is closed to investors");
   let predecessor=env::predecessor_account_id();
   assert_eq!(env::signer_account_id(),self.controller,"Owner only");
   assert!(predecessor==self.controller || self.factory.as_ref()==Some(&predecessor),"Owner or factory only");
@@ -107,6 +123,18 @@ impl Vault {
   assert_eq!(env::predecessor_account_id().as_str(),TOKEN,"Pinned test USDC only");
   if amount.0==0||amount.0>MAX_ASSETS||self.pending.is_some(){return amount}
   let Ok(m)=near_sdk::serde_json::from_str::<Deposit>(&msg)else{return amount};
+  if let Some(mut seed)=self.seed_funding(){
+   if m.kind!="seed"||m.min_shares.is_some()||m.expected_nonce.is_some()||sender_id!=self.controller||
+      seed.received.0!=0||amount.0!=seed.required.0||self.archived||self.paused{return amount}
+   self.assets=amount.0;
+   self.token.internal_deposit(&sender_id,amount.0);
+   self.nonce+=1;
+   seed.received=amount;
+   Self::write_seed(&seed);
+   FtMint{owner_id:&sender_id,amount,memo:Some("Agent seed")}.emit();
+   self.event("seed_funded",near_sdk::serde_json::json!({"account_id":sender_id,"assets":amount}));
+   return U128(0)
+  }
   if m.kind=="reserve"&&m.min_shares.is_none()&&m.expected_nonce.is_none(){if sender_id!=self.controller||self.reserve>MAX_ASSETS-amount.0{return amount}self.reserve+=amount.0;self.nonce+=1;self.event("reserve_funded",near_sdk::serde_json::json!({"amount":amount}));return U128(0)}
   if m.kind!="deposit"||!self.nav_fresh()||!self.public||self.archived||self.paused||self.round.is_some()||m.expected_nonce!=Some(self.nonce)||self.assets>MAX_ASSETS-amount.0||self.token.accounts.get(&sender_id).is_none(){return amount}
   if self.token.total_supply==0 {
@@ -147,6 +175,7 @@ impl Vault {
  pub fn withdraw_reserve(&mut self,amount:U128,expected_nonce:u64)->Promise{assert_one_yocto();assert_eq!(env::predecessor_account_id(),self.controller,"Controller only");self.idle();assert_eq!(self.nonce,expected_nonce,"NAV changed");assert!(amount.0>0&&amount.0<=self.reserve,"Insufficient free surplus");self.reserve-=amount.0;self.nonce+=1;self.pending=Some(Pending{id:self.nonce,account:self.controller.clone(),shares:U128(0),assets:amount,reserve:true});self.pay(self.controller.clone(),amount.0,self.nonce)}
 }
 impl Vault {
+ fn write_seed(seed:&SeedFunding){env::storage_write(SEED_KEY,&near_sdk::borsh::to_vec(seed).expect("Invalid seed state"));}
  fn nav_fresh(&self)->bool{
   self.live_nav.as_ref().is_none_or(|nav| !nav.tracking||env::block_timestamp_ms().saturating_sub(nav.observed_at_ms)<=60_000)
  }

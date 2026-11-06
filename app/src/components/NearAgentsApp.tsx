@@ -14,10 +14,12 @@ import './AgentVisibility.css';
 import { AgentLeaderboard } from './AgentLeaderboard';
 import { hostedApp } from '../lib/hosting';
 import { lastModelDirectory, pickModelDirectory, rememberModelDirectory, scanModelDirectory, scanSelectedModelFiles, type BrowserModel } from '../lib/browser-models';
-import { browserWorkspace, browserWorkspaceAction, createBrowserAgent, publishBrowserAgent } from '../lib/browser-workspace';
+import { browserWorkspace, browserWorkspaceAction, browserFundingDrafts, prepareBrowserAgent, finishBrowserAgent, publishBrowserAgent, type FundingDraft } from '../lib/browser-workspace';
 import { PublicDecisionJournal, PublicJournalCatalog } from './PublicDecisionJournal';
 import { authorizeWithOwnerWallet } from '../lib/public-journal-wallet';
 import { BrowserWorkspaceTransfer } from './BrowserWorkspaceTransfer';
+import { AgentSeedFunding } from './AgentSeedFunding';
+import { seedFactory } from '../lib/seed-factory-config';
 const PumpDocs = lazy(() => import('./PumpDocs'));
 type Agent={visibility?:'private'|'public';id:string;createdAt:string;manifest:AgentManifest;commitment:string;sessionId:string;session:Session&{valuationStale:boolean;error?:string|null;metrics:{total:string|null;realized:string;unrealized:string|null;returnBps:number|null}};exercise?:{phase:string;disclosure:string;startedAt:string};activity:{buys:number;sells:number;directed:boolean;directedFills:number;decisions:number;holds:number;fills:number;blocked:number;latest:{at:string;proposal?:Proposal}|null;manual:boolean;firstAt:string|null;lastAt:string|null}};
 type Registry={directory?:{mode:string;url:string;enabledOwners:string[];error:string};directoryError?:string;vaultFactoryReady?:boolean;pendingStrategyAgents?:string[];vaults:VaultRow[];strategyRuns:ConsoleRun[];continuous:{enabled:boolean;targetPerAgent:number;activeAgentId:string|null;phase:string;error:string|null}|null;agents:Agent[];execution:{activeId:string|null;queued:string[]};models:InstalledModel[];measurement:{modelId:string;completedBytes:number;totalBytes:number}|null;runtime:{modelId:string|null;phase:string};comparisons:BenchmarkRun[];market:{id:string;source:string;symbol:string;count:number;from:number;through:number;capturedAt:string;stale:boolean}|null;policy:{startingCash:string;decisions:number;feeBps:number;slippageBps:number;fill:string}};
@@ -87,10 +89,15 @@ function Comparison({data,agentId}:{data?:Registry;agentId?:string}){
 const STRATEGY='Use the supplied closed NEAR candles to assess momentum, volatility and volume. Build an unleveraged spot position when the recent trend and volume support it; reduce exposure when the trend weakens. Explain the signal. Protect capital and HOLD when the evidence does not support a trade.';
 function Register({data,api,refresh}:Props){
   const wallet=useNearWallet();
-  const navigate=useNavigate(),[step,setStep]=useState(1),[name,setName]=useState(''),[owner,setOwner]=useState<string|null>(null),[modelId,setModelId]=useState(''),[strategy,setStrategy]=useState(STRATEGY),[capital,setCapital]=useState('100'),[trade,setTrade]=useState('20'),[exposure,setExposure]=useState('80'),[daily,setDaily]=useState('100'),[slippage,setSlippage]=useState('50'),[interval,setIntervalValue]=useState('60'),[visibility,setVisibility]=useState<'private'|'public'>('private'),[selfHosted,setSelfHosted]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState('');
+  const navigate=useNavigate(),[step,setStep]=useState(1),[name,setName]=useState(''),[owner,setOwner]=useState<string|null>(null),[modelId,setModelId]=useState(''),[strategy,setStrategy]=useState(STRATEGY),[capital,setCapital]=useState(hostedApp?'':'100'),[trade,setTrade]=useState('20'),[exposure,setExposure]=useState('80'),[daily,setDaily]=useState('100'),[slippage,setSlippage]=useState('50'),[interval,setIntervalValue]=useState('60'),[visibility,setVisibility]=useState<'private'|'public'>('private'),[selfHosted,setSelfHosted]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState('');
   const [browserModels,setBrowserModels]=useState<BrowserModel[]>([]);
   const [scanned,setScanned]=useState(false);
   const [measurementPercent,setMeasurementPercent]=useState(0);
+  const [funding,setFunding]=useState<FundingDraft>();
+  const [savedFunding,setSavedFunding]=useState<FundingDraft[]>([]);
+  useEffect(()=>{
+    if(hostedApp)void browserFundingDrafts().then(setSavedFunding).catch(e=>setError(e.message));
+  },[]);
   const folderInput=useRef<HTMLInputElement>(null);
   const detectionInProgress=useRef(false);
   const models=hostedApp?browserModels:data?.models??[];
@@ -139,22 +146,21 @@ function Register({data,api,refresh}:Props){
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   },[]);
   function choose(id:string){setModelId(id);}
-  function registration(){if(!model)throw new Error('Select one of the detected installed models.');if(!name.trim())throw new Error('Enter an agent name.');if(!selfHosted)throw new Error('Confirm self-hosted inference.');if(!/^(?:[a-f0-9]{64}|[a-z0-9]+(?:[._-][a-z0-9]+)*\.testnet)$/.test(effectiveOwner))throw new Error('Enter a public NEAR testnet account.');if(strategy.trim().length<20)throw new Error('Describe the strategy and conditions for holding.');const tradeCap=amount(trade),exposureCap=amount(exposure),dailyTurnoverCap=amount(daily),initialCash=amount(capital);if([tradeCap,exposureCap,dailyTurnoverCap,initialCash].some(n=>BigInt(n)<=0n||BigInt(n)>1000000000000n))throw new Error('Use positive limits up to one million quote units.');if(BigInt(tradeCap)>BigInt(exposureCap)||BigInt(tradeCap)>BigInt(dailyTurnoverCap))throw new Error('Per-trade cap must fit within the exposure and turnover limits.');if(!Number.isInteger(+slippage)||+slippage<0||+slippage>1000)throw new Error('Slippage must be 0–1,000 basis points.');if(!Number.isInteger(+interval)||+interval<15||+interval>3600)throw new Error('Decision interval must be 15–3,600 seconds.');return {visibility,name,controller:effectiveOwner,modelId,strategy,tradeCap,exposureCap,dailyTurnoverCap,slippageBps:+slippage,initialCash,intervalMs:+interval*1000};}
+  function registration(checkCapital=true){if(!model)throw new Error('Select one of the detected installed models.');if(!name.trim())throw new Error('Enter an agent name.');if(!selfHosted)throw new Error('Confirm self-hosted inference.');if(!/^(?:[a-f0-9]{64}|[a-z0-9]+(?:[._-][a-z0-9]+)*\.testnet)$/.test(effectiveOwner))throw new Error('Enter a public NEAR testnet account.');if(strategy.trim().length<20)throw new Error('Describe the strategy and conditions for holding.');const tradeCap=amount(trade),exposureCap=amount(exposure),dailyTurnoverCap=amount(daily),initialCash=checkCapital?amount(capital):'1';if([tradeCap,exposureCap,dailyTurnoverCap,initialCash].some(n=>BigInt(n)<=0n||BigInt(n)>1000000000000n))throw new Error('Use positive limits up to one million quote units.');if(BigInt(tradeCap)>BigInt(exposureCap)||BigInt(tradeCap)>BigInt(dailyTurnoverCap))throw new Error('Per-trade cap must fit within the exposure and turnover limits.');if(!Number.isInteger(+slippage)||+slippage<0||+slippage>1000)throw new Error('Slippage must be 0–1,000 basis points.');if(!Number.isInteger(+interval)||+interval<15||+interval>3600)throw new Error('Decision interval must be 15–3,600 seconds.');return {visibility,name,controller:effectiveOwner,modelId,strategy,tradeCap,exposureCap,dailyTurnoverCap,slippageBps:+slippage,initialCash,intervalMs:+interval*1000};}
   async function register(){
     setBusy('register');setError('');setMeasurementPercent(0);
     try{
       const input=registration();
       let agentId:string;
       if(hostedApp){
+        if(!seedFactory)throw new Error('The testnet seed vault factory has not been released yet.');
+        if(wallet.account!==input.controller)throw new Error('Connect the agent owner’s NEAR testnet wallet.');
         const selected=browserModels.find(candidate=>candidate.id===input.modelId);
         if(!selected)throw new Error('Select one of the detected installed models.');
-        if(input.visibility==='public')await authorizeWithOwnerWallet(input.controller,wallet.account);
-        agentId=(await createBrowserAgent(input,selected,bytes=>setMeasurementPercent(Math.floor(bytes/selected.bytes*100)))).id;
-        if(input.visibility==='public'){
-          try{await publishBrowserAgent(agentId);}
-          catch{navigate(`/console?agent=${agentId}&scope=local&publication=pending`);return;}
-          navigate(`/public-journal/${agentId}`);return;
-        }
+        const draft=await prepareBrowserAgent(input,selected,seedFactory,bytes=>setMeasurementPercent(Math.floor(bytes/selected.bytes*100)));
+        setFunding(draft);
+        setSavedFunding(items=>[...items,draft]);
+        return;
       }else{
         const result=await api('/register-agent',{registration:input});
         agentId=result.agent.id;
@@ -164,9 +170,23 @@ function Register({data,api,refresh}:Props){
       window.scrollTo(0,0);
     }catch(e){setError((e as Error).message);}finally{setBusy('');}
   }
-  function next(){try{registration();setError('');setStep(step+1);window.scrollTo(0,0);}catch(e){setError((e as Error).message);}}
+  async function finishFunding(){
+    if(!funding||!seedFactory)return;
+    const {id}=await finishBrowserAgent(funding,seedFactory);
+    if(funding.visibility==='public'){
+      try{await authorizeWithOwnerWallet(funding.vault.owner,wallet.account);await publishBrowserAgent(id);}
+      catch{navigate(`/console?agent=${id}&scope=local&publication=pending`);return;}
+      navigate(`/public-journal/${id}`);
+    }else navigate(`/console?agent=${id}&scope=local`);
+  }
+  function next(){try{registration(step>1);setError('');setStep(step+1);window.scrollTo(0,0);}catch(e){setError((e as Error).message);}}
   const input=(label:string,value:string,set:(s:string)=>void,hint?:string)=><label>{label}<input required value={value} onChange={e=>set(e.target.value)}/>{hint&&<small>{hint}</small>}</label>;
+  if(funding&&seedFactory)return <AgentSeedFunding key={funding.vault.agentId} draft={funding} factory={seedFactory}
+    onFinish={finishFunding} onBack={()=>{setFunding(undefined);setStep(1);setError('');}}/>;
   return <><div className="nd-title na-title"><h1>Create your trading agent.</h1></div>
+    {seedFactory&&savedFunding.length>0&&<section className="nd-card na-detail"><h2>Continue vault funding</h2>
+      <div className="nd-buttons">{savedFunding.map(draft=><button type="button" className="nd-button secondary" key={draft.vault.agentId}
+        onClick={()=>setFunding(draft)}>Resume {draft.manifest.name}</button>)}</div></section>}
     <div className="na-registration">
       <aside><ol className="na-wizard">{['Identity & inference','Strategy & mandate','Review & export'].map((title,i)=>
         <li key={title} className={step===i+1?'current':step>i+1?'complete':''}>
@@ -233,9 +253,9 @@ function Register({data,api,refresh}:Props){
           </section>
           <label className="na-checkbox"><input type="checkbox" checked={selfHosted} onChange={e=>setSelfHosted(e.target.checked)}/><span>I use local model weights with no hosted fallback.</span></label>
         </>}
-    {step===2&&<>{model?.runtime==='clef-mlx'&&<p className="nd-notice">Clef chooses BUY, SELL or HOLD. Uncertain signals result in HOLD. Each paper trade is capped at 10 virtual USDC.</p>}<label>{visibility==='private'?'Private strategy description':'Public strategy description'}<textarea rows={5} maxLength={3000} value={strategy} onChange={e=>setStrategy(e.target.value)}/><small>Describe when to buy, sell or hold.</small></label><label>Proposed market<select><option>wNEAR / USDC</option></select></label><div className="na-fields">{input('Virtual starting balance · USDC',capital,setCapital)}{input('Per-trade cap · USDC',trade,setTrade)}{input('Allocated-cost exposure cap · USDC',exposure,setExposure)}{input('Daily gross turnover cap · USDC',daily,setDaily)}{input('Maximum slippage · basis points',slippage,setSlippage,'50 basis points = 0.5%.')}{input('Decision interval · seconds',interval,setIntervalValue)}</div></>}
-    {step===3&&<><div className="na-review-name"><span className="nd-avatar large"><Bot size={24}/></span><div><h2>{name}</h2><p>{model?.name} · wNEAR / USDC</p></div><span className="nd-pill warning">Unpublished declaration</span></div><Facts rows={[["Visibility",visibility==='private'?'Private · hidden · no investor deposits':hostedApp?'Public identity and future decision outcomes':'Public · permanent publication · strategy and trading record inspectable'],["Controller",effectiveOwner],["Inference policy","Self-hosted only · no hosted fallback"],["Weights",`${model?.filename} · ${((model?.bytes??0)/1e9).toFixed(2)} GB`],["Runtime",`${model?.runtime??'llama.cpp'} · 4,096 context · sequential loading`],["Virtual starting balance",`${capital} USDC`],["Trade / exposure / daily cap",`${trade} / ${exposure} / ${daily} USDC`],["Maximum slippage",`${slippage} basis points`],["Decision interval",`${interval} seconds`],["Strategy",strategy],["Registration evidence","Locally measured weights · unsigned declaration · no hardware attestation"],["Network & mode","NEAR testnet · paper trading · optional Circle test USDC clearing"]]}/><button type="button" className="nd-button secondary" onClick={()=>download('near-agent-declaration-draft.json',{status:'unregistered draft; weights not yet measured',...registration()})}><Download size={15}/>Export local draft</button><div className="na-note">Registration does not move tokens or grant wallet signing access.</div>{busy==='register'&&<p role="status" className="nd-notice">Measuring downloaded weights… {hostedApp?`${measurementPercent}%`:data?.measurement?`${Math.round(data.measurement.completedBytes/data.measurement.totalBytes*100)}%`:'Starting SHA-256 check'}. The file stays in place.</p>}</>}
-    {error&&<p className="nd-alert" role="alert">{error}</p>}<div className="na-wizard-controls"><button type="button" className="nd-text-button" disabled={step===1||!!busy} onClick={()=>{setStep(step-1);setError('');}}>Back</button><span>Step {step} of 3</span><button type="submit" className="nd-button" disabled={!!busy}>{step<3?'Continue':busy==='register'?'Measuring weights…':visibility==='private'?'Create private agent':'Create public agent'}<ArrowRight size={15}/></button></div></form></div></>;
+    {step===2&&<>{model?.runtime==='clef-mlx'&&<p className="nd-notice">Clef chooses BUY, SELL or HOLD. Uncertain signals result in HOLD. Each paper trade is capped at 10 virtual USDC.</p>}<label>{visibility==='private'?'Private strategy description':'Public strategy description'}<textarea rows={5} maxLength={3000} value={strategy} onChange={e=>setStrategy(e.target.value)}/><small>Describe when to buy, sell or hold.</small></label><label>Proposed market<select><option>wNEAR / USDC</option></select></label><div className="na-fields">{input(hostedApp?'Seed capital · Circle test USDC':'Virtual starting balance · USDC',capital,setCapital,hostedApp?'You’ll send this amount from your wallet to the agent vault.':undefined)}{input('Per-trade cap · USDC',trade,setTrade)}{input('Allocated-cost exposure cap · USDC',exposure,setExposure)}{input('Daily gross turnover cap · USDC',daily,setDaily)}{input('Maximum slippage · basis points',slippage,setSlippage,'50 basis points = 0.5%.')}{input('Decision interval · seconds',interval,setIntervalValue)}</div></>}
+    {step===3&&<><div className="na-review-name"><span className="nd-avatar large"><Bot size={24}/></span><div><h2>{name}</h2><p>{model?.name} · wNEAR / USDC</p></div><span className="nd-pill warning">Unpublished declaration</span></div><Facts rows={[["Visibility",visibility==='private'?'Private · hidden · no investor deposits':hostedApp?'Public identity and future decision outcomes':'Public · permanent publication · strategy and trading record inspectable'],["Controller",effectiveOwner],["Inference policy","Self-hosted only · no hosted fallback"],["Weights",`${model?.filename} · ${((model?.bytes??0)/1e9).toFixed(2)} GB`],["Runtime",`${model?.runtime??'llama.cpp'} · 4,096 context · sequential loading`],[hostedApp?"Vault seed capital":"Virtual starting balance",`${capital} ${hostedApp?"Circle test USDC":"USDC"}`],["Trade / exposure / daily cap",`${trade} / ${exposure} / ${daily} USDC`],["Maximum slippage",`${slippage} basis points`],["Decision interval",`${interval} seconds`],["Strategy",strategy],["Registration evidence","Locally measured weights · unsigned declaration · no hardware attestation"],["Network & mode",hostedApp?"NEAR testnet · funded vault · paper trading":"NEAR testnet · paper trading · optional Circle test USDC clearing"]]}/><button type="button" className="nd-button secondary" onClick={()=>download('near-agent-declaration-draft.json',{status:'unregistered draft; weights not yet measured',...registration()})}><Download size={15}/>Export local draft</button><div className="na-note">{hostedApp?'You’ll review wallet approvals for vault setup and seed funding.':'Registration does not move tokens or grant wallet signing access.'}</div>{busy==='register'&&<p role="status" className="nd-notice">Measuring downloaded weights… {hostedApp?`${measurementPercent}%`:data?.measurement?`${Math.round(data.measurement.completedBytes/data.measurement.totalBytes*100)}%`:'Starting SHA-256 check'}. The file stays in place.</p>}</>}
+    {error&&<p className="nd-alert" role="alert">{error}</p>}<div className="na-wizard-controls"><button type="button" className="nd-text-button" disabled={step===1||!!busy} onClick={()=>{setStep(step-1);setError('');}}>Back</button><span>Step {step} of 3</span><button type="submit" className="nd-button" disabled={!!busy}>{step<3?'Continue':busy==='register'?'Measuring weights…':hostedApp?'Continue to funding':visibility==='private'?'Create private agent':'Create public agent'}<ArrowRight size={15}/></button></div></form></div></>;
 }
 function Facts({rows}:{rows:[string,ReactNode][]}){return <dl className="na-facts">{rows.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>;}
 function Profile({data,api,agentIdOverride,privateView=false}:Pick<Props,'data'|'api'>&{agentIdOverride?:string;privateView?:boolean}){

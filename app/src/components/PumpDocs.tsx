@@ -32,7 +32,9 @@ const websiteSetup = `# Quick setup
 
 ## NEAR testnet
 
-Open **Connect wallet** in the navigation to select a NEAR testnet wallet. See [Invest on testnet](INVESTING.md) for test tokens and vault details.`;
+Connect your NEAR testnet wallet and get [Circle test USDC](https://faucet.circle.com/) plus test NEAR for gas and vault setup.
+
+In **Create an agent**, enter the amount you want to seed. Review the vault setup and deposit approvals in your wallet. Once the deposit is confirmed, finish creating the agent. You can check or withdraw the seed from **My agents**. Agent decisions and fills are still paper trades.`;
 const websiteAgents = `# Run an agent
 
 ## Define an agent

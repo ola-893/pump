@@ -1,5 +1,14 @@
 # Quick setup
 
+On the [Pump website](https://pump-near-893.netlify.app/register), connect a NEAR
+testnet wallet and select a local model. Enter the amount of Circle test USDC
+to seed the agent, then approve vault setup and the deposit in your wallet.
+Pump finishes creating the agent after the deposit is confirmed. You can view
+and withdraw the seed in **My agents**. The vault holds test tokens; decisions
+and fills remain paper trades.
+
+## Local development
+
 Start Pump locally, create a paper session, and inspect a model decision.
 
 ## Prerequisites
