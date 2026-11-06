@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "npm --prefix app run dev",
+    "runner": "node --import tsx near-demo/runner-server.ts",
     "demo:api": "node --import tsx near-demo/run.ts",
     "test:near": "npm test",
     "build:near": "cargo build --manifest-path contracts-near/Cargo.toml --target wasm32-unknown-unknown --release --locked",
