@@ -8,7 +8,7 @@ import { sendVaultPlan,type VaultTarget } from '../lib/agent-vault-wallet';
 import { InvestorAgentDetails, type InvestorAgent } from './InvestorAgentDetails';
 import {runInvestorFlow,type InvestorReceipt} from '../lib/vault-investment';
 import './AgentVaults.css';
-import { AgentCatalog, AgentBackLink } from './AgentCollections';
+import { ExploreAgentCatalog, AgentBackLink } from './AgentCollections';
 import { collectionLink } from '../lib/agent-collection';
 export type VaultRow={liveNav?:boolean;archived?:boolean;agentId:string;runId:string;name:string;version:number;strategyHash:string;manifestHash:string;contractId:string|null;network:string;mode:string;controllerId:string;reporterId:string;tokenId:string};
 type Props={loading?:boolean;ownerView?:boolean;agents:InvestorAgent[];vaults:VaultRow[];runs:ConsoleRun[];api:(path:string,body?:unknown)=>Promise<any>;refresh:()=>Promise<void>};
@@ -21,8 +21,8 @@ export function AgentVaults({agents,vaults,runs,api,refresh,loading=false,ownerV
  const fundingId='investor-vault-'+(selected??'none');
  const fromLeaderboard=params.get('from')==='leaderboard',backParams=new URLSearchParams(params);backParams.delete('from');backParams.delete('strategy');const back=collectionLink(fromLeaderboard?'/evidence':'/vaults',backParams),backLabel=fromLeaderboard?'Back to leaderboard':'Back to explore agents';
  useEffect(()=>{if(selected)window.scrollTo(0,0);},[selected]);
+ if(!selected)return <ExploreAgentCatalog agents={agents} runs={runs} vaults={vaults} loading={loading}/>;
  if(loading)return <p role="status">Loading agents…</p>;
- if(!selected)return <AgentCatalog agents={agents} runs={runs} vaults={vaults}/>;
  if(!agent)return <><AgentBackLink to={back}>{backLabel}</AgentBackLink><div className="nd-card ag-empty"><h1>Agent not found.</h1><p>This agent is not available in the current registry.</p></div></>;
  if(agent.visibility==='private'&&!ownerView)return <><AgentBackLink to={`/console?agent=${agent.id}&scope=local`}>Back to private console</AgentBackLink><div className="nd-card ag-switch-note"><h1>Private agent</h1><p>Publish this agent and its strategy before accepting investor deposits.</p></div></>;
  const agentRuns=runs.filter(r=>r.agentId===agent.id);

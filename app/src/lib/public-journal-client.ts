@@ -5,9 +5,9 @@ import type { JournalBatch, JournalListing, JournalPage } from '../../../near-de
 const root = '/api/pump-directory';
 type Publisher = { publicKey: string; signingKey: CryptoKey; authorized: boolean };
 
-export async function journalRequest<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(root + path, body === undefined ? undefined : {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+export async function journalRequest<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(root + path, body === undefined ? { signal } : {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal,
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.error ?? 'The public journal service is unavailable.');
@@ -21,8 +21,17 @@ export function readJournal(agentId: string, strategyId?: string, before?: numbe
   return journalRequest<JournalPage>(`/journals/${encodeURIComponent(agentId)}?${query}`);
 }
 
-export function readJournalCatalog(offset = 0) {
-  return journalRequest<{ agents: JournalListing[]; nextOffset: number | null }>(`/journal-agents?offset=${offset}`);
+export async function readJournalCatalog(signal: AbortSignal) {
+  const agents: JournalListing[] = [];
+  let offset: number | null = 0;
+  while (offset !== null) {
+    const page: { agents: JournalListing[]; nextOffset: number | null } = await journalRequest(
+      `/journal-agents?offset=${offset}`, undefined, signal,
+    );
+    agents.push(...page.agents);
+    offset = page.nextOffset;
+  }
+  return agents;
 }
 
 async function publisherStore(owner: string, publisher?: Publisher): Promise<Publisher | undefined> {
