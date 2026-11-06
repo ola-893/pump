@@ -1,6 +1,6 @@
 import type { JournalListing } from '../../../near-demo/directory/public-journal.js';
 
-export type CollectionAgent={visibility?:'private'|'public';id:string;createdAt?:string;journalUpdatedAt?:string;strategyVault?:string;manifest:{name:string;controller?:string;model:{id:string};strategy?:{description:string}}};
+export type CollectionAgent={visibility?:'private'|'public';id:string;createdAt?:string;journalUpdatedAt?:string;strategyVault?:string;journalActivity?:JournalListing['activity'];manifest:{name:string;controller?:string;model:{id:string};strategy?:{description:string}}};
 
 export function catalogAgents(registry: CollectionAgent[], journals: JournalListing[]): CollectionAgent[] {
  const known = new Set(registry.map(agent => agent.id));
@@ -9,7 +9,7 @@ export function catalogAgents(registry: CollectionAgent[], journals: JournalList
   if (known.has(journal.id)) continue;
   known.add(journal.id);
   agents.push({
-   id: journal.id, visibility: 'public', journalUpdatedAt: new Date(journal.updatedAt).toISOString(),strategyVault:journal.strategyVault,
+   id: journal.id, visibility: 'public', journalUpdatedAt: new Date(journal.updatedAt).toISOString(),strategyVault:journal.strategyVault,journalActivity:journal.activity,
    manifest: { name: journal.name, controller: journal.controller, model: { id: journal.model } },
   });
  }
@@ -17,6 +17,7 @@ export function catalogAgents(registry: CollectionAgent[], journals: JournalList
 }
 export type CollectionRun={id:string;agentId:string;version:number;label:string;createdAt:string;session:{state:string;error?:string|null;valuationStale?:boolean;metrics:{total:string|null};portfolio:{maxDrawdownBps:number}};activity:{fills:number;decisions:number}};
 export type AgentEntry<A extends CollectionAgent=CollectionAgent>={agent:A;run?:CollectionRun;returnPct:number|null;drawdown:number|null;state:'running'|'stopped'|'unconfigured'|'attention';funded:boolean};
+export const recordedFills = (entry: AgentEntry) => entry.run?.activity.fills ?? entry.agent.journalActivity?.fills ?? 0;
 export function matchesController(controller?:string, account?:string) {
  return !!account&&controller?.toLowerCase()===account.toLowerCase();
 }
@@ -29,15 +30,15 @@ export function selectAgents<A extends CollectionAgent>(entries:AgentEntry<A>[],
  const terms=(options.query??'').toLowerCase().trim().split(/\s+/).filter(Boolean);
  const found=entries.filter(e=>{
   if(options.mine&&!matchesController(e.agent.manifest.controller,options.account))return false;
-  const text=[e.agent.manifest.name,e.agent.manifest.model.id,e.agent.manifest.controller,e.agent.manifest.strategy?.description,e.run?.label,e.agent.id].join(' ').toLowerCase();
+  const text=[e.agent.manifest.name,e.agent.manifest.model.id,e.agent.manifest.controller,e.agent.manifest.strategy?.description,e.run?.label,e.agent.journalActivity?.market,e.agent.id].join(' ').toLowerCase();
   if(!terms.every(t=>text.includes(t)))return false;
-  return !options.filter||options.filter==='all'||options.filter==='record'&&(e.run?.activity.fills??0)>0||options.filter==='running'&&e.state==='running'||options.filter==='stopped'&&e.state==='stopped'||options.filter==='attention'&&e.state==='attention'||options.filter==='unconfigured'&&e.state==='unconfigured'&&!e.agent.journalUpdatedAt||options.filter==='vault'&&e.funded;
+  return !options.filter||options.filter==='all'||options.filter==='record'&&(recordedFills(e)>0||(e.run?.activity.decisions??0)>0||e.agent.journalActivity?.hasTradingRecord)||options.filter==='running'&&e.state==='running'||options.filter==='stopped'&&e.state==='stopped'||options.filter==='attention'&&e.state==='attention'||options.filter==='unconfigured'&&e.state==='unconfigured'&&!e.agent.journalUpdatedAt||options.filter==='vault'&&e.funded;
  });
  const recent=(a:CollectionAgent)=>a.journalUpdatedAt??a.createdAt??'';
  const newest=(a:AgentEntry<A>,b:AgentEntry<A>)=>recent(b.agent).localeCompare(recent(a.agent))||a.agent.id.localeCompare(b.agent.id);
  return found.sort((a,b)=>{
   if(options.sort==='name')return a.agent.manifest.name.localeCompare(b.agent.manifest.name)||newest(a,b);
-  if(options.sort==='orders')return (b.run?.activity.fills??0)-(a.run?.activity.fills??0)||newest(a,b);
+  if(options.sort==='orders')return recordedFills(b)-recordedFills(a)||newest(a,b);
   if(options.sort==='return'||options.sort==='drawdown'){const x=options.sort==='return'?a.returnPct:a.drawdown,y=options.sort==='return'?b.returnPct:b.drawdown;if(x===null||y===null)return x===y?newest(a,b):x===null?1:-1;return (options.sort==='return'?y-x:x-y)||newest(a,b);}
   return newest(a,b);
  });

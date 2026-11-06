@@ -118,13 +118,31 @@ export class PublicJournalStore {
 
   catalog(offset: number) {
     const start = integer(offset) ? offset : 0;
-    const rows = this.db.prepare(`SELECT body,updated,(SELECT json_extract(strategy.body,'$.vault.contractId')
-      FROM journal_strategies strategy WHERE strategy.agent_id=agent.id
-      ORDER BY json_extract(strategy.body,'$.version') DESC, strategy.id LIMIT 1) AS strategyVault
-      FROM journal_agents agent ORDER BY updated DESC,id LIMIT 51 OFFSET ?`).all(start);
+    const rows = this.db.prepare(`SELECT agent.body,agent.updated,
+      json_extract(strategy.body,'$.vault.contractId') AS strategyVault,
+      (SELECT json_object(
+        'version',json_extract(strategy.body,'$.version'), 'market',json_extract(strategy.body,'$.market'),
+        'hasTradingRecord',count(*) FILTER (WHERE kind IN ('model','hold','fill','blocked')) > 0,
+        'decisions',count(*) FILTER (WHERE kind='model'), 'fills',count(*) FILTER (WHERE kind='fill'),
+        'buys',count(*) FILTER (WHERE kind='fill' AND action='BUY'),
+        'sells',count(*) FILTER (WHERE kind='fill' AND action='SELL'))
+        FROM (SELECT json_extract(body,'$.kind') AS kind,json_extract(body,'$.action') AS action
+          FROM journal_events WHERE strategy_id=strategy.id)) AS activity,
+      strategy.id AS strategyId
+      FROM journal_agents agent LEFT JOIN journal_strategies strategy ON strategy.id=(
+        SELECT id FROM journal_strategies WHERE agent_id=agent.id
+        ORDER BY json_extract(body,'$.version') DESC,id LIMIT 1)
+      ORDER BY agent.updated DESC,agent.id LIMIT 51 OFFSET ?`).all(start);
     return {
-      agents: rows.slice(0, 50).map(row => ({ ...JSON.parse(String(row.body)), updatedAt: Number(row.updated),
-        ...(row.strategyVault?{strategyVault:String(row.strategyVault)}:{}) } as JournalListing)),
+      agents: rows.slice(0, 50).map((row): JournalListing => {
+        const agent = { ...JSON.parse(String(row.body)), updatedAt: Number(row.updated) } as JournalListing;
+        if (row.strategyVault) agent.strategyVault = String(row.strategyVault);
+        if (row.strategyId) {
+          const activity = JSON.parse(String(row.activity));
+          agent.activity = { ...activity, hasTradingRecord: Boolean(activity.hasTradingRecord) };
+        }
+        return agent;
+      }),
       nextOffset: rows.length > 50 ? start + 50 : null,
     };
   }

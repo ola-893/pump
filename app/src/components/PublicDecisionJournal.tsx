@@ -90,8 +90,11 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
   }
 
   const backParams = new URLSearchParams(search);
+  const fromLeaderboard = backParams.get('from') === 'leaderboard';
   backParams.delete('agent');
-  const back = <AgentBackLink to={`/vaults${backParams.size ? '?' + backParams : ''}`}>Back to explore agents</AgentBackLink>;
+  backParams.delete('from');
+  const backPath = fromLeaderboard ? '/evidence' : '/vaults';
+  const back = <AgentBackLink to={`${backPath}${backParams.size ? '?' + backParams : ''}`}>{fromLeaderboard ? 'Back to leaderboard' : 'Back to explore agents'}</AgentBackLink>;
   if (!latest) return <>{back}{alert}{!error&&<p role="status">Loading public decisions…</p>}</>;
 
   const agent = latest.agent;

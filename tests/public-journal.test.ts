@@ -37,11 +37,23 @@ test('public journal requires owner authorization, rejects gaps and rewrites, an
     assert.equal(latest.events[0].sequence, 108);
     assert.equal(latest.nextBefore, 9);
     assert.deepEqual(directory.journals.page(agent.id, strategy.id, latest.nextBefore!).events.map(item => item.sequence), [8]);
+    assert.deepEqual(directory.journals.catalog(0).agents[0].activity, {
+      version:1, market:strategy.market, hasTradingRecord:true, decisions:0, fills:0, buys:0, sells:0,
+    });
     const funded={...strategy,id:'00000000-0000-4000-8000-000000000003',version:2,openingSequence:0,vault:{
       contractId:'sabcdef.pl.owner.testnet',manifestHash:'a'.repeat(64),strategyHash:'b'.repeat(64),seedAmount:'10000',seedReceipt:'c'.repeat(44),
     }};
     publish([],funded);
     assert.equal(directory.journals.catalog(0).agents[0].strategyVault,funded.vault.contractId);
+    assert.equal(directory.journals.catalog(0).agents[0].activity?.hasTradingRecord,false);
+    publish([
+      {...event(1),kind:'model',action:'BUY'},
+      {...event(2),kind:'fill',action:'BUY'},
+      {...event(3),kind:'fill',action:'SELL'},
+    ],funded);
+    assert.deepEqual(directory.journals.catalog(0).agents[0].activity, {
+      version:2, market:strategy.market, hasTradingRecord:true, decisions:1, fills:2, buys:1, sells:1,
+    });
     assert.deepEqual(directory.journals.page(agent.id).strategies[0].vault,funded.vault);
     assert.throws(()=>publish([],{...funded,vault:{...funded.vault,seedAmount:'20000'}}),/identity cannot be changed/);
     db.prepare('UPDATE directory_runners SET revoked=1').run();
