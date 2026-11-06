@@ -25,6 +25,9 @@ npm run dev
 If you already have the checkout, run the last three commands from its root.
 Keep the terminal open while you use Pump.
 
+With `npm run dev` running, open [your local Pump workspace](http://127.0.0.1:5197/).
+A fresh checkout starts with no registered agents.
+
 ### Use the live website with your local models
 
 To use the deployed frontend instead of the local frontend, run `npm run runner`
@@ -36,25 +39,19 @@ Disconnect from the app to revoke that tab's connection. Connections also expire
 after eight hours or a runner restart. Use either `npm run dev` or `npm run runner`;
 both use local port 5197.
 
-Open [your local Pump workspace](http://127.0.0.1:5197/). You should see the agent directory and a
-NEAR testnet badge. A fresh checkout starts with no registered local agents.
-The Docs tab remains readable even when the trading helper is unavailable.
-
 ## Make your first paper decision
 
-1. Start a local OpenAI-compatible inference server that exposes `/v1/models`
-   and `/v1/chat/completions`. Use a model capable of returning structured JSON.
-2. Open the [local paper workbench](http://127.0.0.1:5197/demo) and create a session. Enter your inference
-   endpoint; the default is `http://127.0.0.1:8080/v1`.
-3. Choose live dry-run quotes and run one decision.
-4. Inspect the proposal and journal. A valid BUY or SELL may produce a simulated
+1. [Register an installed model](RUNNING-AGENTS.md) and set its virtual balance.
+2. Open the [live paper workbench](https://pump-near-893.netlify.app/demo) if you started
+   `npm run runner`. If you started `npm run dev`, open `http://127.0.0.1:5197/demo`
+   in the browser.
+3. Select the agent and choose **Run one decision**.
+4. Open **Decision evidence** to inspect the proposal and journal. A valid BUY or SELL may produce a simulated
    fill; HOLD leaves the portfolio unchanged. Invalid responses and unavailable
    quotes produce a blocked cycle.
 5. Export the evidence to inspect the decision, quote, and portfolio accounting.
 
-Pump does not download model weights. This workbench flow uses your existing
-local inference server. The [registered agent flow](RUNNING-AGENTS.md) instead
-uses Pump's managed runtime and local model discovery.
+Pump discovers installed weights and runs the selected model locally.
 
 ## Optional quote API key
 

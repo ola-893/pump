@@ -9,14 +9,62 @@ export function NearWalletProvider({ children }: { children: ReactNode }) {
   const [session] = useState(() => new NearWalletSession(nearConnector));
   useEffect(() => session.start(), [session]);
   useEffect(() => {
-    const dismiss = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      // Use the connector's normal cancellation handler, including promise cleanup.
-      const overlay = document.querySelector<HTMLElement>('.hot-connector-popup .modal-container');
-      if (overlay?.getClientRects().length) { event.preventDefault(); overlay.click(); }
+    const app = document.getElementById('root');
+    if (!app) return;
+    let dialog: HTMLElement | undefined;
+    let returnFocus: HTMLElement | undefined;
+    const initialInert = app.inert;
+    const rememberFocus = (event: Event) => {
+      if (!dialog && event.target instanceof HTMLElement) returnFocus = event.target;
     };
-    window.addEventListener('keydown', dismiss);
-    return () => window.removeEventListener('keydown', dismiss);
+    const sync = () => {
+      const next = [...document.querySelectorAll<HTMLElement>('.hot-connector-popup .modal-content')]
+        .filter(element => element.getClientRects().length > 0).at(-1);
+      if (next === dialog) return;
+      dialog = next;
+      app.inert = initialInert || !!dialog;
+      if (!dialog) { returnFocus?.focus(); return; }
+      dialog.setAttribute('role', 'dialog');
+      dialog.setAttribute('aria-modal', 'true');
+      dialog.setAttribute('aria-label', dialog.querySelector('.modal-header p')?.textContent?.trim() || 'NEAR wallet');
+      dialog.tabIndex = -1;
+      for (const option of dialog.querySelectorAll<HTMLElement>('.connect-item')) {
+        option.setAttribute('role', 'button');
+        option.tabIndex = 0;
+      }
+      dialog.focus();
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (!dialog) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        dialog.closest<HTMLElement>('.modal-container')?.click();
+      } else if (event.key === 'Tab') {
+        const controls = [...dialog.querySelectorAll<HTMLElement>('button, a[href], input, select, textarea, iframe, [tabindex]')]
+          .filter(element => element.tabIndex >= 0 && !element.matches(':disabled') && element.getClientRects().length);
+        if (!controls.length) { event.preventDefault(); return; }
+        const current = controls.indexOf(document.activeElement as HTMLElement);
+        const next = current < 0 ? (event.shiftKey ? controls.length - 1 : 0)
+          : current + (event.shiftKey ? -1 : 1);
+        event.preventDefault();
+        controls[(next + controls.length) % controls.length].focus();
+      } else if ((event.key === 'Enter' || event.key === ' ') &&
+          event.target instanceof HTMLElement && event.target.matches('.connect-item')) {
+        event.preventDefault();
+        event.target.click();
+      }
+    };
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] });
+    app.addEventListener('focusin', rememberFocus);
+    window.addEventListener('keydown', onKey, true);
+    sync();
+    return () => {
+      observer.disconnect();
+      app.inert = initialInert;
+      app.removeEventListener('focusin', rememberFocus);
+      window.removeEventListener('keydown', onKey, true);
+    };
   }, []);
   return <Context.Provider value={session}>{children}</Context.Provider>;
 }
