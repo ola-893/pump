@@ -1,10 +1,45 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { ConsoleAgent, ConsoleRun } from './AgentConsole';
 import { useNearWallet, NearWalletButton } from './NearWalletProvider';
 import { sendDeploymentPlan } from '../lib/vault-deployment-wallet';
+import { hostedApp } from '../lib/hosting';
+import { publishBrowserAgent, syncBrowserPublicJournal } from '../lib/browser-workspace';
+import { authorizeWithOwnerWallet } from '../lib/public-journal-wallet';
 import './AgentVisibility.css';
 type Props={agent:ConsoleAgent;runs:ConsoleRun[];deployed:boolean;api:(path:string,body?:unknown)=>Promise<any>;refresh:()=>Promise<void>};
-export function AgentVisibility({agent,runs,deployed,api,refresh}:Props){
+export function AgentVisibility(props:Props){
+ return hostedApp?<BrowserAgentVisibility agent={props.agent} refresh={props.refresh}/>:<LocalAgentVisibility {...props}/>;
+}
+function BrowserAgentVisibility({agent,refresh}:Pick<Props,'agent'|'refresh'>){
+ const wallet=useNearWallet();
+ const [review,setReview]=useState(false),[accepted,setAccepted]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const published=agent.visibility==='public';
+ async function publish(){
+  setBusy(true);setError('');
+  try{
+   await authorizeWithOwnerWallet(agent.manifest.controller??'',wallet.account);
+   if(published)await syncBrowserPublicJournal(agent.id);
+   else await publishBrowserAgent(agent.id);
+   await refresh();setReview(false);
+  }catch(cause){setError(cause instanceof Error?cause.message:'Publication failed.');}
+  finally{setBusy(false);}
+ }
+ return <section className="av-visibility" aria-label="Agent visibility">
+  <div><strong>{published?'Public agent':'Private agent'}</strong><p>{published?'Investors can read your public decision journal.':'Saved in this browser.'}</p></div>
+  {published?<div className="nd-buttons"><Link to={`/public-journal/${agent.id}`} className="nd-text-button">View public journal</Link>
+    <button type="button" disabled={busy} className="nd-button secondary" onClick={()=>void publish()}>{busy?'Syncing…':'Sync journal'}</button></div>:
+   <button type="button" className="nd-button secondary" onClick={()=>{setReview(!review);setAccepted(false);}}>Review publication</button>}
+  {review&&!published&&<div className="av-publication" role="region" aria-label="Review agent visibility">
+   <h3>Review public journal</h3><p>Publishing shares your agent name, model name, controller, and future paper decisions. Your prompts, model files, and earlier history stay local. Published entries remain public.</p>
+   <label><input type="checkbox" checked={accepted} onChange={event=>setAccepted(event.target.checked)}/>I agree to publish this agent and its future decision outcomes.</label>
+   {wallet.account!==agent.manifest.controller&&<NearWalletButton/>}
+   <button type="button" className="nd-button" disabled={!accepted||busy||wallet.account!==agent.manifest.controller} onClick={()=>void publish()}>{busy?'Publishing…':'Publish agent'}</button>
+  </div>}
+  {(error||agent.publicSyncError)&&<p role="alert" className="nd-alert">{error||agent.publicSyncError}</p>}
+ </section>;
+}
+function LocalAgentVisibility({agent,runs,deployed,api,refresh}:Props){
  const wallet=useNearWallet();
  const visibility=agent.visibility??'public', [review,setReview]=useState(false),[accepted,setAccepted]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  async function update(){if(visibility!=='private'||!accepted||busy)return;setBusy(true);setError('');try{

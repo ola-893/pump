@@ -2,7 +2,8 @@ import { verifyQuoteSignature } from '@defuse-protocol/one-click-sdk-typescript'
 import { digest } from './ledger.js';
 import { USDC, QUOTE_CONTEXT, markets, paperMarket, units, type Quote, type MarketSelection } from './types.js';
 export type QuoteProvider = { get(tokenIn:string,tokenOut:string,amountIn:string,slippageBps:number):Promise<Quote> };
-export function liveQuotes(fetcher=fetch, now=Date.now, selection?:MarketSelection): QuoteProvider {
+export function liveQuotes(fetcher=fetch, now=Date.now, selection?:MarketSelection,
+  apiKey=typeof process==='undefined'?undefined:process.env.PUMPCOIN_ONECLICK_API_KEY): QuoteProvider {
   return { async get(tokenIn,tokenOut,amountIn,slippageBps) {
     const custom=typeof selection==='object';
     const candidates=selection===undefined?Object.values(markets):[paperMarket({market:selection})];
@@ -14,7 +15,7 @@ export function liveQuotes(fetcher=fetch, now=Date.now, selection?:MarketSelecti
     const context = custom || market.quote === USDC ? QUOTE_CONTEXT : '0x2527D02599Ba641c19FEa793cD0F167589a0f10D';
     const request={dry:true,swapType:'EXACT_INPUT',slippageTolerance:slippageBps,originAsset:tokenIn,depositType:custom?'INTENTS':'ORIGIN_CHAIN',destinationAsset:tokenOut,amount:amountIn,refundTo:context,refundType:custom?'INTENTS':'ORIGIN_CHAIN',recipient:context,recipientType:custom?'INTENTS':'DESTINATION_CHAIN',deadline:new Date(now()+600000).toISOString()};
     const fetchQuote = async (body = request) => {
-      const response=await fetcher('https://1click.chaindefuser.com/v0/quote',{method:'POST',redirect:'error',headers:{'Content-Type':'application/json',...(process.env.PUMPCOIN_ONECLICK_API_KEY?{'X-API-Key':process.env.PUMPCOIN_ONECLICK_API_KEY}:{})},body:JSON.stringify(body),signal:AbortSignal.timeout(30000)});
+      const response=await fetcher('https://1click.chaindefuser.com/v0/quote',{method:'POST',redirect:'error',headers:{'Content-Type':'application/json',...(apiKey?{'X-API-Key':apiKey}:{})},body:JSON.stringify(body),signal:AbortSignal.timeout(30000)});
       return { response, text: await response.text() };
     };
     const isTransportFailure = (error: unknown) => error instanceof Error &&

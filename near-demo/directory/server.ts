@@ -26,6 +26,11 @@ export function directoryHandler(directory:PumpDirectory,origins:Set<string>,opt
   try{
    if(req.method==='GET'&&url.pathname==='/health'){send(res,200,{schema:'PUMP-PUBLIC-DIRECTORY-v1',network:'testnet',ok:true});return;}
    if(req.method==='GET'&&url.pathname==='/catalog'){send(res,200,directory.catalog(Number(url.searchParams.get('offset')),Number(url.searchParams.get('limit'))||24));return;}
+   if(req.method==='GET'&&url.pathname==='/journal-agents'){send(res,200,directory.journals.catalog(Number(url.searchParams.get('offset'))));return;}
+   if(req.method==='GET'&&url.pathname.startsWith('/journals/')){
+    const strategy=url.searchParams.get('strategy')??undefined, before=url.searchParams.get('before');
+    send(res,200,directory.journals.page(decodeURIComponent(url.pathname.slice(10)),strategy,before===null?undefined:Number(before)));return;
+   }
    if(req.method==='GET'&&url.pathname.startsWith('/agents/')){send(res,200,directory.read(decodeURIComponent(url.pathname.slice(8))));return;}
    if(req.method!=='POST'||req.headers['content-type']?.split(';')[0]!=='application/json'){send(res,404,{error:'Directory route unavailable.'});return;}
    const chunks:Buffer[]=[];let size=0;for await(const part of req){size+=part.length;if(size>2*1024*1024)throw new Error('Publication exceeds 2 MB; publish fewer agents per batch.');chunks.push(Buffer.from(part));}
@@ -33,6 +38,7 @@ export function directoryHandler(directory:PumpDirectory,origins:Set<string>,opt
    if(url.pathname==='/challenge')result=directory.auth.challenge(b.account,b.runnerKey,b.action);
    else if(url.pathname==='/authorize')result=await directory.authorize(b.id,b.signed);
    else if(url.pathname==='/publish')result=directory.publish(b.payload,b.publicKey,b.signature);
+   else if(url.pathname==='/journal-publish')result=directory.journals.publish(b.batch,b.publicKey,b.signature);
    else {send(res,404,{error:'Directory route unavailable.'});return;}
    send(res,200,result);
   }catch(error){const message=error instanceof Error?error.message:'Directory operation failed.';send(res,400,{error:message.includes('/Users/')?'Directory operation failed.':message});}

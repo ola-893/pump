@@ -1,3 +1,4 @@
+import { hostedApp } from '../lib/hosting';
 import { paperAmount, paperAmountInput, parsePaperAmount } from '../lib/paper-amount';
 import { paperValuation, type LastPaperValuation } from '../lib/paper-valuation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -12,7 +13,7 @@ import { collectionLink } from '../lib/agent-collection';
 import type { WalletPlan } from '../../../near-demo/types';
 import { sendDeploymentPlan } from '../lib/vault-deployment-wallet';
 import { useNearWallet, NearWalletButton } from './NearWalletProvider';
-export type ConsoleAgent={visibility?:'private'|'public';id:string;createdAt?:string;modelRevalidatedAt?:string|null;manifest:{inference?:{runtime:string};name:string;controller?:string;strategy?:{description:string};model:{id:string;quantization:string}};session:{config:Config}};
+export type ConsoleAgent={publicSyncError?:string;visibility?:'private'|'public';id:string;createdAt?:string;modelRevalidatedAt?:string|null;manifest:{inference?:{runtime:string};name:string;controller?:string;strategy?:{description:string};model:{id:string;quantization:string}};session:{config:Config}};
 type SessionView=Session&{lastValuation?:LastPaperValuation|null;valuationStale:boolean;error:string|null;metrics:{total:string|null;realized:string;unrealized:string|null;returnBps:number|null}};
 export type ConsoleRun={archived?:boolean;id:string;agentId:string;version:number;label:string;createdAt:string;commitment:string;sessionId:string;config:Config;session:SessionView;activity:{operatorExits?:number;decisions:number;buys:number;sells:number;fills:number;holds:number;blocked:number;volume:string;latest:{at:string;proposal?:Proposal}|null}};
 type Props={vaultFactoryReady?:boolean;pendingStrategyAgents?:string[];vaults?:{liveNav?:boolean;agentId:string;runId:string;contractId:string|null}[];agents:ConsoleAgent[];runs:ConsoleRun[];execution:{activeId:string|null;queued:string[]};runtime:{phase:string};unavailable:boolean;api:(path:string,body?:unknown)=>Promise<any>;refresh:()=>Promise<void>};
@@ -39,7 +40,7 @@ type Draft={market:MarketId|'catalog';baseAsset?:MarketAsset;quoteAsset?:MarketA
 function StrategyEditor({agent,run,latestVersion,onSaved,...props}:Props&{agent:ConsoleAgent;run?:ConsoleRun;latestVersion:number;onSaved:(id:string)=>void}){
   const wallet=useNearWallet();
   const pending=props.pendingStrategyAgents?.includes(agent.id);
-  const paperOnly=agent.visibility==='private'&&!props.vaults?.some(v=>v.agentId===agent.id);
+  const paperOnly=(hostedApp||agent.visibility==='private')&&!props.vaults?.some(v=>v.agentId===agent.id);
   const [approval,setApproval]=useState<{plan:WalletPlan;contractId:string;phase:string}>();
   const base=run?.config??agent.session.config;
   const initialMarket=paperMarket(base);
@@ -139,7 +140,7 @@ function StrategyEditor({agent,run,latestVersion,onSaved,...props}:Props&{agent:
   async function action(action:string){if(!run||lock.current&&action!=='stop')return;const stopping=action==='stop';if(!stopping){lock.current=true;setBusy(action);}setError('');setNotice('');try{const {session:result}=await props.api('/strategy-action',{runId:run.id,action});await props.refresh();
     if((action==='mark'||action==='cycle')&&result?.error){setError(result.error);return;}
     if(action==='mark'&&result?.valuationStale){setError('Current paper equity is unavailable. Try refreshing the portfolio quote again.');return;}
-    setNotice(action==='stop'?'Stopped future decisions. An active decision may finish; stopping does not sell an open position.':action==='start'?'Agent started. It will keep evaluating this saved strategy until you stop it or the server restarts.':action==='cycle'?'Decision completed. See the outcome and journal below.':'Portfolio valuation refreshed.');}catch(e){setError((e as Error).message);}finally{if(!stopping){lock.current=false;setBusy('');}}}
+    setNotice(action==='stop'?'Stopped future decisions. An active decision may finish; stopping does not sell an open position.':action==='start'?(hostedApp?'Agent started. Keep this tab open to continue evaluating.':'Agent started. It will keep evaluating this saved strategy until you stop it or the server restarts.'):action==='cycle'?'Decision completed. See the outcome and journal below.':'Portfolio valuation refreshed.');}catch(e){setError((e as Error).message);}finally{if(!stopping){lock.current=false;setBusy('');}}}
   const runId=run?.id;
   const inspect=useCallback(async()=>{
     if(!runId)return false;
@@ -221,7 +222,7 @@ function StrategyEditor({agent,run,latestVersion,onSaved,...props}:Props&{agent:
       <p className="ac-help">Custom markets use signed route observations. Write rules for those observations. The testnet USDC vault follows the strategy’s return in its quote currency.</p>
       <button type="button" className="nd-button secondary" disabled={!selection||!!busy||occupied||pending} onClick={()=>void checkRoute()}>{busy==='route'?'Checking both directions…':'Check buy and sell quotes'}</button>
       {route?.key===routeKey&&<p role="status">{route.message}</p>}</>}
-      <label>Trading strategy<textarea rows={9} maxLength={3000} value={draft.strategy} disabled={!!busy||occupied} onChange={e=>field('strategy',e.target.value)}/><small>Instructions go to your local model. {agent.visibility==='private'?'Saved privately on this computer; included in your owner export.':'Saving publishes these instructions for investor inspection.'}</small></label>
+      <label>Trading strategy<textarea rows={9} maxLength={3000} value={draft.strategy} disabled={!!busy||occupied} onChange={e=>field('strategy',e.target.value)}/><small>Instructions go to your local model. {hostedApp||agent.visibility==='private'?'Saved privately on this computer; included in your owner export.':'Saving publishes these instructions for investor inspection.'}</small></label>
       <div className="ac-templates"><span>Starting points</span>{(draft.market==='catalog'?[{name:'Route momentum',strategy:'Compare at least two signed observations for the same route and order size. A lower base output per unit of quote currency indicates strengthening base price. BUY within the saved order cap on strengthening momentum. SELL held inventory within the saved cap when momentum reverses. HOLD if prices are unchanged, quotes are missing, or the saved risk limits prevent an order. Use quote-currency base units and never invent prices.'}]:templates).map(t=><button type="button" key={t.name} disabled={!!busy||occupied} onClick={()=>setDraft(d=>({...d,label:t.name,strategy:t.strategy}))}>{t.name}</button>)}</div>
       <div className="ac-section-title ac-limits-title"><span>RISK & CAPITAL</span><h3>Set the boundaries.</h3></div><div className="ac-fields">{input('initialCash',`Starting virtual ${quoteSymbol}`)}{input('tradeCap',`Per-trade cap · ${quoteSymbol}`)}{input('exposureCap',`Allocated-cost cap · ${quoteSymbol}`)}{input('dailyTurnoverCap',`Daily turnover cap · ${quoteSymbol}`)}{input('slippageBps','Slippage · basis points','50 bps = 0.5%')}{input('interval','Decision interval · seconds','15–3,600; queue and inference add time.')}</div>
       <div className="ac-save"><button className="nd-button" type="submit" disabled={!paperOnly&&props.vaultFactoryReady===false||!!busy||!!approval||pending||occupied||!!otherVersion||props.unavailable||!selection||!!run&&!dirty}><Save size={14}/>{busy==='save'?'Checking…':paperOnly?'Save paper strategy':'Save & deploy vault'}</button><span>{paperOnly?'Save a private paper portfolio. You can add a testnet vault later.':props.vaultFactoryReady===false?'Strategy deployment will open after Pump’s vault factory is installed on testnet.':'The owner approves and funds a separate vault on NEAR testnet.'}</span>

@@ -3,11 +3,13 @@ import {verifySignature,publicationHash} from './signatures.js';
 export {publicationHash} from './signatures.js';
 import type {DatabaseSync} from 'node:sqlite';
 import {DirectoryAuth} from './auth.js';
+import {PublicJournalStore} from './journal-store.js';
 import {canonical,digest,metrics} from '../ledger.js';
 import {investorPerformance} from '../../app/src/lib/agent-performance.js';
 const uuid=(id:unknown)=>typeof id==='string'&&/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/.test(id);
 export class PumpDirectory{
  readonly auth:DirectoryAuth;
+ readonly journals:PublicJournalStore;
  readonly db:DatabaseSync;private now:()=>number;
  constructor(db:DatabaseSync,origin:string,keyPermission?:ConstructorParameters<typeof DirectoryAuth>[2],now=Date.now){
   this.db=db;this.now=now;
@@ -15,6 +17,7 @@ export class PumpDirectory{
   db.exec(`PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS directory_runners(owner TEXT NOT NULL,key TEXT NOT NULL,revoked INTEGER NOT NULL DEFAULT 0,sequence INTEGER NOT NULL DEFAULT 0,proof TEXT NOT NULL,PRIMARY KEY(owner,key));
    CREATE TABLE IF NOT EXISTS directory_agents(id TEXT PRIMARY KEY,owner TEXT NOT NULL,body TEXT NOT NULL,updated INTEGER NOT NULL,runner TEXT NOT NULL,hidden INTEGER NOT NULL DEFAULT 0); CREATE TABLE IF NOT EXISTS directory_publications(hash TEXT PRIMARY KEY,body TEXT NOT NULL);
    CREATE TABLE IF NOT EXISTS directory_strategy_bindings(run_id TEXT PRIMARY KEY,session_id TEXT NOT NULL UNIQUE,agent_id TEXT NOT NULL);`);
+  this.journals=new PublicJournalStore(db,now);
   if(!(db.prepare('PRAGMA table_info(directory_agents)').all() as {name:string}[]).some(x=>x.name==='hidden'))db.exec('ALTER TABLE directory_agents ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0');
   // Retain identity reservations even when an agent is hidden or its runner is revoked.
   db.exec('BEGIN IMMEDIATE');try{
@@ -42,7 +45,7 @@ export class PumpDirectory{
   const ids=new Set<string>(),strategyIds=new Set<string>(),sessionIds=new Set<string>(),records:any[]=[];
   for(const entry of structuredClone(payload.entries)){
    const a=entry.agent;if(!a||!uuid(a.id)||ids.has(a.id)||a.visibility!=='public'||a.manifest?.controller!==payload.owner||a.commitment!==digest(a.manifest)||Object.hasOwn(a,'local'))throw new Error('Agent owner, privacy or manifest binding is invalid.');ids.add(a.id);
-   const old=this.db.prepare('SELECT owner,body FROM directory_agents WHERE id=?').get(a.id) as {owner:string;body:string}|undefined;if(old&&old.owner!==payload.owner)throw new Error('This agent ID belongs to another wallet.');
+   const old=this.db.prepare('SELECT owner,body FROM directory_agents WHERE id=?').get(a.id) as {owner:string;body:string}|undefined;const journalOwner=this.db.prepare('SELECT owner FROM journal_agents WHERE id=?').get(a.id);if(old&&old.owner!==payload.owner||journalOwner&&journalOwner.owner!==payload.owner)throw new Error('This agent ID belongs to another wallet.');
    if(!Array.isArray(entry.runs)||!Array.isArray(entry.vaults)||!entry.histories||Object.values(entry.histories).some((h:any)=>!Array.isArray(h.events)))throw new Error('Publication needs inspectable strategy journals.');
    const previous=old?JSON.parse(old.body).entry:null;if(previous&&previous.agent.commitment!==a.commitment)throw new Error('An existing agent manifest cannot be replaced. Register a new agent for a new model identity.');
    const runIds=new Set<string>();
