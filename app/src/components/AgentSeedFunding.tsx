@@ -13,7 +13,7 @@ const nearDisplay=(value:bigint,roundUp=false)=>{
   return paperAmountInput(((value+(roundUp?tick-1n:0n))/tick*tick).toString(),24);
 };
 
-export function AgentSeedFunding({draft,factory,onFinish,onBack}:{draft:FundingDraft;factory:SeedFactory;onFinish:()=>Promise<void>;onBack:()=>void}){
+export function AgentSeedFunding({draft,factory,onFinish,onBack,onArchive}:{draft:FundingDraft;factory:SeedFactory;onFinish:()=>Promise<void>;onBack:()=>void;onArchive:()=>Promise<void>}){
   const wallet=useNearWallet(),v=draft.vault;
   const [next,setNext]=useState<SeedStep>(),[error,setError]=useState(''),[busy,setBusy]=useState('');
   const balance=next&&next.kind!=='confirmed'?next.balance:undefined;
@@ -39,6 +39,12 @@ export function AgentSeedFunding({draft,factory,onFinish,onBack}:{draft:FundingD
     }catch(e){setNext(undefined);setError((e as Error).message);}
     finally{setBusy('');}
   }
+  async function archive(){
+    setError('');setBusy('Archiving draft…');
+    try{await onArchive();}
+    catch(e){setError((e as Error).message);}
+    finally{setBusy('');}
+  }
   useEffect(()=>{void check();},[]); // Each selected draft mounts its own funding view.
   return <section className="nd-card na-form">
     <div className="nd-eyebrow">STEP 3 OF 3 · NEAR TESTNET</div>
@@ -56,6 +62,7 @@ export function AgentSeedFunding({draft,factory,onFinish,onBack}:{draft:FundingD
     {error&&<p role="alert" className="nd-alert">{error}</p>}
     {needsNear&&<p role="alert" className="nd-alert">Your wallet has {nearDisplay(balance.available)} test NEAR available. Add at least {nearDisplay(balance.shortfall,true)} test NEAR to {v.owner}, then check the balance again.</p>}
     <div className="na-wizard-controls"><button type="button" className="nd-text-button" disabled={!!busy} onClick={onBack}>Save for later</button>
+      <button type="button" className="nd-text-button" disabled={!!busy} onClick={()=>void archive()}>Archive draft</button>
       <button type="button" className="nd-text-button" disabled={!!busy} onClick={()=>void check()}>{needsNear?'Check balance':'Check vault'}</button>
       {next&&<button type="button" className="nd-button" disabled={!!busy||needsNear||wallet.account!==v.owner} onClick={()=>void advance()}>{labels[next.kind]}<ArrowRight size={15}/></button>}
     </div>
@@ -85,6 +92,7 @@ export function AgentSeedBalance({vault,factory}:{vault:SeedVault;factory:SeedFa
     </div></div>
     <div className="ac-run-buttons">
       <button type="button" className="nd-button secondary" onClick={()=>void update()} disabled={busy}>Refresh vault</button>
+      {review&&<button type="button" className="nd-button secondary" disabled={busy} onClick={()=>setReview(false)}>Cancel withdrawal</button>}
       {state&&state.shares!=='0'&&!state.pending&&wallet.account===vault.owner&&<button type="button" className="nd-button secondary" disabled={busy} onClick={()=>review?void update(true):setReview(true)}>{review?'Approve withdrawal':'Withdraw seed'}</button>}
     </div>
   </section>;

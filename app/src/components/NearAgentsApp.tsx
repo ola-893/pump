@@ -13,8 +13,9 @@ import './NearAgents.css';
 import './AgentVisibility.css';
 import { AgentLeaderboard } from './AgentLeaderboard';
 import { hostedApp } from '../lib/hosting';
+import { matchesController } from '../lib/agent-collection';
 import { lastModelDirectory, pickModelDirectory, rememberModelDirectory, scanModelDirectory, scanSelectedModelFiles, type BrowserModel } from '../lib/browser-models';
-import { browserWorkspace, browserWorkspaceAction, browserFundingDrafts, prepareBrowserAgent, finishBrowserAgent, publishBrowserAgent, type FundingDraft } from '../lib/browser-workspace';
+import { browserWorkspace, browserWorkspaceAction, browserFundingDrafts, archiveFundingDraft, prepareBrowserAgent, finishBrowserAgent, publishBrowserAgent, type FundingDraft } from '../lib/browser-workspace';
 import { PublicDecisionJournal, PublicJournalCatalog } from './PublicDecisionJournal';
 import { authorizeWithOwnerWallet } from '../lib/public-journal-wallet';
 import { BrowserWorkspaceTransfer } from './BrowserWorkspaceTransfer';
@@ -67,7 +68,20 @@ function RegistryApp(){
 }
 type Props={data?:Registry;api:(path:string,body?:unknown)=>Promise<any>;refresh:()=>Promise<void>};
 function ConsolePanel({data,api,refresh}:Props){return data?<AgentConsole vaultFactoryReady={data.vaultFactoryReady} pendingStrategyAgents={data.pendingStrategyAgents} agents={data.agents} runs={data.strategyRuns??[]} execution={data.execution} runtime={data.runtime} vaults={data.vaults} unavailable={!!data.continuous?.enabled||data.comparisons.some(r=>r.state==='running')} api={api} refresh={refresh}/>:<p role="status">Loading agent console…</p>;}
-function ConsolePage(props:Props&{loadFailed?:boolean}){const location=useLocation(),q=new URLSearchParams(location.search),id=q.get('agent');if(!props.data&&props.loadFailed)return <Title eyebrow="CREATOR WORKSPACE" title="My agents" body="Configure strategies and follow your agents’ decisions."><Link className="nd-button" to="/register">Create an agent</Link></Title>;if(q.get('panel')==='identity'&&id)return <Profile data={props.data} api={props.api} agentIdOverride={id} privateView/>;if(q.get('panel')==='vault'&&id)return <AgentVaults loading={!props.data} agents={props.data?.agents??[]} runs={props.data?.strategyRuns??[]} vaults={props.data?.vaults??[]} api={props.api} refresh={props.refresh} ownerView/>;return <><DirectoryConnection status={props.data?.directory} api={props.api} refresh={props.refresh}/><ConsolePanel {...props}/>{hostedApp&&!id&&<BrowserWorkspaceTransfer refresh={props.refresh}/>}</>;}
+function ConsolePage(props:Props&{loadFailed?:boolean}){
+  const location=useLocation(),wallet=useNearWallet(),q=new URLSearchParams(location.search),id=q.get('agent');
+  if(!props.data&&props.loadFailed)return <Title eyebrow="CREATOR WORKSPACE" title="My agents" body="Configure strategies and follow your agents’ decisions."><Link className="nd-button" to="/register">Create an agent</Link></Title>;
+  const panel=q.get('panel');
+  if(id&&(panel==='identity'||panel==='vault')){
+    if(!props.data)return <p role="status">Loading agent console…</p>;
+    const agent=props.data.agents.find(candidate=>candidate.id===id);
+    const scope=q.get('scope')??(wallet.account?'mine':'local');
+    if(!agent||scope==='mine'&&!matchesController(agent.manifest.controller,wallet.account))return <ConsolePanel {...props}/>;
+    if(panel==='identity')return <Profile data={props.data} api={props.api} agentIdOverride={id} privateView/>;
+    return <AgentVaults agents={props.data.agents} runs={props.data.strategyRuns??[]} vaults={props.data.vaults??[]} api={props.api} refresh={props.refresh} ownerView/>;
+  }
+  return <><DirectoryConnection status={props.data?.directory} api={props.api} refresh={props.refresh}/><ConsolePanel {...props}/>{hostedApp&&!id&&<BrowserWorkspaceTransfer refresh={props.refresh}/>}</>;
+}
 function HistoricalCurve({steps}:{steps:BenchmarkRun['results'][number]['steps']}){
  if(!steps.length)return null;
  const values=steps.map(s=>Number(s.equity)/1e6),low=Math.min(...values),high=Math.max(...values),range=Math.max(.01,high-low);
@@ -95,6 +109,7 @@ function Register({data,api,refresh}:Props){
   const [measurementPercent,setMeasurementPercent]=useState(0);
   const [funding,setFunding]=useState<FundingDraft>();
   const [savedFunding,setSavedFunding]=useState<FundingDraft[]>([]);
+  const [restoringFunding,setRestoringFunding]=useState(false);
   useEffect(()=>{
     if(hostedApp)void browserFundingDrafts().then(setSavedFunding).catch(e=>setError(e.message));
   },[]);
@@ -146,7 +161,7 @@ function Register({data,api,refresh}:Props){
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   },[]);
   function choose(id:string){setModelId(id);}
-  function registration(checkCapital=true){if(!model)throw new Error('Select one of the detected installed models.');if(!name.trim())throw new Error('Enter an agent name.');if(!selfHosted)throw new Error('Confirm self-hosted inference.');if(!/^(?:[a-f0-9]{64}|[a-z0-9]+(?:[._-][a-z0-9]+)*\.testnet)$/.test(effectiveOwner))throw new Error('Enter a public NEAR testnet account.');if(strategy.trim().length<20)throw new Error('Describe the strategy and conditions for holding.');const tradeCap=amount(trade),exposureCap=amount(exposure),dailyTurnoverCap=amount(daily),initialCash=checkCapital?amount(capital):'1';if([tradeCap,exposureCap,dailyTurnoverCap,initialCash].some(n=>BigInt(n)<=0n||BigInt(n)>1000000000000n))throw new Error('Use positive limits up to one million quote units.');if(BigInt(tradeCap)>BigInt(exposureCap)||BigInt(tradeCap)>BigInt(dailyTurnoverCap))throw new Error('Per-trade cap must fit within the exposure and turnover limits.');if(!Number.isInteger(+slippage)||+slippage<0||+slippage>1000)throw new Error('Slippage must be 0–1,000 basis points.');if(!Number.isInteger(+interval)||+interval<15||+interval>3600)throw new Error('Decision interval must be 15–3,600 seconds.');return {visibility,name,controller:effectiveOwner,modelId,strategy,tradeCap,exposureCap,dailyTurnoverCap,slippageBps:+slippage,initialCash,intervalMs:+interval*1000};}
+  function registration(checkCapital=true){if(!model)throw new Error('Select one of the detected installed models.');if(hostedApp&&model.runtime!=='llama.cpp')throw new Error('Choose GGUF weights for browser inference.');if(!name.trim())throw new Error('Enter an agent name.');if(!selfHosted)throw new Error('Confirm self-hosted inference.');if(!/^(?:[a-f0-9]{64}|[a-z0-9]+(?:[._-][a-z0-9]+)*\.testnet)$/.test(effectiveOwner))throw new Error('Enter a public NEAR testnet account.');if(strategy.trim().length<20)throw new Error('Describe the strategy and conditions for holding.');const tradeCap=amount(trade),exposureCap=amount(exposure),dailyTurnoverCap=amount(daily),initialCash=checkCapital?amount(capital):'1';if([tradeCap,exposureCap,dailyTurnoverCap,initialCash].some(n=>BigInt(n)<=0n||BigInt(n)>1000000000000n))throw new Error('Use positive limits up to one million quote units.');if(BigInt(tradeCap)>BigInt(exposureCap)||BigInt(tradeCap)>BigInt(dailyTurnoverCap))throw new Error('Per-trade cap must fit within the exposure and turnover limits.');if(!Number.isInteger(+slippage)||+slippage<0||+slippage>1000)throw new Error('Slippage must be 0–1,000 basis points.');if(!Number.isInteger(+interval)||+interval<15||+interval>3600)throw new Error('Decision interval must be 15–3,600 seconds.');return {visibility,name,controller:effectiveOwner,modelId,strategy,tradeCap,exposureCap,dailyTurnoverCap,slippageBps:+slippage,initialCash,intervalMs:+interval*1000};}
   async function register(){
     setBusy('register');setError('');setMeasurementPercent(0);
     try{
@@ -179,14 +194,30 @@ function Register({data,api,refresh}:Props){
       navigate(`/public-journal/${id}`);
     }else navigate(`/console?agent=${id}&scope=local`);
   }
+  function closeFunding(){setFunding(undefined);setStep(1);setError('');}
+  async function changeFundingArchive(draft:FundingDraft, archived:boolean){
+    await archiveFundingDraft(draft.vault.agentId,archived);
+    setSavedFunding(items=>items.map(item=>item.vault.agentId===draft.vault.agentId?{...item,archived}:item));
+    if(archived)closeFunding();
+  }
+  async function restoreFunding(draft:FundingDraft){
+    setRestoringFunding(true);setError('');
+    try{await changeFundingArchive(draft,false);setFunding({...draft,archived:false});}
+    catch(e){setError((e as Error).message);}
+    finally{setRestoringFunding(false);}
+  }
   function next(){try{registration(step>1);setError('');setStep(step+1);window.scrollTo(0,0);}catch(e){setError((e as Error).message);}}
   const input=(label:string,value:string,set:(s:string)=>void,hint?:string)=><label>{label}<input required value={value} onChange={e=>set(e.target.value)}/>{hint&&<small>{hint}</small>}</label>;
   if(funding&&seedFactory)return <AgentSeedFunding key={funding.vault.agentId} draft={funding} factory={seedFactory}
-    onFinish={finishFunding} onBack={()=>{setFunding(undefined);setStep(1);setError('');}}/>;
+    onFinish={finishFunding} onBack={closeFunding} onArchive={()=>changeFundingArchive(funding,true)}/>;
+  const pendingFunding=savedFunding.filter(draft=>!draft.archived),archivedFunding=savedFunding.filter(draft=>draft.archived);
   return <><div className="nd-title na-title"><h1>Create your trading agent.</h1></div>
-    {seedFactory&&savedFunding.length>0&&<section className="nd-card na-detail"><h2>Continue vault funding</h2>
-      <div className="nd-buttons">{savedFunding.map(draft=><button type="button" className="nd-button secondary" key={draft.vault.agentId}
+    {seedFactory&&pendingFunding.length>0&&<section className="nd-card na-detail"><h2>Continue vault funding</h2>
+      <div className="nd-buttons">{pendingFunding.map(draft=><button type="button" className="nd-button secondary" key={draft.vault.agentId}
         onClick={()=>setFunding(draft)}>Resume {draft.manifest.name}</button>)}</div></section>}
+    {seedFactory&&archivedFunding.length>0&&<details className="nd-card na-detail"><summary>Archived funding drafts</summary>
+      <div className="nd-buttons">{archivedFunding.map(draft=><button type="button" className="nd-button secondary" key={draft.vault.agentId}
+        disabled={restoringFunding} onClick={()=>void restoreFunding(draft)}>Restore {draft.manifest.name}</button>)}</div></details>}
     <div className="na-registration">
       <aside><ol className="na-wizard">{['Identity & inference','Strategy & mandate','Review & export'].map((title,i)=>
         <li key={title} className={step===i+1?'current':step>i+1?'complete':''}>
@@ -225,7 +256,7 @@ function Register({data,api,refresh}:Props){
             <label>Choose an installed local model
               <select aria-label="Choose an installed local model" value={modelId} onChange={e=>choose(e.target.value)}>
                 <option value="">Select downloaded weights</option>
-                {models.map(m=><option key={m.id} value={m.id}>{m.name} · {(m.bytes/1e9).toFixed(2)} GB</option>)}
+                {models.map(m=><option key={m.id} value={m.id} disabled={hostedApp&&m.runtime!=='llama.cpp'}>{m.name} · {(m.bytes/1e9).toFixed(2)} GB{hostedApp&&m.runtime!=='llama.cpp'?' · MLX detected, select GGUF to run in browser':''}</option>)}
               </select>
             </label>
             {model&&<details>

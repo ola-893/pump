@@ -29,12 +29,13 @@ export type FundingDraft = {
   ownerName: string;
   visibility: Registration['visibility'];
   vault: SeedVault;
+  archived?: boolean;
 };
 const publicSyncErrors = new Map<string, string>();
 
 const databaseName = 'pump-browser-workspace';
 const executionLock = 'pump-browser-inference';
-const running = new Map<string, AbortController>();
+const executions = new Map<string, { controller: AbortController; continuous: boolean }>();
 const errors = new Map<string, string>();
 let activeSession: string | null = null;
 let runtimePhase = 'idle';
@@ -133,7 +134,8 @@ function agentView(agent: StoredAgent) {
 }
 
 function strategySession(run: StoredRun) {
-  return { ...sessionView(run.paper.session), state: running.has(run.id) ? 'running' as const : 'stopped' as const,
+  const execution = executions.get(run.id);
+  return { ...sessionView(run.paper.session), state: execution?.continuous && !execution.controller.signal.aborted ? 'running' as const : 'stopped' as const,
     error: errors.get(run.id) ?? null };
 }
 
@@ -165,8 +167,25 @@ export async function browserFundingDrafts():Promise<FundingDraft[]> {
   } finally { db.close(); }
 }
 
+export async function archiveFundingDraft(id: string, archived: boolean) {
+  const db = await workspaceDatabase();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('funding', 'readwrite'), funding = tx.objectStore('funding');
+      tx.oncomplete = () => resolve();
+      tx.onabort = () => reject(tx.error ?? new Error('This draft was completed in another tab. Open My agents.'));
+      const read = funding.get(id);
+      read.onsuccess = () => {
+        if (!read.result) { tx.abort(); return; }
+        funding.put({ ...read.result, archived }, id);
+      };
+    });
+  } finally { db.close(); }
+}
+
 export async function prepareBrowserAgent(input: Registration, model: BrowserModel, factory:SeedFactory, progress?: (completedBytes: number) => void) {
   if (input.modelId !== model.id) throw new Error('Select the model again before registering.');
+  if (!model.openWeights) throw new Error('Choose GGUF weights for browser inference.');
   const { controller, modelId, visibility, ...settings } = input;
   const config = validateConfig({
     ...settings, source: 'live', endpoint: 'http://127.0.0.1/v1', executionDelayMs: 1500, maxQuoteAgeMs: 30000,
@@ -246,7 +265,7 @@ function saveStrategy(agentId: string, expectedVersion: number, settings: Strate
       try {
         const agent = read.result as StoredAgent | undefined;
         if (!agent) throw new Error('Agent registration not found in this browser.');
-        if (agent.runs.some(run => running.has(run.id) || run.sessionId === activeSession)) throw new Error('Stop the active strategy before saving another version.');
+        if (agent.runs.some(run => executions.has(run.id))) throw new Error('Stop the active strategy before saving another version.');
         const latest = agent.runs[0]?.version ?? 0;
         if (latest !== expectedVersion) throw new Error('A newer strategy version was saved. Refresh before saving again.');
         const { label, strategy, ...limits } = settings;
@@ -306,10 +325,11 @@ export async function browserWorkspaceAction(path: string, body: unknown) {
   throw new Error('This action needs a connection to the shared directory, market service, or NEAR testnet.');
 }
 
-function saveCycle(agentId: string, runId: string, revision: number, paper: PaperRecord) {
+function saveCycle(agentId: string, runId: string, revision: number, paper: PaperRecord, signal: AbortSignal) {
   return agentStore<void>('readwrite', (store, finish, fail) => {
     const read = store.get(agentId);
     read.onsuccess = () => {
+      if (signal.aborted) { fail(signal.reason); return; }
       const agent = read.result as StoredAgent | undefined;
       const run = agent?.runs[0];
       if (!agent || !run || run.id !== runId || run.paper.session.revision !== revision) {
@@ -323,7 +343,9 @@ function saveCycle(agentId: string, runId: string, revision: number, paper: Pape
 }
 
 async function runPaperCycle(agent: StoredAgent, run: StoredRun, signal: AbortSignal, action: 'cycle' | 'mark') {
+  signal.throwIfAborted();
   const current = (await listAgents()).find(record => record.id === agent.id)?.runs[0];
+  signal.throwIfAborted();
   if (!current || current.id !== run.id) throw new Error('This strategy is archived. Open the current version.');
   if (current.paper.session.testnet) throw new Error('This session is linked to testnet clearing. Use its original workspace.');
   const revision = current.paper.session.revision;
@@ -335,13 +357,14 @@ async function runPaperCycle(agent: StoredAgent, run: StoredRun, signal: AbortSi
     if (action === 'cycle') {
       runtimePhase = 'loading';
       const { prepareBrowserModel, browserInference } = await import('./browser-inference.js');
-      const model = await prepareBrowserModel(agent.manifest, current.paper.session.agent!.modelId);
+      const model = await prepareBrowserModel(agent.manifest, current.paper.session.agent!.modelId, signal);
       signal.throwIfAborted();
       runtimePhase = 'running';
       service.setInferenceProvider(browserInference(model, {id:current.id,commitment:current.commitment}, signal));
     }
     const result = await (action === 'mark' ? service.refresh(sessionId) : service.cycle(sessionId));
-    await saveCycle(agent.id, current.id, revision, current.paper);
+    signal.throwIfAborted();
+    await saveCycle(agent.id, current.id, revision, current.paper, signal);
     void syncIfPublic(agent.id);
     if (result.error) errors.set(current.id, result.error);
     else errors.delete(current.id);
@@ -355,25 +378,35 @@ async function runPaperCycle(agent: StoredAgent, run: StoredRun, signal: AbortSi
 
 async function browserStrategyAction(agent: StoredAgent, run: StoredRun, action: string) {
   if (action === 'stop') {
-    running.get(run.id)?.abort();
-    running.delete(run.id);
+    executions.get(run.id)?.controller.abort();
+    if (activeSession === run.sessionId) runtimePhase = 'stopping';
     return { session: strategySession(run) };
   }
   if (action !== 'start' && action !== 'cycle' && action !== 'mark') throw new Error('Unknown paper action.');
   if (agent.runs[0]?.id !== run.id) throw new Error('This strategy is archived. Open the current version.');
   if (!navigator.locks) throw new Error('This browser cannot coordinate paper sessions across tabs.');
   if (action !== 'start') {
-    return navigator.locks.request(executionLock, { ifAvailable: true }, lock => {
+    return navigator.locks.request(executionLock, { ifAvailable: true }, async lock => {
       if (!lock) throw new Error('A browser paper session is already running.');
-      return runPaperCycle(agent, run, new AbortController().signal, action);
+      const controller = new AbortController();
+      executions.set(run.id, { controller, continuous: false });
+      try {
+        return await runPaperCycle(agent, run, controller.signal, action);
+      } catch (error) {
+        if (!controller.signal.aborted) throw error;
+        return { session: strategySession(run), cancelled: true };
+      } finally {
+        executions.delete(run.id);
+      }
     });
   }
-  if (running.has(run.id)) return { session: strategySession(run) };
+  const existing = executions.get(run.id);
+  if (existing?.continuous && !existing.controller.signal.aborted) return { session: strategySession(run) };
   return new Promise<{ session: ReturnType<typeof strategySession> }>((resolve, reject) => {
     void navigator.locks.request(executionLock, { ifAvailable: true }, async lock => {
       if (!lock) throw new Error('A browser paper session is already running.');
       const controller = new AbortController();
-      running.set(run.id, controller);
+      executions.set(run.id, { controller, continuous: true });
       errors.delete(run.id);
       resolve({ session: strategySession(run) });
       try {
@@ -389,7 +422,7 @@ async function browserStrategyAction(agent: StoredAgent, run: StoredRun, action:
       } catch (error) {
         if (!controller.signal.aborted) errors.set(run.id, error instanceof Error ? error.message : 'Browser inference failed.');
       } finally {
-        running.delete(run.id);
+        executions.delete(run.id);
       }
     }).catch(reject);
   });
