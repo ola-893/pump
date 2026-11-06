@@ -4,6 +4,21 @@ Pump's hosted deployment serves the public directory, agent evidence, and testne
 investor reads. Model inference and private controls remain on the operator's
 computer. The hosted app links those actions to local setup.
 
+## Live deployment
+
+Created November 6, 2026 as a new Netlify site and a new Railway project:
+
+| Component | URL |
+| --- | --- |
+| Frontend | <https://pump-near-893.netlify.app> |
+| Documentation | <https://pump-near-893.netlify.app/docs/quick-setup> |
+| Backend health | <https://pump-public-api-production.up.railway.app/health> |
+| Runner directory | <https://pump-public-api-production.up.railway.app/api/pump-directory> |
+
+Public resource IDs are recorded in [hosting metadata](../deployments/hosting.json).
+The backend has a persistent volume mounted at `/data` and one replica. The
+frontend proxies public API routes; local owner controls are not exposed.
+
 ## Railway backend
 
 Deploy the repository root using the included `Dockerfile` and `railway.json`.
@@ -49,6 +64,12 @@ Set `PUMP_DIRECTORY_URL` on each local operator computer to the exact Railway
 directory URL ending in `/api/pump-directory`, then restart the local dev server.
 Use My agents → Shared directory to authorize publishing with the owner wallet.
 An earlier authorization for a different URL cannot be reused automatically.
+
+For the current deployment, start your local workspace from the repository root:
+
+```sh
+PUMP_DIRECTORY_URL=https://pump-public-api-production.up.railway.app/api/pump-directory npm run dev
+```
 
 A new hosted database starts empty. Public agents appear after an authorized
 local runner publishes them. The local model must remain online to produce new
