@@ -23,6 +23,23 @@ test('browser directory scan descends into the permitted folder and checks GGUF 
   assert.equal((await scanModelDirectory(root))[0].id, models[0].id);
 });
 
+test('stopping a browser run cancels GGUF verification between file reads', async () => {
+  const file = modelFile('Qwen.gguf', 'GGUF' + '0'.repeat(9 * 1024 * 1024));
+  const [model] = await scanSelectedModelFiles([file] as unknown as FileList);
+  const checksum = await model.measure();
+  const controller = new AbortController();
+  const slice = file.slice.bind(file);
+  const reads: number[] = [];
+  file.slice = (start, end) => {
+    reads.push(start!);
+    const chunk = slice(start, end);
+    controller.abort();
+    return chunk;
+  };
+  await assert.rejects(model.openWeights!(checksum, controller.signal), { name: 'AbortError' });
+  assert.deepEqual(reads, [0]);
+});
+
 test('browser folder selection resolves Ollama blobs and rejects incomplete MLX bundles', async () => {
   const digest = 'a'.repeat(64);
   const artifactNames = ['config.json', 'model.safetensors.index.json', 'model.safetensors', 'joint_head.safetensors', 'joint_head_config.json', 'tokenizer.json', 'tokenizer_config.json', 'clef_mlx.py'];

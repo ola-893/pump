@@ -1,15 +1,18 @@
 export type CollectionAgent={visibility?:'private'|'public';id:string;createdAt?:string;manifest:{name:string;controller?:string;model:{id:string};strategy?:{description:string}}};
 export type CollectionRun={id:string;agentId:string;version:number;label:string;createdAt:string;session:{state:string;error?:string|null;valuationStale?:boolean;metrics:{total:string|null};portfolio:{maxDrawdownBps:number}};activity:{fills:number;decisions:number}};
 export type AgentEntry<A extends CollectionAgent=CollectionAgent>={agent:A;run?:CollectionRun;returnPct:number|null;drawdown:number|null;state:'running'|'stopped'|'unconfigured'|'attention';funded:boolean};
+export function matchesController(controller?:string, account?:string) {
+ return !!account&&controller?.toLowerCase()===account.toLowerCase();
+}
 export function agentEntries<A extends CollectionAgent>(agents:A[],runs:(CollectionRun&{config:{initialCash:string}})[],vaults:{agentId:string;contractId:string|null}[]=[]):AgentEntry<A>[] {
  const latest=new Map<string,typeof runs[number]>(),working=new Map<string,typeof runs[number]>();for(const r of runs){if(!latest.has(r.agentId)||latest.get(r.agentId)!.version<r.version)latest.set(r.agentId,r);if(r.session.state==='running')working.set(r.agentId,r);}
  const deployed=new Set(vaults.filter(v=>v.contractId).map(v=>v.agentId));
  return agents.map(agent=>{const run=latest.get(agent.id),active=working.get(agent.id),total=run?.session.metrics.total;return {agent,run,returnPct:run&&run.activity.decisions>0&&total!=null&&!run.session.valuationStale&&Number(run.config.initialCash)>0?Number(total)*100/Number(run.config.initialCash):null,drawdown:run&&run.activity.decisions>0?run.session.portfolio.maxDrawdownBps/100:null,state:active?active.session.error?'attention':'running':run?.session.error?'attention':run?.session.state==='running'?'running':run?'stopped':'unconfigured',funded:deployed.has(agent.id)};});
 }
 export function selectAgents<A extends CollectionAgent>(entries:AgentEntry<A>[],options:{query?:string;filter?:string;sort?:string;account?:string;mine?:boolean}) {
- const terms=(options.query??'').toLowerCase().trim().split(/\s+/).filter(Boolean),account=options.account?.toLowerCase();
+ const terms=(options.query??'').toLowerCase().trim().split(/\s+/).filter(Boolean);
  const found=entries.filter(e=>{
-  if(options.mine&&(!account||e.agent.manifest.controller?.toLowerCase()!==account))return false;
+  if(options.mine&&!matchesController(e.agent.manifest.controller,options.account))return false;
   const text=[e.agent.manifest.name,e.agent.manifest.model.id,e.agent.manifest.controller,e.agent.manifest.strategy?.description,e.run?.label,e.agent.id].join(' ').toLowerCase();
   if(!terms.every(t=>text.includes(t)))return false;
   return !options.filter||options.filter==='all'||options.filter==='record'&&(e.run?.activity.fills??0)>0||options.filter==='running'&&e.state==='running'||options.filter==='stopped'&&e.state==='stopped'||options.filter==='attention'&&e.state==='attention'||options.filter==='unconfigured'&&e.state==='unconfigured'||options.filter==='vault'&&e.funded;

@@ -4,7 +4,7 @@ import { bytesToHex } from '@noble/hashes/utils';
 
 export type BrowserModel = InstalledModel & {
   measure(progress?: (completedBytes: number) => void): Promise<string>;
-  openWeights?: (checksum: string) => Promise<File>;
+  openWeights?: (checksum: string, signal?: AbortSignal) => Promise<File>;
 };
 
 type DirectoryEntries = {
@@ -26,14 +26,16 @@ const maxManifestBytes = 65_536;
 const maxWeightIndexBytes = 4 * 1024 * 1024;
 type ModelFiles = Map<string, () => Promise<File>>;
 
-async function hashFile(file: File, progress?: (completedBytes: number) => void) {
+async function hashFile(file: File, progress?: (completedBytes: number) => void, signal?: AbortSignal) {
   const hash = sha256.create();
   const chunkSize = 8 * 1024 * 1024;
   for (let start = 0; start < file.size; start += chunkSize) {
+    signal?.throwIfAborted();
     const chunk = new Uint8Array(await file.slice(start, start + chunkSize).arrayBuffer());
     hash.update(chunk);
     progress?.(start + chunk.length);
   }
+  signal?.throwIfAborted();
   return bytesToHex(hash.digest());
 }
 
@@ -41,11 +43,12 @@ function checkSize(size: number) {
   if (size > maxEntries) throw new Error('Choose a smaller folder containing your model weights.');
 }
 
-export async function scanModelDirectory(root: ModelDirectory) {
+export async function scanModelDirectory(root: ModelDirectory, signal?: AbortSignal) {
   const files: ModelFiles = new Map();
   let visited = 0;
   async function walk(directory: DirectoryEntries, prefix: string) {
     for await (const entry of directory.values()) {
+      signal?.throwIfAborted();
       checkSize(++visited);
       const path = prefix + entry.name;
       if (entry.kind === 'directory') await walk(entry, path + '/');
@@ -53,7 +56,7 @@ export async function scanModelDirectory(root: ModelDirectory) {
     }
   }
   await walk(root, '');
-  return scanModelFiles(files);
+  return scanModelFiles(files, signal);
 }
 
 export function scanSelectedModelFiles(files: FileList) {
@@ -66,7 +69,7 @@ export function scanSelectedModelFiles(files: FileList) {
   return scanModelFiles(entries);
 }
 
-async function scanModelFiles(files: ModelFiles) {
+async function scanModelFiles(files: ModelFiles, signal?: AbortSignal) {
   const models = new Map<string, BrowserModel>();
   const checkedWeights = new Set<string>();
   const detectedAt = new Date().toISOString();
@@ -88,9 +91,9 @@ async function scanModelFiles(files: ModelFiles) {
       name, filename, bytes: file.size,
       quantization: filename.match(/(?:I?Q\d[^.]*)/i)?.[0] ?? 'See model metadata',
       runtime: 'llama.cpp',
-    }, async progress => hashFile(await currentFile(), progress), async checksum => {
+    }, async progress => hashFile(await currentFile(), progress), async (checksum, signal) => {
       const current = await currentFile();
-      if (await hashFile(current) !== checksum) throw new Error('The selected weights do not match this agent’s checksum.');
+      if (await hashFile(current, undefined, signal) !== checksum) throw new Error('The selected weights do not match this agent’s checksum.');
       return current;
     });
     async function currentFile() {
@@ -154,6 +157,7 @@ async function scanModelFiles(files: ModelFiles) {
   }
 
   for (const path of files.keys()) {
+    signal?.throwIfAborted();
     const filename = path.split('/').at(-1)!;
     try {
       if (/\.gguf$/i.test(filename) && !/mmproj|projector|-\d{5}-of-\d{5}\.gguf$/i.test(filename)) {

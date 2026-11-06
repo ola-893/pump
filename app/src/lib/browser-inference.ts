@@ -10,7 +10,8 @@ import { browserProposalRequest } from './browser-proposal.js';
 const runtimes=new BrowserRuntimeCache<Wllama>();
 let diagnostics=runtimeDiagnostics();
 
-export async function prepareBrowserModel(manifest: AgentManifest, modelId: string) {
+export async function prepareBrowserModel(manifest: AgentManifest, modelId: string, signal: AbortSignal) {
+  signal.throwIfAborted();
   if (manifest.inference.runtime !== 'llama.cpp') {
     throw new Error('This agent uses an MLX classifier bundle. Browser inference currently supports GGUF models.');
   }
@@ -20,17 +21,18 @@ export async function prepareBrowserModel(manifest: AgentManifest, modelId: stri
   if (!directory || await directory.queryPermission({ mode: 'read' }) !== 'granted') {
     throw new Error('Allow read access to your model folder in Create an agent, then try again.');
   }
-  const models = await scanModelDirectory(directory);
+  const models = await scanModelDirectory(directory, signal);
   const selected = models.find(model => model.id === modelId) ??
     models.find(model => model.filename === manifest.model.filename && model.bytes === manifest.model.bytes);
   if (!selected?.openWeights) throw new Error('The registered GGUF file is missing from the permitted model folder.');
   await runtimes.clear();
-  const file = await selected.openWeights(manifest.model.sha256);
+  const file = await selected.openWeights(manifest.model.sha256, signal);
   const engine = await import('@wllama/wllama/esm/index.js') as unknown as { Wllama: typeof Wllama };
   diagnostics=runtimeDiagnostics();
   const runtime = new engine.Wllama({ default: new URL(wasmUrl, location.origin).href }, { logger:diagnostics.logger });
   try {
     const webGPU = await runtime.isSupportWebGPU();
+    signal.throwIfAborted();
     if (!webGPU && file.size > 2 * 1024 ** 3) throw new Error('WebGPU is required for this large GGUF file in Pump.');
     await runtime.loadModel([file], {
       n_ctx:manifest.inference.context,n_gpu_layers:webGPU?999:0,
@@ -41,6 +43,7 @@ export async function prepareBrowserModel(manifest: AgentManifest, modelId: stri
     });
   } catch (error) {
     await runtimes.clear(runtime);
+    signal.throwIfAborted();
     throw new Error(`Could not load ${manifest.model.id} in Chrome. ${diagnostics.reason(error).slice(0, 300)}`);
   }
   runtimes.save(manifest.model.sha256,runtime);
