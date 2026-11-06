@@ -1,10 +1,11 @@
 import { digest, verifyHistory } from '../../../near-demo/ledger.js';
 import { PaperDemo } from '../../../near-demo/service.js';
+import { IntentMarkets } from '../../../near-demo/intent-markets.js';
 import { BrowserPaperStore } from './browser-paper-store.js';
 import type { WorkspaceAgent, WorkspacePaper, WorkspaceStrategy, WorkspaceTransfer } from '../../../near-demo/workspace-transfer.js';
 import { initialPortfolio, metrics } from '../../../near-demo/paper-state.js';
 import { BENCHMARK_POLICY, type AgentManifest, type StrategyRun, type StrategySettings } from '../../../near-demo/public-types.js';
-import { paperMarket, testAccount, validateConfig, type Config, type Event, type Session } from '../../../near-demo/types.js';
+import { paperMarket, testAccount, validateConfig, type Config, type Event, type MarketSelection, type Session } from '../../../near-demo/types.js';
 import { journalBatchSize, journalSchema, publicJournalEvent } from '../../../near-demo/directory/public-journal.js';
 import { readJournal, sendJournalBatch } from './public-journal-client.js';
 import type { BrowserModel } from './browser-models.js';
@@ -32,6 +33,7 @@ export type FundingDraft = {
   archived?: boolean;
 };
 const publicSyncErrors = new Map<string, string>();
+const intentMarkets = new IntentMarkets();
 
 const databaseName = 'pump-browser-workspace';
 const executionLock = 'pump-browser-inference';
@@ -317,6 +319,11 @@ function writeStrategyVersion(agentId: string, expectedVersion: number, settings
 }
 
 export async function browserWorkspaceAction(path: string, body: unknown) {
+  if (path === '/intent-assets') return intentMarkets.catalog();
+  if (path === '/intent-market-check') {
+    const { market, amount, slippageBps } = body as { market: MarketSelection; amount: string; slippageBps: number };
+    return intentMarkets.check(market, amount, slippageBps);
+  }
   const request = body as { agentId: string; expectedVersion: number; settings: StrategySettings; id: string; runId: string; action: string };
   if (path === '/strategy-save-paper') {
     const run = await saveStrategy(request.agentId, request.expectedVersion, request.settings);

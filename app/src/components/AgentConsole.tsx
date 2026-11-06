@@ -59,10 +59,16 @@ function StrategyEditor({agent,run,latestVersion,onSaved,...props}:Props&{agent:
   }),[busy,setBusy]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState(''),[events,setEvents]=useState<Event[]>([]),[journalFor,setJournalFor]=useState<number|null>(null),[journalBusy,setJournalBusy]=useState(false),[journalError,setJournalError]=useState(''),[journalAt,setJournalAt]=useState<string|null>(null),[view,setView]=useState(run?'monitor':'strategy');
   const [stopRequested,setStopRequested]=useState(false);
   const [catalog,setCatalog]=useState<MarketAsset[]>([]),[catalogStatus,setCatalogStatus]=useState(''),[route,setRoute]=useState<{key:string;message:string}>();
-  const selection:MarketSelection|undefined=draft.market!=='catalog'?draft.market:draft.baseAsset&&draft.quoteAsset?{base:draft.baseAsset,quote:draft.quoteAsset}:undefined;
+  const seedQuoteId=agent.seedVault?paperMarket(agent.session.config).quote:undefined;
+  const quoteAsset=seedQuoteId
+    ? catalog.find(asset=>asset.assetId===seedQuoteId)??(draft.quoteAsset?.assetId===seedQuoteId?draft.quoteAsset:undefined)
+    : draft.quoteAsset;
+  const selection:MarketSelection|undefined=draft.market!=='catalog'
+    ? draft.market
+    : draft.baseAsset&&quoteAsset&&draft.baseAsset.assetId!==quoteAsset.assetId?{base:draft.baseAsset,quote:quoteAsset}:undefined;
   const draftMarket=selection?paperMarket({market:selection}):null,runMarket=paperMarket(run?.config);
-  const quoteSymbol=draftMarket?.quoteSymbol??draft.quoteAsset?.symbol??'quote currency';
-  const quoteDecimals=draftMarket?.quoteDecimals??draft.quoteAsset?.decimals??6;
+  const quoteSymbol=draftMarket?.quoteSymbol??quoteAsset?.symbol??'quote currency';
+  const quoteDecimals=draftMarket?.quoteDecimals??quoteAsset?.decimals??6;
   const routeKey=JSON.stringify([selection,draft.tradeCap,draft.slippageBps]);
   const display=(value:string|null|undefined)=>paperAmount(value,runMarket.quoteDecimals);
   const journalRequest=useRef(0),journalApi=useRef(props.api);journalApi.current=props.api;
@@ -88,7 +94,7 @@ function StrategyEditor({agent,run,latestVersion,onSaved,...props}:Props&{agent:
     } catch(e) {setCatalogStatus((e as Error).message);}
   }
   function chooseMarket(market:Draft['market']) {
-    setDraft(d=>({...d,market,...(market!=='catalog'&&d.market==='catalog'?{initialCash:agent.seedVault?d.initialCash:'',tradeCap:'',exposureCap:'',dailyTurnoverCap:''}:{})}));
+    setDraft(d=>({...d,market,...(!seedQuoteId&&market!=='catalog'&&d.market==='catalog'?{initialCash:'',tradeCap:'',exposureCap:'',dailyTurnoverCap:''}:{})}));
     if(market==='catalog'&&!catalog.length)void loadCatalog();
   }
   function chooseAsset(key:'baseAsset'|'quoteAsset',id:string) {
@@ -242,11 +248,24 @@ function StrategyEditor({agent,run,latestVersion,onSaved,...props}:Props&{agent:
     </section>}
     {view==='strategy'?<div className="ac-config-layout"><form className="ac-editor" onSubmit={e=>{e.preventDefault();void save();}}><div className="ac-section-title"><span>CONFIGURE</span><h3>{run?`v${run.version} · ${run.label}`:'Define a strategy for '+agent.manifest.name}</h3></div><p className="ac-help">{run?'Saved versions are immutable. Changes create a fresh, stopped portfolio; earlier results stay intact.':'Define entries, exits, sizing and when to HOLD. Saving does not run the agent.'}</p>
             {input('label','Strategy name')}
-      <label>Paper trading market<select value={draft.market} disabled={!!busy||occupied||pending} onChange={e=>chooseMarket(e.target.value as Draft['market'])}>{Object.entries(markets).map(([id,market])=><option key={id} value={id}>{market.label}</option>)}<option value="catalog">Choose from all 1Click assets</option></select></label>
-      {draft.market==='catalog'&&<><div className="ac-fields">{(['baseAsset','quoteAsset'] as const).map(key=><label key={key}>{key==='baseAsset'?'Base asset':'Quote currency'}<select disabled={!!busy||occupied||pending||!catalog.length} value={draft[key]?.assetId??''} onChange={e=>chooseAsset(key,e.target.value)}><option value="">Select asset</option>{draft[key]&&!catalog.some(a=>a.assetId===draft[key]?.assetId)&&<option value={draft[key]?.assetId}>{draft[key]?.symbol} · {draft[key]?.blockchain}</option>}{catalog.map(asset=><option key={asset.assetId} value={asset.assetId} title={asset.assetId}>{asset.symbol} · {asset.blockchain} · {asset.assetId}</option>)}</select></label>)}</div>
+      <label>Paper trading market<select value={draft.market} disabled={!!busy||occupied||pending} onChange={e=>chooseMarket(e.target.value as Draft['market'])}>
+        {Object.entries(markets).map(([id,market])=><option key={id} value={id} disabled={!!seedQuoteId&&market.quote!==seedQuoteId}>{market.label}</option>)}
+        <option value="catalog">Choose from all 1Click assets</option>
+      </select></label>
+      {draft.market==='catalog'&&<><div className="ac-fields">{(['baseAsset','quoteAsset'] as const).map(key=>{
+        const isBase=key==='baseAsset';
+        const selected=isBase?draft.baseAsset:quoteAsset;
+        const assets=catalog.filter(asset=>isBase?asset.assetId!==(quoteAsset?.assetId??seedQuoteId):
+          seedQuoteId?asset.assetId===seedQuoteId:asset.assetId!==draft.baseAsset?.assetId);
+        return <label key={key}>{isBase?'Base asset':'Quote currency'}<select disabled={!!busy||occupied||pending||!catalog.length||(!isBase&&!!seedQuoteId)} value={selected?.assetId??''} onChange={e=>chooseAsset(key,e.target.value)}>
+          <option value="">Select asset</option>
+          {selected&&!assets.some(asset=>asset.assetId===selected.assetId)&&<option value={selected.assetId}>{selected.symbol} · {selected.blockchain}</option>}
+          {assets.map(asset=><option key={asset.assetId} value={asset.assetId} title={asset.assetId}>{asset.symbol} · {asset.blockchain} · {asset.assetId}</option>)}
+        </select></label>;
+      })}</div>
       {!catalog.length&&<button type="button" className="nd-button secondary" disabled={catalogStatus==='Loading 1Click assets…'} onClick={()=>void loadCatalog()}>Load 1Click assets</button>}
       {catalogStatus&&<p role="status">{catalogStatus}</p>}
-      <p className="ac-help">Custom markets use signed route observations. Write rules for those observations. The testnet USDC vault follows the strategy’s return in its quote currency.</p>
+      <p className="ac-help">Custom markets use signed route observations. Write rules for those observations. {seedQuoteId?'The seed vault fixes the quote currency to USDC.':!hostedApp?'The testnet USDC vault follows the strategy’s return in its quote currency.':''}</p>
       <button type="button" className="nd-button secondary" disabled={!selection||!!busy||occupied||pending} onClick={()=>void checkRoute()}>{busy==='route'?'Checking both directions…':'Check buy and sell quotes'}</button>
       {route?.key===routeKey&&<p role="status">{route.message}</p>}</>}
       <label>Trading strategy<textarea rows={9} maxLength={3000} value={draft.strategy} disabled={!!busy||occupied} onChange={e=>field('strategy',e.target.value)}/><small>Instructions go to your local model. {hostedApp||agent.visibility==='private'?'Saved privately on this computer; included in your owner export.':'Saving publishes these instructions for investor inspection.'}</small></label>
