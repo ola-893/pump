@@ -37,12 +37,12 @@ test('registration accepts only a finalized owner seed receipt for the exact str
  await assert.rejects(verifySeedReceipt(binding,hash),/unconfirmed/);
  response.final_execution_status='FINAL';
  response.transaction.signer_id='bob.testnet';
- await assert.rejects(verifySeedReceipt(binding,hash),/outside this agent vault/);
+ await assert.rejects(verifySeedReceipt(binding,hash),/different wallet account/);
 });
 test('a finalized refund and account setup never masquerade as an investment',()=>{
  const r=deposit();r.status.SuccessValue=encode('0');r.receipts_outcome[1]=outcome(TEST_USDC,[log('nep141','ft_transfer',{old_owner_id:vault,new_owner_id:account,amount:'5000000'})]);assert.equal(vaultReceiptEffect(r,account,vault).outcome,'refunded');
  const setup=receipt('storage_deposit',{account_id:account,registration_only:true},vault,{total:'1250000000000000000000',available:'0'});assert.deepEqual(vaultReceiptEffect(setup,account,vault),{kind:'setup',outcome:'confirmed',accountId:account,receiverId:vault,method:'storage_deposit'});
- assert.throws(()=>vaultReceiptEffect(r,'bob.testnet',vault),/outside/);assert.throws(()=>vaultReceiptEffect(r,account,'v000000000000.parent.testnet'),/another vault/);
+ assert.throws(()=>vaultReceiptEffect(r,'bob.testnet',vault),/different wallet account/);assert.throws(()=>vaultReceiptEffect(r,account,'v000000000000.parent.testnet'),/another vault/);
 });
 test('a withdrawal is confirmed only when its callback and token payout agree; restoration is distinct',()=>{
  const r=receipt('redeem',{shares:'4000000',min_assets:'4400000',expected_nonce:5},vault,true);
