@@ -32,6 +32,8 @@ This connects the strategy an operator runs to the records an investor inspects.
 
 ## Quick Links
 
+- [Live App](https://pump-near-893.netlify.app)
+- [Live Documentation](https://pump-near-893.netlify.app/docs/quick-setup)
 - [Documentation Hub](docs/README.md) — also available from the app’s **Docs** tab at `/docs`
 - [Quick Setup](docs/QUICK-SETUP.md)
 - [Netlify and Railway Deployment](docs/DEPLOYMENT.md)
