@@ -215,6 +215,21 @@ test('failed local inference preserves its real input quote without assuming a f
   const context=marketContext(store.read(s.id),await scenarioQuotes().get(USDC,WNEAR,'1000000',100),store.history(s.id));
   assert.ok(context.samples.some(q=>q.quoteId===event.quote!.id));store.export(s.id);
 });
+test('malformed model amounts produce a blocked cycle without a decision or fill',async()=>{
+  for(const quoteUnits of [1000000,'1.5','0']){
+    const store=new DemoStore(':memory:'),demo=new PaperDemo(store,{delay:async()=>{},infer:(s,q,_fetcher,context)=>infer(s,q,
+      async url=>new Response(JSON.stringify(String(url).endsWith('/models')?{data:[{id:'fixture'}]}:
+        {model:'fixture',choices:[{finish_reason:'stop',message:{content:JSON.stringify({action:'BUY',quoteUnits,reason:'Invalid amount fixture'})}}]})),context)});
+    const session=demo.create(config);
+    await demo.cycle(session.id);
+    const [event,...rest]=store.history(session.id);
+    assert.equal(event.kind,'blocked');
+    assert.match(event.reason,/local model returned an invalid trade amount/);
+    assert.equal(event.after.cash,config.initialCash);
+    assert.equal(rest.length,0);
+    demo.close();store.close();
+  }
+});
 test('inference refuses provider errors and oversized explanations instead of manufacturing a decision',async()=>{
   const {id,store}=create(),s=store.read(id),q=await scenarioQuotes().get(USDC,WNEAR,'1000000',100);
   const provider=(status:number,reason:string)=>(async(url:unknown)=>String(url).endsWith('/models')?new Response(JSON.stringify({data:[{id:'fixture'}]})):new Response(JSON.stringify({model:'fixture',choices:[{finish_reason:'stop',message:{content:JSON.stringify({action:'HOLD',quoteUnits:'0',reason})}}]}),{status})) as typeof fetch;

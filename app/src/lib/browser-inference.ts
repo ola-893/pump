@@ -46,7 +46,8 @@ export function browserInference(runtime: Wllama, strategyVersion: { id: string;
     const request = proposalRequest(session, market, id, { ...context!, strategyVersion });
     const response = await runtime.createChatCompletion({
       messages: request.messages.map(message => ({ role: message.role as 'system' | 'user', content: message.content })),
-      model: id, temperature: 0, max_tokens: 512, response_format: { type: 'json_object' },
+      model: id, temperature: 0, max_tokens: 512,
+      response_format: { type: 'json_schema', json_schema: { name: 'paper_trade', strict: true, schema: request.response_format.schema } },
       chat_template_kwargs: request.chat_template_kwargs, abortSignal: signal, stream: false,
     });
     const result = response.choices[0];

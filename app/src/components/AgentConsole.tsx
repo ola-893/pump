@@ -140,7 +140,7 @@ function StrategyEditor({agent,run,latestVersion,onSaved,...props}:Props&{agent:
   async function action(action:string){if(!run||lock.current&&action!=='stop')return;const stopping=action==='stop';if(!stopping){lock.current=true;setBusy(action);}setError('');setNotice('');try{const {session:result}=await props.api('/strategy-action',{runId:run.id,action});await props.refresh();
     if((action==='mark'||action==='cycle')&&result?.error){setError(result.error);return;}
     if(action==='mark'&&result?.valuationStale){setError('Current paper equity is unavailable. Try refreshing the portfolio quote again.');return;}
-    setNotice(action==='stop'?'Stopped future decisions. An active decision may finish; stopping does not sell an open position.':action==='start'?(hostedApp?'Agent started. Keep this tab open to continue evaluating.':'Agent started. It will keep evaluating this saved strategy until you stop it or the server restarts.'):action==='cycle'?'Decision completed. See the outcome and journal below.':'Portfolio valuation refreshed.');}catch(e){setError((e as Error).message);}finally{if(!stopping){lock.current=false;setBusy('');}}}
+    setNotice(action==='stop'?'Stopped future decisions. An active decision may finish; stopping does not sell an open position.':action==='start'?'':action==='cycle'?'Decision completed. See the outcome and journal below.':'Portfolio valuation refreshed.');}catch(e){setError((e as Error).message);}finally{if(!stopping){lock.current=false;setBusy('');}}}
   const runId=run?.id;
   const inspect=useCallback(async()=>{
     if(!runId)return false;

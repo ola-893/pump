@@ -4,7 +4,9 @@ import type { MarketContext } from './market-context.js';
 export function parseProposal(value:unknown):Proposal {
   const p=value as Proposal;
   if(!p||Object.keys(p).sort().join()!=='action,quoteUnits,reason'||!['BUY','SELL','HOLD'].includes(p.action)||typeof p.reason!=='string'||p.reason.length>1500)throw new Error('Local model returned an invalid proposal.');
-  units(p.quoteUnits);if(p.action==='HOLD'&&p.quoteUnits!=='0')throw new Error('HOLD must have zero quote units.');return p;
+  try { units(p.quoteUnits,p.action==='HOLD'); }
+  catch { throw new Error('The local model returned an invalid trade amount. No order was placed.'); }
+  if(p.action==='HOLD'&&p.quoteUnits!=='0')throw new Error('The local model assigned an amount to HOLD. No order was placed.');return p;
 }
 export type ModelDecision={id:string;request:unknown;raw:string;proposal:Proposal;market?:Quote;runtime?:Record<string,unknown>};
 export async function infer(s:Session,market:Quote,fetcher=fetch,context?:MarketContext & { research?:unknown; strategyVersion?:{id:string;commitment:string}; executionExercise?:ExecutionExercise & {phase:string;instruction:string;requestedQuoteUnits:string;priorHoldCount:number} }):Promise<ModelDecision> {
