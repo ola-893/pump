@@ -84,6 +84,13 @@ function listAgents() {
   });
 }
 
+function readAgent(id: string) {
+  return agentStore<StoredAgent | undefined>('readonly', (store, finish) => {
+    const request = store.get(id);
+    request.onsuccess = () => finish(request.result);
+  });
+}
+
 function openSession(config: Config, agent: NonNullable<Session['agent']>, id: string = crypto.randomUUID()): PaperRecord {
   return {
     session: {
@@ -148,15 +155,16 @@ function strategyView(run: StoredRun, archived: boolean) {
 export async function browserWorkspace() {
   const [records, locks] = await Promise.all([listAgents(), navigator.locks?.query()]);
   const held = locks?.held ?? [];
-  const otherTabBusy = executions.size === 0 && held.some(lock => lock.name === executionLock);
+  const runtimeBusy = executions.size > 0 || held.some(lock => lock.name === executionLock);
+  const otherTabBusy = executions.size === 0 && runtimeBusy;
   const otherTabRunId = otherTabBusy
-    ? held.find(lock => lock.name?.startsWith(strategyLockPrefix))?.name?.slice(strategyLockPrefix.length)
+    ? held.find(lock => lock.mode === 'exclusive' && lock.name?.startsWith(strategyLockPrefix))?.name?.slice(strategyLockPrefix.length)
     : undefined;
   return {
     agents: records.map(agentView),
     strategyRuns: records.flatMap(agent => agent.runs.map((run, index) => strategyView(run, index !== 0))),
     // Runtime and vault state are only populated by an actual runtime or vault.
-    vaults: [], execution: { activeId: activeSession, queued: [], otherTabBusy, otherTabRunId }, models: [], measurement: null,
+    vaults: [], execution: { activeId: activeSession, queued: [], runtimeBusy, otherTabBusy, otherTabRunId }, models: [], measurement: null,
     continuous: null, runtime: { modelId: null, phase: runtimePhase }, comparisons: [], market: null,
     policy: BENCHMARK_POLICY,
   };
@@ -264,14 +272,24 @@ export async function finishBrowserAgent(draft:FundingDraft, factory:SeedFactory
   return agentView(agent);
 }
 
-function saveStrategy(agentId: string, expectedVersion: number, settings: StrategySettings) {
+async function saveStrategy(agentId: string, expectedVersion: number, settings: StrategySettings) {
+  const save = () => writeStrategyVersion(agentId, expectedVersion, settings);
+  if (!navigator.locks) return save();
+  const current = (await readAgent(agentId))?.runs[0];
+  if (!current) return save();
+  return navigator.locks.request(strategyLockPrefix + current.id, { mode: 'shared', ifAvailable: true }, lock => {
+    if (!lock) throw new Error('Stop the active strategy before saving another version.');
+    return save();
+  });
+}
+
+function writeStrategyVersion(agentId: string, expectedVersion: number, settings: StrategySettings) {
   return agentStore<ReturnType<typeof strategyView>>('readwrite', (store, finish, fail) => {
     const read = store.get(agentId);
     read.onsuccess = () => {
       try {
         const agent = read.result as StoredAgent | undefined;
         if (!agent) throw new Error('Agent registration not found in this browser.');
-        if (agent.runs.some(run => executions.has(run.id))) throw new Error('Stop the active strategy before saving another version.');
         const latest = agent.runs[0]?.version ?? 0;
         if (latest !== expectedVersion) throw new Error('A newer strategy version was saved. Refresh before saving again.');
         const { label, strategy, ...limits } = settings;
@@ -350,7 +368,7 @@ function saveCycle(agentId: string, runId: string, revision: number, paper: Pape
 
 async function runPaperCycle(agent: StoredAgent, run: StoredRun, signal: AbortSignal, action: 'cycle' | 'mark') {
   signal.throwIfAborted();
-  const current = (await listAgents()).find(record => record.id === agent.id)?.runs[0];
+  const current = (await readAgent(agent.id))?.runs[0];
   signal.throwIfAborted();
   if (!current || current.id !== run.id) throw new Error('This strategy is archived. Open the current version.');
   if (current.paper.session.testnet) throw new Error('This session is linked to testnet clearing. Use its original workspace.');
@@ -395,7 +413,7 @@ async function browserStrategyAction(agent: StoredAgent, run: StoredRun, action:
     const execution = executions.get(run.id);
     if (!execution) {
       const locks = await navigator.locks?.query();
-      if (locks?.held?.some(lock => lock.name === strategyLockPrefix + run.id))
+      if (locks?.held?.some(lock => lock.mode === 'exclusive' && lock.name === strategyLockPrefix + run.id))
         throw new Error('Switch to the tab running this strategy to stop it.');
       return { session: strategySession(run) };
     }
@@ -424,6 +442,8 @@ async function browserStrategyAction(agent: StoredAgent, run: StoredRun, action:
   if (existing?.continuous && !existing.controller.signal.aborted) return { session: strategySession(run) };
   return new Promise<{ session: ReturnType<typeof strategySession> }>((resolve, reject) => {
     void withPaperExecution(run.id, async () => {
+      if ((await readAgent(agent.id))?.runs[0]?.id !== run.id)
+        throw new Error('This strategy is archived. Open the current version.');
       const controller = new AbortController();
       executions.set(run.id, { controller, continuous: true });
       errors.delete(run.id);
