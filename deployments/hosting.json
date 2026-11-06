@@ -5,10 +5,10 @@
     "provider": "cloudflare-pages",
     "name": "pump-near-893",
     "accountId": "5a52a0d25bcdf702b11233683ddfa334",
-    "deploymentId": "c7a74032-5932-438e-92f6-c2771a7c38f7",
+    "deploymentId": "455f8bd6-c17e-4d75-98f7-3f6207ba5fdd",
     "url": "https://pump-near-893.pages.dev",
-    "deploymentUrl": "https://c7a74032.pump-near-893.pages.dev",
-    "sourceCommit": "9ff0f0cab716af94e14e11846d13bccbe9dd8662",
+    "deploymentUrl": "https://455f8bd6.pump-near-893.pages.dev",
+    "sourceCommit": "3db010689b4f39d52d88dc1cb7b3e2610c52c477",
     "productionBranch": "hackathon/near-2026",
     "deploymentMode": "direct-upload",
     "automaticGitDeployment": false,
@@ -19,7 +19,7 @@
       "balancePreflight": "Latest bundle includes upfront test NEAR cost and Check balance",
       "browserQA": "Native Chrome UI verified: 12 imported agents, persisted funded vault, saved strategy, model detection, and low-NEAR preflight",
       "workspaceMigration": "Completed: imported 12 agents; reimport skipped all 12 without duplicates; on-chain seed vault retained",
-      "inferenceBlocker": "Paper run aborted in Wllama WebAssembly; Chrome stack includes ggml_backend_webgpu_wait_queue and ggml_backend_webgpu_synchronize; no completed decision or paper fill"
+      "inference": "Chrome completed two consecutive scheduled HOLD decisions with the 14.25 GB Qwen model. The journal shows no new blocked events and 0.01 USDC in paper cash. The agent stopped through the console."
     }
   },
   "backend": {
