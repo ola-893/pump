@@ -109,19 +109,25 @@ export function VaultWorkspace({v,account,run,api,refresh,fundingId,manage=false
   };
  },[v.agentId,v.runId,v.contractId,account]);
  async function task(name:string,fn:()=>Promise<void>){if(lock.current)return;lock.current=true;setBusy(name);setError('');setNotice('');try{await fn();}catch(e){setError((e as Error).message);}finally{lock.current=false;setBusy('');setProgress('');}}
- async function confirm(hash:string):Promise<InvestorReceipt>{
+ async function confirm(hash:string,submitted=true):Promise<InvestorReceipt>{
   let d:InvestorReceipt|undefined;
-  for(let i=0;i<5;i++){
-   try{d=await api('/vault-receipt',{agentId:v.agentId,runId:v.runId,account,hash});}catch(e){if(i===4)throw new Error(`Transaction submitted, but its outcome could not be checked. Use Check transaction before retrying. ${(e as Error).message}`);}
+  const attempts=submitted?5:1;
+  for(let i=0;i<attempts;i++){
+   try{d=await api('/vault-receipt',{agentId:v.agentId,runId:v.runId,account,hash});}catch(e){
+    if(i===attempts-1){
+     const message=submitted?'Transaction submitted, but its outcome could not be checked. Use Check transaction before retrying.':'Could not verify this past transaction.';
+     throw new Error(`${message} ${(e as Error).message}`);
+    }
+   }
    if(d&&d.status!=='pending')break;
-   setProgress('Waiting for testnet confirmation…');await new Promise(resolve=>setTimeout(resolve,1500));
+   if(i<attempts-1){setProgress('Waiting for testnet confirmation…');await new Promise(resolve=>setTimeout(resolve,1500));}
   }
-  if(!d||d.status==='pending')throw new Error('Your transaction is still confirming. Use Check transaction before sending another.');
+  if(!d||d.status==='pending')throw new Error(submitted?'Your transaction is still confirming. Use Check transaction before sending another.':'This transaction is still confirming on testnet. Check again shortly.');
   acceptObservation(d.observation);
   if(d.effect.outcome==='refunded'){setPendingHash('');throw new Error('Investment was not accepted. The test USDC was refunded and no pump coin were minted. Please try again with a fresh vault price.');}
   if(d.effect.outcome==='restored'){setPendingHash('');throw new Error('The withdrawal was not paid. Your pump coin and vault balance were restored.');}
   if(d.status==='failed'){setPendingHash('');throw new Error('The transaction failed. No investment or withdrawal success was confirmed. Check the transaction in your wallet.');}
-  if(d.effect.outcome!=='confirmed')throw new Error('The transaction finalized, but the requested transfer or pump coin could not be verified. Check this transaction before sending another.');
+  if(d.effect.outcome!=='confirmed')throw new Error('The transaction finalized, but the requested transfer or pump coin could not be verified.'+(submitted?' Check this transaction before sending another.':''));
   setPendingHash('');setLastHash(hash);return d;
  }
  async function sendPlan(plan:WalletPlan){
@@ -146,8 +152,10 @@ export function VaultWorkspace({v,account,run,api,refresh,fundingId,manage=false
   await task('receipt',async()=>{
    const transactionHash=hash.trim();
    if(!/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(transactionHash))throw new Error('Enter a valid NEAR testnet transaction hash.');
-   const receipt=await confirm(transactionHash);
-   setNotice(pendingHash?message(receipt):'Past transaction verified. '+message(receipt));
+   const submitted=transactionHash===pendingHash;
+   setProgress('Checking transaction receipt…');
+   const receipt=await confirm(transactionHash,submitted);
+   setNotice(submitted?message(receipt):'Past transaction verified. '+message(receipt));
    setReceiptQuery('');
    await refresh().catch(()=>{});
   });
