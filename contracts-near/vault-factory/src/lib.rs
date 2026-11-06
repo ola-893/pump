@@ -22,7 +22,7 @@ impl Factory {
         assert!(current.as_str().ends_with(".testnet"), "Testnet only");
         let parent = env::predecessor_account_id();
         assert_eq!(env::signer_account_id(), parent, "Parent wallet only");
-        assert_eq!(current.as_str(), format!("pl.{parent}"), "Factory must be the parent's pv child");
+        assert!(["pl","ps"].iter().any(|label| current.as_str()==format!("{label}.{parent}")), "Factory must be the parent's pl or ps child");
         assert!((1..=450_000).contains(&vault_code.0.len()), "Invalid vault code size");
         Self { vault_code: vault_code.0, reporter }
     }
@@ -35,6 +35,29 @@ impl Factory {
 
     pub fn vault_code_hash(&self) -> Base64VecU8 {
         Base64VecU8(env::sha256(&self.vault_code))
+    }
+
+    #[payable]
+    pub fn deploy_seeded(&mut self, agent_id:String, manifest_hash:String, strategy_id:String, strategy_hash:String, seed:U128) -> Promise {
+        let owner=env::predecessor_account_id();
+        let factory=env::current_account_id();
+        assert!(factory.as_str().starts_with("ps."), "Seed factory only");
+        assert_eq!(owner,env::signer_account_id(),"Owner wallet only");
+        assert_eq!(env::attached_deposit().as_yoctonear(),self.funding().0,"Incorrect vault funding");
+        assert!(uuid(&agent_id)&&uuid(&strategy_id)&&hash(&manifest_hash)&&hash(&strategy_hash),"Invalid binding");
+        assert!(seed.0>0&&seed.0<=1_000_000_000_000,"Invalid seed amount");
+        let digest=env::sha256(format!("{owner}:{strategy_id}").as_bytes());
+        let label:String=digest[..12].iter().map(|byte|format!("{byte:02x}")).collect();
+        let vault:AccountId=format!("s{label}.{factory}").parse().expect("Vault account too long");
+        Promise::new(vault.clone()).create_account().transfer(env::attached_deposit())
+            .deploy_contract(self.vault_code.clone())
+            .function_call("new_seeded".into(),to_vec(&json!({
+                "agent_id":agent_id,"manifest_hash":manifest_hash,"strategy_id":strategy_id,
+                "strategy_hash":strategy_hash,"owner_id":owner,"factory_id":factory,"seed":seed,
+            })).unwrap(),NearToken::from_yoctonear(0),Gas::from_tgas(30))
+            .then(Promise::new(factory).function_call("finish_deployment".into(),to_vec(&json!({
+                "owner":owner,"previous_vault":null,"agent_id":agent_id,"vault":vault,"open_after_archive":false,
+            })).unwrap(),NearToken::from_yoctonear(0),Gas::from_tgas(75)))
     }
 
     #[payable]
@@ -57,6 +80,7 @@ impl Factory {
         assert!(hash(&manifest_hash) && hash(&strategy_hash), "Invalid commitment");
         assert!(!name.is_empty() && name.len() <= 64, "Invalid name");
         let factory = env::current_account_id();
+        assert!(factory.as_str().starts_with("pl."), "Live pricing factory only");
         let digest = env::sha256(format!("{owner}:{strategy_id}").as_bytes());
         let label: String = digest[..12].iter().map(|byte| format!("{byte:02x}")).collect();
         let vault: AccountId = format!("s{label}.{factory}").parse().expect("Vault account too long");

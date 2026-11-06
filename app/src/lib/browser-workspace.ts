@@ -8,6 +8,7 @@ import { paperMarket, testAccount, validateConfig, type Config, type Event, type
 import { journalBatchSize, journalSchema, publicJournalEvent } from '../../../near-demo/directory/public-journal.js';
 import { readJournal, sendJournalBatch } from './public-journal-client.js';
 import type { BrowserModel } from './browser-models.js';
+import { readSeedVault, seedVaultAccount, validateSeedVault, type SeedFactory, type SeedVault } from './seed-vault.js';
 
 type Registration = Pick<Config, 'name' | 'strategy' | 'initialCash' | 'tradeCap' | 'exposureCap' | 'dailyTurnoverCap' | 'slippageBps' | 'intervalMs'> & {
   controller: string;
@@ -21,6 +22,14 @@ type StoredAgent = WorkspaceAgent & {
   ownerName: string;
   publication?: { confirmed: boolean; cutoffs: Record<string, number> };
 };
+export type FundingDraft = {
+  manifest: AgentManifest;
+  config: Config;
+  modelId: string;
+  ownerName: string;
+  visibility: Registration['visibility'];
+  vault: SeedVault;
+};
 const publicSyncErrors = new Map<string, string>();
 
 const databaseName = 'pump-browser-workspace';
@@ -30,16 +39,26 @@ const errors = new Map<string, string>();
 let activeSession: string | null = null;
 let runtimePhase = 'idle';
 
-async function agentStore<T>(mode: IDBTransactionMode, operation: (store: IDBObjectStore, finish: (value: T) => void, fail: (error: unknown) => void) => void) {
+async function workspaceDatabase() {
   const db = await new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open(databaseName, 1);
-    request.onupgradeneeded = () => {
-      const agents = request.result.createObjectStore('agents', { keyPath: 'id' });
-      agents.createIndex('ownerName', 'ownerName', { unique: true });
+    const request = indexedDB.open(databaseName, 2);
+    request.onupgradeneeded = event => {
+      if (!event.oldVersion) {
+        const agents = request.result.createObjectStore('agents', { keyPath: 'id' });
+        agents.createIndex('ownerName', 'ownerName', { unique: true });
+      }
+      request.result.createObjectStore('funding');
     };
+    request.onblocked = () => reject(new Error('Close other Pump tabs and reload to update this browser workspace.'));
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+  db.onversionchange = () => db.close();
+  return db;
+}
+
+async function agentStore<T>(mode: IDBTransactionMode, operation: (store: IDBObjectStore, finish: (value: T) => void, fail: (error: unknown) => void) => void) {
+  const db=await workspaceDatabase();
   try {
     return await new Promise<T>((resolve, reject) => {
       const transaction = db.transaction('agents', mode);
@@ -107,7 +126,7 @@ function activity(events: Event[]) {
 function agentView(agent: StoredAgent) {
   return {
     visibility: agent.publication?.confirmed ? 'public' as const : 'private' as const,
-    publicSyncError: publicSyncErrors.get(agent.id), id: agent.id, manifest: agent.manifest, commitment: agent.commitment,
+    publicSyncError: publicSyncErrors.get(agent.id), id: agent.id, manifest: agent.manifest, commitment: agent.commitment, seedVault: agent.seedVault,
     sessionId: agent.paper.session.id, createdAt: agent.paper.session.createdAt,
     session: sessionView(agent.paper.session), activity: activity(agent.paper.events),
   };
@@ -135,9 +154,20 @@ export async function browserWorkspace() {
   };
 }
 
-export async function createBrowserAgent(input: Registration, model: BrowserModel, progress?: (completedBytes: number) => void) {
+export async function browserFundingDrafts():Promise<FundingDraft[]> {
+  const db=await workspaceDatabase();
+  try {
+    return await new Promise((resolve,reject)=>{
+      const request=db.transaction('funding').objectStore('funding').getAll();
+      request.onsuccess=()=>resolve(request.result);
+      request.onerror=()=>reject(request.error);
+    });
+  } finally { db.close(); }
+}
+
+export async function prepareBrowserAgent(input: Registration, model: BrowserModel, factory:SeedFactory, progress?: (completedBytes: number) => void) {
   if (input.modelId !== model.id) throw new Error('Select the model again before registering.');
-  const { controller, modelId, visibility: _visibility, ...settings } = input;
+  const { controller, modelId, visibility, ...settings } = input;
   const config = validateConfig({
     ...settings, source: 'live', endpoint: 'http://127.0.0.1/v1', executionDelayMs: 1500, maxQuoteAgeMs: 30000,
   });
@@ -154,21 +184,58 @@ export async function createBrowserAgent(input: Registration, model: BrowserMode
       description: config.strategy, pair: 'wNEAR / USDC', tradeCap: config.tradeCap, exposureCap: config.exposureCap,
       dailyTurnoverCap: config.dailyTurnoverCap, slippageBps: config.slippageBps, intervalMs: config.intervalMs,
     },
-    mode: 'paper trading; optional Circle testnet clearing', evidence: 'locally measured weights; unsigned local declaration',
+    mode: 'Circle test USDC seed vault; paper trading only', evidence: 'locally measured weights; unsigned local declaration',
   };
-  const id = crypto.randomUUID();
-  const agent: StoredAgent = {
-    id, ownerName, manifest, commitment: digest(manifest), runs: [],
-    paper: openSession(config, { id, modelId, weightsHash }),
-  };
+  const agentId=crypto.randomUUID(), strategyId=crypto.randomUUID(), manifestHash=digest(manifest);
+  const vault:SeedVault={factoryId:factory.id,contractId:seedVaultAccount(owner,strategyId,factory.id),owner,agentId,manifestHash,strategyId,
+    strategyHash:digest({strategyId,manifestHash,config}),amount:config.initialCash};
+  validateSeedVault(vault,factory);
+  const draft:FundingDraft={manifest,config,modelId,ownerName,visibility,vault};
+  const db=await workspaceDatabase();
   try {
-    await agentStore<void>('readwrite', (store, finish) => {
-      store.add(agent).onsuccess = () => finish();
+    await new Promise<void>((resolve,reject)=>{
+      const tx=db.transaction(['agents','funding'],'readwrite');
+      tx.oncomplete=()=>resolve();
+      tx.onabort=()=>reject(tx.error??new Error(duplicateMessage));
+      const lookup=tx.objectStore('agents').index('ownerName').getKey(ownerName);
+      lookup.onsuccess=()=>{
+        if(lookup.result!==undefined){tx.abort();return;}
+        const pending=tx.objectStore('funding').getAll();
+        pending.onsuccess=()=>{
+          if(pending.result.some((item:FundingDraft)=>item.ownerName===ownerName)){tx.abort();return;}
+          tx.objectStore('funding').add(draft,agentId);
+        };
+      };
     });
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'ConstraintError') throw new Error(duplicateMessage);
-    throw error;
-  }
+  } finally { db.close(); }
+  return draft;
+}
+
+export async function finishBrowserAgent(draft:FundingDraft, factory:SeedFactory) {
+  const { vault,config,manifest,modelId,ownerName }=draft, id=vault.agentId;
+  const state=await readSeedVault(vault,factory);
+  if (!state || state.received!==vault.amount || state.assets!==vault.amount || state.shares!==vault.amount || state.pending ||
+      config.initialCash!==vault.amount || manifest.controller!==vault.owner || digest(manifest)!==vault.manifestHash ||
+      digest({strategyId:vault.strategyId,manifestHash:vault.manifestHash,config})!==vault.strategyHash)
+    throw new Error('The wallet deposit has not been confirmed for this agent.');
+  const agent: StoredAgent = {
+    id, ownerName, manifest, commitment:vault.manifestHash, runs:[], seedVault:vault,
+    paper: openSession(config, { id, modelId, weightsHash:manifest.model.sha256 }),
+  };
+  const db=await workspaceDatabase();
+  try {
+    await new Promise<void>((resolve,reject)=>{
+      const tx=db.transaction(['agents','funding'],'readwrite'), funding=tx.objectStore('funding');
+      tx.oncomplete=()=>resolve();
+      tx.onabort=()=>reject(tx.error??new Error('This draft was completed in another tab. Open My agents.'));
+      const lookup=funding.get(id);
+      lookup.onsuccess=()=>{
+        if(lookup.result?.vault?.agentId!==id){tx.abort();return;}
+        tx.objectStore('agents').add(agent);
+        funding.delete(id);
+      };
+    });
+  } finally { db.close(); }
   return agentView(agent);
 }
 
@@ -185,6 +252,8 @@ function saveStrategy(agentId: string, expectedVersion: number, settings: Strate
         const { label, strategy, ...limits } = settings;
         if (!label.trim() || label.length > 80 || strategy.trim().length < 20) throw new Error('Name the strategy and describe when it should trade or hold.');
         const config = validateConfig({ ...agent.paper.session.config, ...limits, strategy: strategy.trim() });
+        if(agent.seedVault && (config.initialCash!==agent.seedVault.amount || paperMarket(config).quote!==paperMarket(agent.paper.session.config).quote))
+          throw new Error('Use the confirmed USDC seed amount for this agent’s paper strategy.');
         const body: Omit<StrategyRun, 'commitment'> = {
           schema: 'PUMP-STRATEGY-RUN-v1', id: crypto.randomUUID(), agentId, version: latest + 1,
           createdAt: new Date().toISOString(), label: label.trim(), registrationCommitment: agent.commitment,
@@ -366,7 +435,12 @@ export function validateWorkspaceTransfer(value: unknown): StoredAgent[] {
       runIds.add(run.id);
       return { ...run, paper: checkPaper(savedPaper, run.id) };
     }).sort((a, b) => b.version - a.version);
-    return { id: agent.id, ownerName, manifest: agent.manifest, commitment: agent.commitment, paper, runs };
+    const seedVault=agent.seedVault && validateSeedVault(agent.seedVault);
+    if(seedVault&&(seedVault.agentId!==agent.id || seedVault.manifestHash!==agent.commitment ||
+      seedVault.owner!==controller || seedVault.amount!==paper.session.config.initialCash ||
+      seedVault.strategyHash!==digest({strategyId:seedVault.strategyId,manifestHash:seedVault.manifestHash,config:paper.session.config})))
+      throw new Error('A saved seed vault does not match its agent.');
+    return { id: agent.id, ownerName, manifest: agent.manifest, commitment: agent.commitment, paper, runs, seedVault };
   });
 }
 

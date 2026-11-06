@@ -6,6 +6,7 @@ import { TestnetDemo } from './testnet.js';
 import { TESTNET_RPC, type TestnetConfig } from './types.js';
 import type { VaultConfig } from './agent-vaults.js';
 
+const seed=process.argv.includes('--seed');
 const cfgPath = 'deployments/near-agent-vaults.json';
 const cfg = JSON.parse(readFileSync(cfgPath,'utf8')) as VaultConfig;
 const network = JSON.parse(readFileSync('deployments/near-demo-testnet.json','utf8')) as TestnetConfig;
@@ -17,7 +18,7 @@ const vaultCode=readFileSync(wasmDir+'pump_agent_vault.wasm');
 const codeHash=(code:Buffer)=>baseEncode(createHash('sha256').update(code).digest());
 const storagePerByte=10n**19n, buffer=3n*10n**23n;
 const funding=BigInt(vaultCode.length+factoryCode.length)*storagePerByte+buffer;
-const factory={liveNav:true,reporterId:cfg.parentId,id:'pl.'+cfg.parentId,codeHash:codeHash(factoryCode),vaultCodeHash:codeHash(vaultCode),
+const factory={liveNav:true,reporterId:cfg.parentId,id:(seed?'ps.':'pl.')+cfg.parentId,codeHash:codeHash(factoryCode),vaultCodeHash:codeHash(vaultCode),
   funding:String(BigInt(vaultCode.length)*storagePerByte+buffer)};
 if(funding>8n*10n**24n || BigInt(factory.funding)>5n*10n**24n)
   throw new Error('WASM exceeds the reviewed storage funding limits.');
@@ -27,7 +28,7 @@ const parent=await read(cfg.parentId);
 const spendable=parent.amount-BigInt(parent.storage_usage)*storagePerByte;
 const plan={network:'testnet',parentId:cfg.parentId,factory,reporter:factory.reporterId,
   factoryAccountFunding:String(funding),parentSpendable:String(spendable)};
-const journal='.local/near-demo/live-factory-install';
+const journal=seed?'.local/near-demo/seed-factory-install':'.local/near-demo/live-factory-install';
 if(!process.argv.includes('--broadcast')){
   writeFileSync(journal+'.plan.json',JSON.stringify(plan,null,2)+'\n',{mode:0o600});
   console.log(JSON.stringify(plan,null,2));
@@ -73,5 +74,8 @@ const [keys, observedFunding, observedVaultCode, observedReporter]=await Promise
 if(observedReporter.value!==factory.reporterId||target.code_hash!==factory.codeHash||keys.keys.length!==0||observedFunding.value!==factory.funding||
    baseEncode(Buffer.from(observedVaultCode.value,'base64'))!==factory.vaultCodeHash)
   throw new Error('Factory code, child code, keylessness or funding differed from the reviewed plan.');
-writeFileSync(cfgPath,JSON.stringify({...JSON.parse(readFileSync(cfgPath,'utf8')),factory},null,2)+'\n');
+if(seed){
+  const {id,codeHash,vaultCodeHash,funding}=factory;
+  writeFileSync('app/src/lib/seed-factory-config.ts',`import type { SeedFactory } from './seed-vault.js';\n\n// Verified, keyless NEAR testnet seed factory.\nexport const seedFactory: SeedFactory | null = ${JSON.stringify({id,codeHash,vaultCodeHash,funding},null,2)};\n`);
+}else writeFileSync(cfgPath,JSON.stringify({...JSON.parse(readFileSync(cfgPath,'utf8')),factory},null,2)+'\n');
 console.log(JSON.stringify({network:'testnet',factory,verified:true},null,2));

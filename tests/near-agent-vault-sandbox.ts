@@ -160,6 +160,41 @@ try{
  await call(alice,privateOwned,'publish',{});
  assert.equal(vaultReceiptEffect(await transfer(privateOwned,bob,'1000000'),bob,privateOwned).outcome,'confirmed');
  console.log('PASS: owner-funded factory deploys separate keyless vaults, archives the previous version, and preserves redemption and private funding rules.');
+ const seedFactory='ps.'+owner;
+ await account(owner).signAndSendTransaction({receiverId:seedFactory,actions:[
+   actions.createAccount(),actions.transfer(10n*10n**24n),actions.deployContract(factoryWasm),
+   actions.functionCall('new',{vault_code:wasm.toString('base64'),reporter:owner},120_000_000_000_000n,0n),
+ ],waitUntil:'FINAL'});
+ const seedId='00000000-0000-4000-8000-000000000004', seedAmount='2000000', seeded=ownedVaultAccount(seedId,alice,seedFactory);
+ await account(alice).signAndSendTransaction({receiverId:seedFactory,actions:[actions.functionCall('deploy_seeded',{
+   agent_id:agentIds[0],manifest_hash:'a'.repeat(64),strategy_id:seedId,strategy_hash:'d'.repeat(64),seed:seedAmount,
+ },220_000_000_000_000n,BigInt(await view(seedFactory,'funding')))],waitUntil:'FINAL'});
+ assert.equal((await provider.viewAccessKeyList({accountId:seeded,finalityQuery:{finality:'final'}})).keys.length,0);
+ assert.equal((await view(seeded,'get_state')).public,false);
+ assert.equal((await view(seeded,'get_state')).assets,'0');
+ assert.deepEqual(await view(seeded,'seed_funding'),{required:seedAmount,received:'0'});
+ await call(alice,TEST_USDC,'storage_deposit',{account_id:seeded,registration_only:true},10n**23n);
+ const seed=(who:string,amount:string)=>call(who,TEST_USDC,'ft_transfer_call',{receiver_id:seeded,amount,msg:'{"kind":"seed"}'},1n);
+ const balanceOf=(id:string)=>view(TEST_USDC,'ft_balance_of',{account_id:id});
+ const ownerBefore=BigInt(await balanceOf(alice)),investorBefore=await balanceOf(bob);
+ await seed(bob,seedAmount);
+ await seed(alice,'1999999');
+ assert.equal(await balanceOf(bob),investorBefore);
+ assert.equal(BigInt(await balanceOf(alice)),ownerBefore);
+ assert.equal(await balanceOf(seeded),'0');
+ await seed(alice,seedAmount);
+ await seed(alice,seedAmount);
+ assert.deepEqual(await view(seeded,'seed_funding'),{required:seedAmount,received:seedAmount});
+ assert.equal(await balanceOf(seeded),seedAmount);
+ assert.equal(BigInt(await balanceOf(alice)),ownerBefore-BigInt(seedAmount));
+ await assert.rejects(call(alice,seeded,'publish',{}),/closed to investors/);
+ await redeem(seeded,alice,seedAmount);
+ assert.equal(await balanceOf(seeded),'0');
+ assert.equal(BigInt(await balanceOf(alice)),ownerBefore);
+ await seed(alice,seedAmount);
+ assert.equal(await balanceOf(seeded),'0');
+ assert.equal((await view(seeded,'seed_funding')).received,seedAmount);
+ console.log('PASS: zero initial balance, exact owner seed, third-party and duplicate refunds, and owner withdrawal on NEAR Sandbox.');
  if(!process.argv.includes('--skip-evidence'))writeFileSync(resolve('docs/testing/near-agent-vault-sandbox.json'),JSON.stringify({at:new Date().toISOString(),environment:'local NEAR Sandbox 2.13.4',token:'Sandbox FT fixture only, NOT Circle-issued USDC',observations},null,2)+'\n');
  console.log('PASS: keyless isolated WASM vaults, real FT mint/deposit/redemption callbacks, gain/loss conservation, same-wallet multi-strategy ownership, failed payout restoration, transferable shares.');
 }finally{node.kill('SIGTERM');await new Promise<void>(r=>node.exitCode!==null?r():node.once('exit',()=>r()));closeSync(log);}
