@@ -7,14 +7,15 @@ import { hostedApp } from '../lib/hosting';
 import { publishBrowserAgent, syncBrowserPublicJournal } from '../lib/browser-workspace';
 import { authorizeWithOwnerWallet } from '../lib/public-journal-wallet';
 import './AgentVisibility.css';
-type Props={agent:ConsoleAgent;runs:ConsoleRun[];deployed:boolean;api:(path:string,body?:unknown)=>Promise<any>;refresh:()=>Promise<void>};
+type Props={agent:ConsoleAgent;runs:ConsoleRun[];deployed:boolean;resumePublication?:boolean;api:(path:string,body?:unknown)=>Promise<any>;refresh:()=>Promise<void>};
 export function AgentVisibility(props:Props){
- return hostedApp?<BrowserAgentVisibility agent={props.agent} refresh={props.refresh}/>:<LocalAgentVisibility {...props}/>;
+ return hostedApp?<BrowserAgentVisibility agent={props.agent} refresh={props.refresh} resumePublication={props.resumePublication}/>:<LocalAgentVisibility {...props}/>;
 }
-function BrowserAgentVisibility({agent,refresh}:Pick<Props,'agent'|'refresh'>){
+function BrowserAgentVisibility({agent,refresh,resumePublication}:Pick<Props,'agent'|'refresh'|'resumePublication'>){
  const wallet=useNearWallet();
  const [review,setReview]=useState(false),[accepted,setAccepted]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const published=agent.visibility==='public';
+ const pending=!published&&(agent.publicationPending||resumePublication);
  async function publish(){
   setBusy(true);setError('');
   try{
@@ -26,10 +27,10 @@ function BrowserAgentVisibility({agent,refresh}:Pick<Props,'agent'|'refresh'>){
   finally{setBusy(false);}
  }
  return <section className="av-visibility" aria-label="Agent visibility">
-  <div><strong>{published?'Public agent':'Private agent'}</strong><p>{published?'Investors can read your public decision journal.':'Saved in this browser.'}</p></div>
+  <div><strong>{published?'Public agent':pending?'Publication pending':'Private agent'}</strong><p>{published?'Investors can read your public decision journal.':pending?'This agent is saved in your browser. Review publication to list it and share future paper decisions.':'Saved in this browser.'}</p></div>
   {published?<div className="nd-buttons"><Link to={`/public-journal/${agent.id}`} className="nd-text-button">View public journal</Link>
     <button type="button" disabled={busy} className="nd-button secondary" onClick={()=>void publish()}>{busy?'Syncing…':'Sync journal'}</button></div>:
-   <button type="button" className="nd-button secondary" onClick={()=>{setReview(!review);setAccepted(false);}}>Review publication</button>}
+   <button type="button" className="nd-button secondary" onClick={()=>{setReview(!review);setAccepted(false);}}>{review?'Close publication review':pending?'Continue publication':'Review publication'}</button>}
   {review&&!published&&<div className="av-publication" role="region" aria-label="Review agent visibility">
    <h3>Review public journal</h3><p>Publishing shares your agent name, model name, controller, and future paper decisions. Your prompts, model files, and earlier history stay local. Published entries remain public.</p>
    <label><input type="checkbox" checked={accepted} onChange={event=>setAccepted(event.target.checked)}/>I agree to publish this agent and its future decision outcomes.</label>
