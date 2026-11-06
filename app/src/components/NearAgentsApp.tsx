@@ -4,7 +4,7 @@ import { BrowserRouter, Link, NavLink, Navigate, Route, Routes, useLocation, use
 import { ArrowRight, ArrowUpRight, Bot, Check, Cpu, Download, Fingerprint, RefreshCw, Search, ShieldCheck, Menu, X } from 'lucide-react';
 import type { InstalledModel, AgentManifest, BenchmarkRun } from '../../../near-demo/public-types';
 import type { Session, Proposal, Event } from '../../../near-demo/types';
-import { AgentConsole, type ConsoleRun } from './AgentConsole';
+import { AgentConsole, type ConsoleExecution, type ConsoleRun } from './AgentConsole';
 import { NearWalletButton, useNearWallet } from './NearWalletProvider';
 import { NearLanding } from './NearLanding';
 import { AgentVaults,type VaultRow } from './AgentVaults';
@@ -23,7 +23,7 @@ import { AgentSeedFunding } from './AgentSeedFunding';
 import { seedFactory } from '../lib/seed-factory-config';
 const PumpDocs = lazy(() => import('./PumpDocs'));
 type Agent={visibility?:'private'|'public';id:string;createdAt:string;manifest:AgentManifest;commitment:string;sessionId:string;session:Session&{valuationStale:boolean;error?:string|null;metrics:{total:string|null;realized:string;unrealized:string|null;returnBps:number|null}};exercise?:{phase:string;disclosure:string;startedAt:string};activity:{buys:number;sells:number;directed:boolean;directedFills:number;decisions:number;holds:number;fills:number;blocked:number;latest:{at:string;proposal?:Proposal}|null;manual:boolean;firstAt:string|null;lastAt:string|null}};
-type Registry={directory?:{mode:string;url:string;enabledOwners:string[];error:string};directoryError?:string;vaultFactoryReady?:boolean;pendingStrategyAgents?:string[];vaults:VaultRow[];strategyRuns:ConsoleRun[];continuous:{enabled:boolean;targetPerAgent:number;activeAgentId:string|null;phase:string;error:string|null}|null;agents:Agent[];execution:{activeId:string|null;queued:string[]};models:InstalledModel[];measurement:{modelId:string;completedBytes:number;totalBytes:number}|null;runtime:{modelId:string|null;phase:string};comparisons:BenchmarkRun[];market:{id:string;source:string;symbol:string;count:number;from:number;through:number;capturedAt:string;stale:boolean}|null;policy:{startingCash:string;decisions:number;feeBps:number;slippageBps:number;fill:string}};
+type Registry={directory?:{mode:string;url:string;enabledOwners:string[];error:string};directoryError?:string;vaultFactoryReady?:boolean;pendingStrategyAgents?:string[];vaults:VaultRow[];strategyRuns:ConsoleRun[];continuous:{enabled:boolean;targetPerAgent:number;activeAgentId:string|null;phase:string;error:string|null}|null;agents:Agent[];execution:ConsoleExecution;models:InstalledModel[];measurement:{modelId:string;completedBytes:number;totalBytes:number}|null;runtime:{modelId:string|null;phase:string};comparisons:BenchmarkRun[];market:{id:string;source:string;symbol:string;count:number;from:number;through:number;capturedAt:string;stale:boolean}|null;policy:{startingCash:string;decisions:number;feeBps:number;slippageBps:number;fill:string}};
 const dollars=(s:string|null|undefined)=>s==null?'—':(Number(s)/1e6).toLocaleString(undefined,{maximumFractionDigits:2});
 const percent=(n:number|undefined|null)=>n==null?'—':`${n>=0?'+':''}${(n/100).toFixed(2)}%`;
 const date=(s:string|number)=>new Date(s).toLocaleString();
@@ -62,7 +62,18 @@ function RegistryApp(){
     if(ownerMode&&!token.current)await load();
     const init={method:'POST',headers:{'Content-Type':'application/json',...(ownerMode?{'X-Pumpcoin-Demo-Token':token.current}:{})},body:JSON.stringify(body)};const r=ownerMode?await fetch('/api/near-demo'+path,init):await fetch('/api/near-demo/public-'+path.slice(1),init);const d=await r.json();if(!r.ok)throw new Error(d.error||'Local operation failed.');return d;
   }
-  useEffect(()=>{if(!needsRegistry)return;let active=true;const update=()=>{void load().catch(e=>{if(active)setError(e.message);});};update();const t=setInterval(update,5000);return()=>{active=false;clearInterval(t);++request.current;};},[ownerMode,needsRegistry]);
+  useEffect(()=>{
+    if(!needsRegistry)return;
+    let active=true;
+    const update=()=>{void load().catch(e=>{if(active)setError(e.message);});};
+    update();
+    const timer=setInterval(update,5000);
+    if(hostedApp&&ownerMode)window.addEventListener('focus',update);
+    return()=>{
+      active=false;clearInterval(timer);++request.current;
+      if(hostedApp&&ownerMode)window.removeEventListener('focus',update);
+    };
+  },[ownerMode,needsRegistry]);
   const refresh=async()=>{await load();};
   return <div className="near-demo na-shell"><Header/><main className="nd-main na-main">{needsRegistry&&error&&<p role="alert" className="nd-alert">{error}<button className="nd-text-button" onClick={()=>void refresh().catch(e=>setError(e.message))}>Retry</button></p>}{needsRegistry&&data?.directoryError&&<p role="alert" className="nd-alert">{data.directoryError}</p>}<Routes><Route path="/docs/:slug?" element={<Suspense fallback={<p role="status">Loading documentation…</p>}><PumpDocs/></Suspense>}/><Route path="/" element={<NearLanding data={data}/>}/><Route path="/console" element={<ConsolePage data={data} api={api} refresh={refresh} loadFailed={!!error}/>}/><Route path="/public-journal/:agentId" element={<PublicDecisionJournal/>}/><Route path="/vaults" element={<><AgentVaults loading={!data} agents={data?.agents??[]} vaults={data?.vaults??[]} runs={data?.strategyRuns??[]} api={api} refresh={refresh}/>{hostedApp&&!search&&<PublicJournalCatalog/>}</>}/><Route path="/register" element={<Register data={data} api={api} refresh={refresh}/>}/><Route path="/agents/:agentId" element={<Profile data={data} api={api}/>}/><Route path="/evidence" element={data?<AgentLeaderboard api={api} agents={data.agents} runs={data.strategyRuns??[]} vaults={data.vaults??[]}/>:<p role="status">Loading leaderboard…</p>}/><Route path="/evidence/archive" element={<Evidence data={data} api={api}/>}/><Route path="*" element={<Navigate to="/vaults" replace/>}/></Routes><footer className="nd-footer"><span>pump · Evidence before capital.</span><span>Local declarations · Hypothetical returns · NEAR testnet</span></footer></main></div>;
 }
