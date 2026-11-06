@@ -1,32 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import type { JournalListing, JournalPage, PublicJournalEvent } from '../../../near-demo/directory/public-journal';
-import { readJournal, readJournalCatalog } from '../lib/public-journal-client';
+import { Link, useLocation, useParams } from 'react-router-dom';
+import type { JournalPage, PublicJournalEvent } from '../../../near-demo/directory/public-journal';
+import { readJournal } from '../lib/public-journal-client';
 
 const displayTime = (value: number | string) => new Date(value).toLocaleString();
-
-export function PublicJournalCatalog() {
-  const [agents, setAgents] = useState<JournalListing[]>([]);
-  const [next, setNext] = useState<number | null>(null);
-  useEffect(() => {
-    let active = true;
-    void readJournalCatalog().then(result => {
-      if (active) { setAgents(result.agents); setNext(result.nextOffset); }
-    }).catch(() => {});
-    return () => { active = false; };
-  }, []);
-  if (!agents.length) return null;
-  return <section className="nd-card na-detail">
-    <h2>Public decision journals</h2>
-    <ul>{agents.map(agent => <li key={agent.id}><Link to={`/public-journal/${agent.id}`}>{agent.name}</Link> · {agent.model}</li>)}</ul>
-    {next !== null && <button type="button" className="nd-button secondary" onClick={() => {
-      void readJournalCatalog(next).then(result => {
-        setAgents(previous => [...new Map([...previous, ...result.agents].map(agent => [agent.id, agent])).values()]);
-        setNext(result.nextOffset);
-      }).catch(() => {});
-    }}>More public journals</button>}
-  </section>;
-}
 
 const eventLabel: Record<PublicJournalEvent['kind'], string> = {
   model: 'Model proposal', hold: 'Held the position', blocked: 'Paper order blocked',
@@ -36,6 +13,7 @@ const eventLabel: Record<PublicJournalEvent['kind'], string> = {
 
 export function PublicDecisionJournal() {
   const { agentId = '' } = useParams();
+  const { search } = useLocation();
   const [page, setPage] = useState<JournalPage>();
   const [strategy, setStrategy] = useState<string>();
   const [cursors, setCursors] = useState<number[]>([]);
@@ -58,7 +36,7 @@ export function PublicDecisionJournal() {
   }, [agentId, strategy, before]);
   const current = page?.strategies.find(item => item.id === page.strategyId);
   return <>
-    <Link className="nd-text-button" to="/vaults">Back to explore agents</Link>
+    <Link className="nd-text-button" to={{pathname:'/vaults',search}}>Back to explore agents</Link>
     <div className="nd-title"><div><h1>{page?.agent.name ?? 'Public decision journal'}</h1>
       {page && <p>{page.agent.model} · {page.agent.controller}</p>}</div></div>
     {error && <p role="alert" className="nd-alert">{error}</p>}
