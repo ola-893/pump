@@ -1,4 +1,4 @@
-import { hostedApp } from '../lib/local-runner';
+import { hostedApp } from '../lib/hosting';
 import { paperAmount } from '../lib/paper-amount';
 import { paperMarket } from '../../../near-demo/types';
 import { paperValuation } from '../lib/paper-valuation';

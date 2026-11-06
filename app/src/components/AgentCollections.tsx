@@ -1,4 +1,4 @@
-import { hostedApp } from '../lib/local-runner';
+import { hostedApp } from '../lib/hosting';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Cpu, Search, Plus, ArrowLeft, SlidersHorizontal } from 'lucide-react';
 import { useNearWallet, NearWalletButton } from './NearWalletProvider';

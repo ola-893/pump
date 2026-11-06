@@ -17,4 +17,4 @@ writeFileSync('app/dist/_redirects', [
   '/* /index.html 200',
   '',
 ].join('\n'));
-writeFileSync('app/dist/api-unavailable.json', JSON.stringify({ error: 'Agent controls run in your local Pump workspace.' }));
+writeFileSync('app/dist/api-unavailable.json', JSON.stringify({ error: 'This action is unavailable on the website.' }));
