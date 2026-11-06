@@ -17,8 +17,9 @@
       "httpRoutes": "Home, register, console, vaults, nested docs, WASM and public JSON APIs verified",
       "privateApi": "404 JSON; cross-origin requests rejected with 403",
       "balancePreflight": "Latest bundle includes upfront test NEAR cost and Check balance",
-      "browserQA": "Pending: browser tool still reports local browser use disabled",
-      "workspaceMigration": "Pending: existing browser workspace remains on Netlify origin"
+      "browserQA": "Native Chrome UI verified: 12 imported agents, persisted funded vault, saved strategy, model detection, and low-NEAR preflight",
+      "workspaceMigration": "Completed: imported 12 agents; reimport skipped all 12 without duplicates; on-chain seed vault retained",
+      "inferenceBlocker": "Paper run aborted in Wllama WebAssembly; Chrome stack includes ggml_backend_webgpu_wait_queue and ggml_backend_webgpu_synchronize; no completed decision or paper fill"
     }
   },
   "backend": {
