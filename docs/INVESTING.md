@@ -2,6 +2,10 @@
 
 Try strategy-bound vault deposits and redemptions with test tokens.
 
+First check [Explore agents](https://pump-near-893.netlify.app/vaults) for a
+published strategy with an available vault. If there is no available vault,
+deposits cannot be started from the website.
+
 ## Prepare a wallet
 
 Use a NEAR testnet wallet and obtain test NEAR for gas and storage, plus Circle

@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, ArrowUpRight, BookOpen, Check, Copy, Search } from 'lucide-react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { hostedApp } from '../lib/local-runner';
 import overview from '../../../docs/README.md?raw';
 import setup from '../../../docs/QUICK-SETUP.md?raw';
 import agents from '../../../docs/RUNNING-AGENTS.md?raw';
@@ -12,13 +13,65 @@ import troubleshooting from '../../../docs/TROUBLESHOOTING.md?raw';
 import './PumpDocs.css';
 
 const repository = 'https://github.com/ola-893/pump';
+const websiteOverview = `# Pump documentation
+
+Pump uses simulated trading records and NEAR testnet vaults.
+
+## What you can do on the website
+
+- [Explore agents](/vaults) to find published strategies and available testnet vaults.
+- Open the [Leaderboard](/evidence) to inspect and compare published trading records when available.
+- Read [Invest on testnet](INVESTING.md) to see what a vault needs before it can accept deposits.
+
+## Creator features
+
+Agent creation, strategy management, and paper trading are currently unavailable through the website alone. See [Run an agent](RUNNING-AGENTS.md) for current availability.`;
+const websiteSetup = `# Quick setup
+
+You can browse Pump directly on the website.
+
+## Explore public records
+
+1. Open [Explore agents](/vaults) to see any published agents and their strategy versions.
+2. Open the [Leaderboard](/evidence) to compare records once they are available.
+
+## Feature availability
+
+Creating or running an agent and exporting its paper trading journal are currently unavailable through the website. Testnet investing requires a published strategy with an available vault and a NEAR testnet wallet.`;
+const websiteAgents = `# Run an agent
+
+## Current availability
+
+The website does not currently offer model selection, strategy management, or paper trading for creators. The [public directory](/vaults) and [leaderboard](/evidence) display published records when available.`;
+const websiteVerification = `# Verify results
+
+## Inspect a public record
+
+Open the [Leaderboard](/evidence) and select a published strategy when one is available. Check its strategy version, trade count, valuation timestamp, and any warnings before interpreting returns. These are paper trading results. A testnet vault balance is a separate record.
+
+## Evidence availability
+
+The website cannot run an agent or produce a new paper trading journal. Public records are available after an operator publishes them.`;
+const websiteTroubleshooting = `# Troubleshooting
+
+## Agent tools are unavailable
+
+Creating an agent, managing a strategy, and starting a paper session are currently unavailable through the website.
+
+## No agents or records appear
+
+Clear any active filters. If the [directory](/vaults) or [leaderboard](/evidence) is still empty, there are no published entries to display. Investing requires an available vault attached to a published strategy.
+
+## Wallet connection
+
+Pump uses NEAR testnet. If the wallet picker is open, press Escape to return to the page. See [Invest on testnet](INVESTING.md) for wallet and vault requirements.`;
 const documents = [
-  { slug: '', title: 'Overview', file: 'README.md', content: overview, category: 'START HERE' },
-  { slug: 'quick-setup', title: 'Quick setup', file: 'QUICK-SETUP.md', content: setup, category: 'START HERE' },
-  { slug: 'agents', title: 'Run an agent', file: 'RUNNING-AGENTS.md', content: agents, category: 'USING PUMP' },
+  { slug: '', title: 'Overview', file: 'README.md', content: hostedApp ? websiteOverview : overview, category: 'START HERE' },
+  { slug: 'quick-setup', title: 'Quick setup', file: 'QUICK-SETUP.md', content: hostedApp ? websiteSetup : setup, category: 'START HERE' },
+  { slug: 'agents', title: 'Run an agent', file: 'RUNNING-AGENTS.md', content: hostedApp ? websiteAgents : agents, category: 'USING PUMP' },
   { slug: 'investing', title: 'Invest on testnet', file: 'INVESTING.md', content: investing, category: 'USING PUMP' },
-  { slug: 'verification', title: 'Verify results', file: 'VERIFICATION.md', content: verification, category: 'RESOURCES' },
-  { slug: 'troubleshooting', title: 'Troubleshooting', file: 'TROUBLESHOOTING.md', content: troubleshooting, category: 'RESOURCES' },
+  { slug: 'verification', title: 'Verify results', file: 'VERIFICATION.md', content: hostedApp ? websiteVerification : verification, category: 'RESOURCES' },
+  { slug: 'troubleshooting', title: 'Troubleshooting', file: 'TROUBLESHOOTING.md', content: hostedApp ? websiteTroubleshooting : troubleshooting, category: 'RESOURCES' },
 ];
 const pathFor = (slug: string) => slug ? `/docs/${slug}` : '/docs';
 const headingId = (text: string) => text.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-');
@@ -88,7 +141,7 @@ export default function PumpDocs() {
       <div className="pd-content">
         <div className="pd-breadcrumb"><Link to="/docs">Documentation</Link><span>/</span><span>{doc.title}</span></div>
         <article className="pd-article"><Markdown remarkPlugins={[remarkGfm]} components={{ a: DocLink, pre: CodeBlock, h2: ({ children, ...props }) => <h2 {...props} id={headingId(String(children))}>{children}</h2>, table: ({ children, ...props }) => <div className="pd-table"><table {...props}>{children}</table></div> }}>{doc.content}</Markdown></article>
-        <div className="pd-source"><span>One guide. In the app and in the repo.</span><a href={`${repository}/blob/hackathon/near-2026/docs/${doc.file}`} target="_blank" rel="noopener noreferrer">View source<ArrowUpRight size={13}/></a></div>
+        <div className="pd-source"><span>{hostedApp ? 'Developer documentation' : 'One guide. In the app and in the repo.'}</span><a href={`${repository}/blob/hackathon/near-2026/docs/${doc.file}`} target="_blank" rel="noopener noreferrer">View on GitHub<ArrowUpRight size={13}/></a></div>
         <nav className="pd-pagination" aria-label="Adjacent guides">
           {index > 0 ? <Link to={pathFor(documents[index - 1].slug)}><ArrowLeft size={16}/><span><small>PREVIOUS</small>{documents[index - 1].title}</span></Link> : <span/>}
           {index < documents.length - 1 && <Link to={pathFor(documents[index + 1].slug)}><span><small>NEXT GUIDE</small>{documents[index + 1].title}</span><ArrowRight size={16}/></Link>}
