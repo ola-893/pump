@@ -21,7 +21,9 @@ export type JournalBatch = {
   strategy: JournalStrategy | null;
   events: PublicJournalEvent[];
 };
-export type JournalListing = JournalAgent & { updatedAt: number; strategyVault?: string };
+export type JournalActivity = { version: number; market: string; hasTradingRecord: boolean;
+  decisions: number; fills: number; buys: number; sells: number };
+export type JournalListing = JournalAgent & { updatedAt: number; strategyVault?: string; activity?: JournalActivity };
 export type JournalPage = {
   agent: JournalListing;
   strategies: (JournalStrategy & { updatedAt: number; head: number })[];

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {leaderboardEntries,rankLeaderboard,filterLeaderboard,leaderboardDetailLink} from '../app/src/lib/agent-leaderboard.js';
-import {collectionPage,collectionLink} from '../app/src/lib/agent-collection.js';
+import {catalogAgents,collectionPage,collectionLink,recordedFills,selectAgents} from '../app/src/lib/agent-collection.js';
 import type {LeaderboardRun} from '../app/src/lib/agent-leaderboard.js';
 const agent=(id:string,visibility:'public'|'private'='public')=>({id,visibility,createdAt:'2026-10-20T00:00:00Z',manifest:{name:'Agent '+id,controller:'creator'+id+'.testnet',model:{id:id==='b'?'Gemma':'Qwen'},strategy:{description:'A public strategy mandate.'}}});
 const run=(id:string,total='1000000',options:{version?:number;stale?:boolean;fills?:number;decisions?:number;drawdown?:number;initial?:string}={})=>({id:'run-'+id+'-'+(options.version??1),agentId:id,version:options.version??1,label:'Strategy '+id,createdAt:'2026-10-21T00:00:00Z',config:{initialCash:options.initial??'100000000'},session:{state:'stopped',valuationStale:options.stale??false,metrics:{total},portfolio:{maxDrawdownBps:options.drawdown??50}},activity:{fills:options.fills??10,decisions:options.decisions??20,buys:5,sells:5,volume:'50000000'}} as LeaderboardRun);
@@ -10,3 +10,14 @@ test('global ranks normalize starting capital, use latest version, handle losses
 test('drawdown ranks low values first; filters do not renumber global ranks',()=>{const rows=leaderboardEntries(['a','b','c'].map(id=>agent(id)),[run('a','1000000',{drawdown:100}),run('b','2000000',{drawdown:10,fills:50}),run('c','3000000',{drawdown:0,fills:1})]),{sorted,ranks}=rankLeaderboard(rows,'drawdown');assert.deepEqual(sorted.map(e=>e.agent.id),['c','b','a']);const filtered=filterLeaderboard(sorted,{query:'creatorb gemma',status:'ranked',model:'Gemma',minFills:50});assert.deepEqual(filtered.map(e=>e.agent.id),['b']);assert.equal(ranks.get(filtered[0].agent.id),2);assert.equal(filterLeaderboard(sorted,{minFills:51}).length,0);assert.equal(filterLeaderboard(sorted,{status:'unranked'}).length,0);});
 test('pagination and investor drill-down preserve leaderboard state and comparison selections',()=>{const agents=Array.from({length:137},(_,i)=>agent(String(i).padStart(3,'0'))),rows=rankLeaderboard(leaderboardEntries(agents,agents.map(a=>run(a.id))),'return').sorted;const page=collectionPage(rows,'12');assert.equal(page.items.length,5);const params=new URLSearchParams('page=12&q=Qwen&lbMetric=drawdown&lbMin=10&lbCompare=001,002'),link=leaderboardDetailLink(params,'136'),backParams=new URLSearchParams(link.split('?')[1]);assert.equal(backParams.get('from'),'leaderboard');assert.equal(backParams.get('agent'),'136');backParams.delete('from');assert.equal(collectionLink('/evidence',backParams),'/evidence?'+params.toString());assert.equal(params.has('agent'),false);});
 test('invalid numeric performance cannot acquire a rank',()=>{const rows=leaderboardEntries([agent('a'),agent('b')],[run('a','NaN'),run('b','1000000',{drawdown:NaN})]);assert.equal(rankLeaderboard(rows,'return').ranks.size,0);});
+
+test('published journal activity is discoverable without implying ranking or counting HOLD as a fill',()=>{
+ const activity={version:2,market:'wNEAR / USDC',hasTradingRecord:true,decisions:1,fills:0,buys:0,sells:0};
+ const journal={id:'browser',name:'Browser agent',controller:'creator.testnet',model:'Qwen',updatedAt:1,activity};
+ const rows=leaderboardEntries(catalogAgents([], [journal, {...journal,id:'empty',activity:{...activity,decisions:0,hasTradingRecord:false}}]), []);
+ assert.deepEqual(selectAgents(rows,{filter:'record',query:'wnear'}).map(row=>row.agent.id),['browser']);
+ assert.equal(recordedFills(rows[0]),0);
+ assert.equal(rows[0].rankReason,'No filled orders');
+ assert.equal(filterLeaderboard(rows,{status:'unranked'}).length,2);
+ assert.equal(rankLeaderboard(rows,'return').ranks.size,0);
+});
