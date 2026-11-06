@@ -48,11 +48,11 @@ function AgentCatalog({agents,runs,vaults,incomplete}:CatalogProps & {incomplete
   <div className="ag-grid">{page.items.map(e=>{
    const {agent,run}=e;
    const journal=!!agent.journalUpdatedAt;
-   const href=journal?collectionLink(`/public-journal/${encodeURIComponent(agent.id)}`,params):collectionLink(path,params,agent.id);
+   const href=collectionLink(path,params,agent.id);
    return <Link className="nd-card ag-agent-card" key={agent.id} to={href}>
     <div className="ag-card-heading"><span className="ag-avatar"><Cpu size={20}/></span><div><h2>{agent.manifest.name}</h2><small title={agent.manifest.controller}>by {short(agent.manifest.controller??'Undeclared creator')}</small></div><ArrowRight size={15}/></div>
     <p className="ag-model">{agent.manifest.model.id}</p>
-    {journal?<><h3>Public decision journal</h3><p className="ag-mandate">Inspect the published paper trading record.</p><div className="ag-card-footer"><span>View public journal</span></div></>:<>
+    {journal?<><h3>Public trading record</h3><p className="ag-mandate">Inspect the published paper trading record.</p><div className="ag-card-footer"><span>View agent</span></div></>:<>
      <h3>{run?.label??'A new strategy starts here.'}</h3><p className="ag-mandate">{agent.manifest.strategy?.description??'Inspect the public mandate and model declaration.'}</p>
      <div className="ag-card-metrics"><div><small>Paper return</small><strong className={e.returnPct!==null&&e.returnPct<0?'negative':'positive'}>{pct(e.returnPct)}</strong></div><div><small>Max drawdown</small><strong>{e.drawdown===null?'—':e.drawdown.toFixed(2)+'%'}</strong></div><div><small>Filled orders</small><strong>{run?.activity.fills??0}</strong></div></div>
      <div className="ag-card-footer"><span>{run?`Strategy v${run.version}`:'No performance yet'}</span><span>{e.funded?'Testnet vault':'Vault pending'}</span></div>
