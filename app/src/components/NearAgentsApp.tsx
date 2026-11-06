@@ -124,49 +124,75 @@ function Register({data,api,refresh}:Props){
   async function register(){setBusy('register');setError('');try{const r=await api('/register-agent',{registration:registration()});await refresh();navigate(visibility==='private'?`/console?agent=${r.agent.id}&scope=local&panel=identity`:`/agents/${r.agent.id}`);window.scrollTo(0,0);}catch(e){setError((e as Error).message);}finally{setBusy('');}}
   function next(){try{registration();setError('');setStep(step+1);window.scrollTo(0,0);}catch(e){setError((e as Error).message);}}
   const input=(label:string,value:string,set:(s:string)=>void,hint?:string)=><label>{label}<input required value={value} onChange={e=>set(e.target.value)}/>{hint&&<small>{hint}</small>}</label>;
-  return <><Title eyebrow="FOR EVERY CREATOR · LOCAL AI" title="Create your trading agent." body="Bring a local model, choose your controller account, and define its strategy. Anyone can create an agent on pump; your model files stay on your computer."/><div className="na-registration"><aside><ol className="na-wizard">{[['Identity & inference','Who controls it. Where it runs.'],['Strategy & mandate','What it does. What it can spend.'],['Review & export','A versioned deployment declaration.']].map(([title,body],i)=><li key={title} className={step===i+1?'current':step>i+1?'complete':''}><span>{step>i+1?<Check size={15}/>:String(i+1).padStart(2,'0')}</span><div><strong>{title}</strong><small>{body}</small></div></li>)}</ol><div className="nd-side-note"><Cpu size={23}/><h3>Self-hosted is mandatory.</h3><p>Inference runs from your downloaded weights through a local loopback endpoint. No hosted fallback. No model access to signing keys.</p><span className="nd-pill">Locally measured · not attested</span><p>The helper measures the selected weights during registration. Only one model is loaded at a time.</p></div></aside><form className="nd-card na-form" onSubmit={e=>{e.preventDefault();if(busy)return;if(step<3)next();else void register();}}><div className="nd-eyebrow">STEP {String(step).padStart(2,'0')}</div><h2>{step===1?'Identity & local inference':step===2?'A strategy with limits.':'Review your declaration.'}</h2><p>{step===1?'Choose downloaded model weights and a public controller account. Connect a wallet to fill your controller account. Never enter private keys.':step===2?'Describe the strategy and its paper-trading limits. The deterministic paper engine checks proposals before recording hypothetical fills.':'Register this configuration locally and export its model, strategy and mandate. No tokens move during registration.'}</p>
-    {step===1&&<><fieldset className="na-visibility"><legend>Agent visibility</legend><label><input type="radio" name="visibility" value="private" checked={visibility==='private'} onChange={()=>setVisibility('private')}/><span><strong>Private</strong><small>Only in your local owner workspace. Hidden from Explore agents and Leaderboard. Investors cannot deposit.</small></span></label><label><input type="radio" name="visibility" value="public" checked={visibility==='public'} onChange={()=>setVisibility('public')}/><span><strong>Public</strong><small>Publish your agent, registered strategy, saved strategy instructions and trading record for investor inspection. Required before investor deposits. Once public, this agent stays public.</small></span></label><p>Private is the default. You can review and publish later from My agents.</p></fieldset><div className="nw-registration"><div><strong>{wallet.account?'Wallet connected':'Connect your NEAR wallet'}</strong><p>{wallet.account?'Your selected account fills the controller field automatically.':'Connect to fill your controller account, or enter a public testnet account below.'}</p></div><NearWalletButton/></div><div className="na-fields">{input('Agent name',name,setName,'Your agent’s name, unique within your controller account.')}<div>{input('Controller account',effectiveOwner,setOwner,'Public NEAR testnet account only.')}<p className="nw-source">{owner===null&&wallet.account?'Filled from your connected wallet':owner!==null?'Manually entered controller':'Enter an account or connect your wallet'}</p>{owner!==null&&wallet.account&&<button type="button" className="nd-text-button" onClick={()=>setOwner(null)}>Use connected account</button>}</div></div><section className="na-model-detector">
-      <div className="nd-card-top">
-        <div className="na-detector-heading"><Cpu size={25}/><div><h3>Your local models</h3><p>Model files stay on your computer.</p></div></div>
-        <span className="nd-pill">{models.length?`${models.length} locally detected`:scanned?'Scan complete':'Detection pending'}</span>
-      </div>
-      <label>Choose an installed local model
-        <select aria-label="Choose an installed local model" value={modelId} onChange={e=>choose(e.target.value)}>
-          <option value="">Select downloaded weights</option>
-          {models.map(m=><option key={m.id} value={m.id}>{m.name} · {(m.bytes/1e9).toFixed(2)} GB</option>)}
-        </select>
-      </label>
-      {model&&<>
-        <h3>{model.name}</h3>
-        <p>{model.quantization}{!hostedApp&&' · 4,096 context when loaded'}</p>
-        <p>{model.filename} · {(model.bytes/1e9).toFixed(2)} GB</p>
-        <details>
-          <summary>{hostedApp?'Inspect detected model':'Inspect locally measured artifacts'}</summary>
-          <p>{model.runtime==='clef-mlx'?'MLX bundle':'GGUF weights'} detected {date(model.detectedAt)}.</p>
-          {hostedApp?<p>Detected on this device. Weight checksums have not been verified.</p>:<>
-            <p>{model.runtime==='clef-mlx'?'All weights, decision head, tokenizer and loader are verified; the bundle commitment identifies the full artifact set.':'SHA-256 is measured from the selected file during registration.'}</p>
-            <p>{model.copies>1?`${model.copies} filesystem entries share this underlying file.`:'One detected filesystem entry.'} Model weights are read in place.</p>
-            <p>Runtime: {model.runtime??'llama.cpp'} · loopback only · no hardware attestation.</p>
-          </>}
-        </details>
-      </>}
-      {(busy==='detect'||!model)&&<p role="status">{busy==='detect'
-        ?hostedApp?'Looking for local models…':'Inspecting standard local model directories…'
-        :models.length?'Choose one of the installed models above.'
-        :hostedApp?scanned?'No supported models found in that folder.':'Click Detect again to give Pump read access to a model folder.'
-        :error?'No models to select.':'No supported downloaded models found in the standard llama.cpp, LM Studio, Hugging Face or Ollama directories.'}</p>}
-      <button type="button" className="nd-button secondary" disabled={!!busy} onClick={()=>void detect()}><RefreshCw size={14}/>Detect again</button>
-      {hostedApp&&!pickModelDirectory&&<input type="file" hidden ref={input=>{
-        folderInput.current=input;
-        if(input)input.webkitdirectory=true;
-      }} onChange={event=>{
-        const input=event.currentTarget;
-        if(input.files)void detect(input.files);
-        input.value='';
-      }}/>}
-    </section><div className="na-note"><strong>Execution authority</strong><p>The model proposes paper trades. This registration gives it no wallet key or signing permission. Circle test USDC transfers require a separate testnet wallet approval.</p></div><label className="na-checkbox"><input type="checkbox" checked={selfHosted} onChange={e=>setSelfHosted(e.target.checked)}/><span>I run downloaded weights under my control, with no hosted inference or hosted fallback.</span></label></>}
-    {step===2&&<>{model?.runtime==='clef-mlx'&&<p className="nd-notice">Fixed-choice decision model: selects BUY/HOLD when in cash and SELL/HOLD while holding. Pump sizes actions up to 10 virtual USDC within your limits and uses HOLD for uncertain scores. Scores and policy results are recorded; the model generates no explanation.</p>}<label>{visibility==='private'?'Private strategy description':'Public strategy description'}<textarea rows={5} maxLength={3000} value={strategy} onChange={e=>setStrategy(e.target.value)}/><small>Describe the signal, holding horizon and circumstances in which the agent should not trade. {visibility==='private'?'This stays out of public discovery and investor APIs.':'This strategy and saved versions will be inspectable by investors.'}</small></label><label>Proposed market<select><option>wNEAR / USDC</option></select><small>1Click dry-run quotes for paper trading. Optional Circle USDC clearing on NEAR testnet.</small></label><div className="na-fields">{input('Virtual starting balance · USDC',capital,setCapital)}{input('Per-trade cap · USDC',trade,setTrade)}{input('Allocated-cost exposure cap · USDC',exposure,setExposure)}{input('Daily gross turnover cap · USDC',daily,setDaily)}{input('Maximum slippage · basis points',slippage,setSlippage,'50 basis points = 0.5%.')}{input('Decision interval · seconds',interval,setIntervalValue)}</div><div className="na-note"><strong>Research & external dependencies</strong><p>Up to 720 closed hourly NEAR/USDT exchange candles, plus recorded 1Click dry-run quotes. Public exchange data informs the model; fresh Intents quotes determine live hypothetical fills. The shared historical comparison uses its own fixed limits and explicit USDT cost model.</p></div></>}
-    {step===3&&<><div className="na-review-name"><span className="nd-avatar large"><Bot size={24}/></span><div><h2>{name}</h2><p>{model?.name} · wNEAR / USDC</p></div><span className="nd-pill warning">Unpublished declaration</span></div><Facts rows={[["Visibility",visibility==='private'?'Private · hidden · no investor deposits':'Public · permanent publication · strategy and trading record inspectable'],["Controller",effectiveOwner],["Inference policy","Self-hosted only · no hosted fallback"],["Weights",`${model?.filename} · ${((model?.bytes??0)/1e9).toFixed(2)} GB`],["Runtime",`${model?.runtime??'llama.cpp'} · 4,096 context · sequential loading`],["Virtual starting balance",`${capital} USDC`],["Trade / exposure / daily cap",`${trade} / ${exposure} / ${daily} USDC`],["Maximum slippage",`${slippage} basis points`],["Decision interval",`${interval} seconds`],["Strategy",strategy],["Registration evidence","Locally measured weights · unsigned declaration · no hardware attestation"],["Network & mode","NEAR testnet · paper trading · optional Circle test USDC clearing"]]}/><button type="button" className="nd-button secondary" onClick={()=>download('near-agent-declaration-draft.json',{status:'unregistered draft; weights not yet measured',...registration()})}><Download size={15}/>Export local draft</button><div className="na-note">Registering measures the selected weights and records an immutable local declaration. It does not publish an on-chain identity or grant authority to trade real tokens.</div>{busy==='register'&&<p role="status" className="nd-notice">Measuring downloaded weights… {data?.measurement?`${Math.round(data.measurement.completedBytes/data.measurement.totalBytes*100)}%`: 'Starting SHA-256 check'}. The file stays in place.</p>}</>}
+  return <><div className="nd-title na-title"><h1>Create your trading agent.</h1></div>
+    <div className="na-registration">
+      <aside><ol className="na-wizard">{['Identity & inference','Strategy & mandate','Review & export'].map((title,i)=>
+        <li key={title} className={step===i+1?'current':step>i+1?'complete':''}>
+          <span>{step>i+1?<Check size={15}/>:String(i+1).padStart(2,'0')}</span><div><strong>{title}</strong></div>
+        </li>)}</ol></aside>
+      <form className="nd-card na-form" onSubmit={e=>{e.preventDefault();if(busy)return;if(step<3)next();else void register();}}>
+        <h2>{step===1?'Identity & local inference':step===2?'A strategy with limits.':'Review your declaration.'}</h2>
+        {step===1&&<>
+          <fieldset className="na-visibility">
+            <legend>Agent visibility</legend>
+            <label><input type="radio" name="visibility" value="private" checked={visibility==='private'} onChange={()=>setVisibility('private')}/>
+              <span><strong>Private</strong><small>Visible only in My agents. Investors cannot deposit.</small></span>
+            </label>
+            <label><input type="radio" name="visibility" value="public" checked={visibility==='public'} onChange={()=>setVisibility('public')}/>
+              <span><strong>Public</strong><small>Permanently shares your agent, strategy and trading record. Enables investor deposits.</small></span>
+            </label>
+          </fieldset>
+          <div className="nw-registration"><strong>NEAR wallet</strong><NearWalletButton/></div>
+          <div className="na-fields">
+            {input('Agent name',name,setName)}
+            <div>
+              {input('Controller account',effectiveOwner,setOwner,'Public NEAR testnet account')}
+              {owner!==null&&wallet.account&&<button type="button" className="nd-text-button" onClick={()=>setOwner(null)}>Use connected account</button>}
+            </div>
+          </div>
+          <section className="na-model-detector">
+            <div className="nd-card-top">
+              <div className="na-detector-heading"><Cpu size={25}/><h3>Your local models</h3></div>
+              {models.length>0&&<span className="nd-pill">{models.length} locally detected</span>}
+            </div>
+            {hostedApp&&<div>
+              <p>Click <strong>Detect again</strong>, select your model folder, and allow read access.</p>
+              <p><strong>Ollama on Mac</strong> uses <code>~/.ollama/models</code> by default. Press <kbd>⌘⇧G</kbd> in the picker to paste the path.</p>
+              <p><strong>Other downloads</strong> can stay where they are or be moved to a folder you know. For llama.cpp, check <code>~/.local/share/llama.cpp</code>.</p>
+            </div>}
+            <label>Choose an installed local model
+              <select aria-label="Choose an installed local model" value={modelId} onChange={e=>choose(e.target.value)}>
+                <option value="">Select downloaded weights</option>
+                {models.map(m=><option key={m.id} value={m.id}>{m.name} · {(m.bytes/1e9).toFixed(2)} GB</option>)}
+              </select>
+            </label>
+            {model&&<details>
+                <summary>{hostedApp?'Inspect detected model':'Inspect locally measured artifacts'}</summary>
+                <p>{model.filename} · {model.quantization}</p>
+                <p>{model.runtime==='clef-mlx'?'MLX bundle':'GGUF weights'} detected {date(model.detectedAt)}.</p>
+                {hostedApp?<p>Detected on this device. Weight checksums have not been verified.</p>:<>
+                  <p>{model.runtime==='clef-mlx'?'All weights, decision head, tokenizer and loader are verified; the bundle commitment identifies the full artifact set.':'SHA-256 is measured from the selected file during registration.'}</p>
+                  <p>{model.copies>1?`${model.copies} filesystem entries share this underlying file.`:'One detected filesystem entry.'} Model weights are read in place.</p>
+                  <p>Runtime: {model.runtime??'llama.cpp'} · loopback only · no hardware attestation.</p>
+                </>}
+            </details>}
+            {busy==='detect'&&<p role="status">Looking for local models…</p>}
+            {busy!=='detect'&&!models.length&&(scanned||!hostedApp&&!error)&&
+              <p role="status">No supported models found{hostedApp?' in that folder':''}.</p>}
+            <button type="button" className="nd-button secondary" disabled={!!busy} onClick={()=>void detect()}><RefreshCw size={14}/>Detect again</button>
+            {hostedApp&&!pickModelDirectory&&<input type="file" hidden ref={input=>{
+              folderInput.current=input;
+              if(input)input.webkitdirectory=true;
+            }} onChange={event=>{
+              const input=event.currentTarget;
+              if(input.files)void detect(input.files);
+              input.value='';
+            }}/>}
+          </section>
+          <label className="na-checkbox"><input type="checkbox" checked={selfHosted} onChange={e=>setSelfHosted(e.target.checked)}/><span>I use local model weights with no hosted fallback.</span></label>
+        </>}
+    {step===2&&<>{model?.runtime==='clef-mlx'&&<p className="nd-notice">Clef chooses BUY, SELL or HOLD. Uncertain signals result in HOLD. Each paper trade is capped at 10 virtual USDC.</p>}<label>{visibility==='private'?'Private strategy description':'Public strategy description'}<textarea rows={5} maxLength={3000} value={strategy} onChange={e=>setStrategy(e.target.value)}/><small>Describe when to buy, sell or hold.</small></label><label>Proposed market<select><option>wNEAR / USDC</option></select></label><div className="na-fields">{input('Virtual starting balance · USDC',capital,setCapital)}{input('Per-trade cap · USDC',trade,setTrade)}{input('Allocated-cost exposure cap · USDC',exposure,setExposure)}{input('Daily gross turnover cap · USDC',daily,setDaily)}{input('Maximum slippage · basis points',slippage,setSlippage,'50 basis points = 0.5%.')}{input('Decision interval · seconds',interval,setIntervalValue)}</div></>}
+    {step===3&&<><div className="na-review-name"><span className="nd-avatar large"><Bot size={24}/></span><div><h2>{name}</h2><p>{model?.name} · wNEAR / USDC</p></div><span className="nd-pill warning">Unpublished declaration</span></div><Facts rows={[["Visibility",visibility==='private'?'Private · hidden · no investor deposits':'Public · permanent publication · strategy and trading record inspectable'],["Controller",effectiveOwner],["Inference policy","Self-hosted only · no hosted fallback"],["Weights",`${model?.filename} · ${((model?.bytes??0)/1e9).toFixed(2)} GB`],["Runtime",`${model?.runtime??'llama.cpp'} · 4,096 context · sequential loading`],["Virtual starting balance",`${capital} USDC`],["Trade / exposure / daily cap",`${trade} / ${exposure} / ${daily} USDC`],["Maximum slippage",`${slippage} basis points`],["Decision interval",`${interval} seconds`],["Strategy",strategy],["Registration evidence","Locally measured weights · unsigned declaration · no hardware attestation"],["Network & mode","NEAR testnet · paper trading · optional Circle test USDC clearing"]]}/><button type="button" className="nd-button secondary" onClick={()=>download('near-agent-declaration-draft.json',{status:'unregistered draft; weights not yet measured',...registration()})}><Download size={15}/>Export local draft</button><div className="na-note">Registration does not move tokens or grant wallet signing access.</div>{busy==='register'&&<p role="status" className="nd-notice">Measuring downloaded weights… {data?.measurement?`${Math.round(data.measurement.completedBytes/data.measurement.totalBytes*100)}%`: 'Starting SHA-256 check'}. The file stays in place.</p>}</>}
     {error&&<p className="nd-alert" role="alert">{error}</p>}<div className="na-wizard-controls"><button type="button" className="nd-text-button" disabled={step===1||!!busy} onClick={()=>{setStep(step-1);setError('');}}>Back</button><span>Step {step} of 3</span><button type="submit" className="nd-button" disabled={!!busy}>{step<3?'Continue':busy==='register'?'Measuring weights…':visibility==='private'?'Create private agent':'Create public agent'}<ArrowRight size={15}/></button></div></form></div></>;
 }
 function Facts({rows}:{rows:[string,ReactNode][]}){return <dl className="na-facts">{rows.map(([label,value])=><div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>;}
