@@ -1,88 +1,80 @@
-# Netlify frontend and Railway backend
+# Cloudflare frontend and Railway backend
 
-Pump's hosted deployment serves the public directory, agent evidence, and testnet
-investor reads. Model inference and private controls remain on the operator's
-computer. The hosted app links those actions to local setup.
-
-## Live deployment
-
-Created November 6, 2026 as a new Netlify site and a new Railway project:
+Pump's stable testnet frontend is deployed to Cloudflare Pages. Railway hosts
+the public API and its persistent SQLite volume. Private agents, strategies,
+model weights, and journals stay in the user's browser or local backup files.
+The hosted frontend performs inference in the browser and uses the owner's
+wallet for testnet vault approvals. Mainnet trading remains disabled.
 
 | Component | URL |
 | --- | --- |
-| Frontend | <https://pump-near-893.netlify.app> |
-| Documentation | <https://pump-near-893.netlify.app/docs/quick-setup> |
-| Backend health | <https://pump-public-api-production.up.railway.app/health> |
-| Runner directory | <https://pump-public-api-production.up.railway.app/api/pump-directory> |
+| Frontend | https://pump-near-893.pages.dev |
+| Quick setup | https://pump-near-893.pages.dev/docs/quick-setup |
+| Backend health | https://pump-public-api-production.up.railway.app/health |
+| Public directory | https://pump-public-api-production.up.railway.app/api/pump-directory |
 
-Public resource IDs are recorded in [hosting metadata](../deployments/hosting.json).
-The backend has a persistent volume mounted at `/data` and one replica. The
-frontend proxies public API routes; local owner controls are not exposed.
+Public resource IDs and verified release metadata are in
+[hosting metadata](../deployments/hosting.json).
+
+## Frontend releases
+
+Build from the repository root with both locked dependency trees installed:
+
+```sh
+npm ci
+PUMP_PUBLIC_API_URL=https://pump-public-api-production.up.railway.app npm run build:cloudflare
+npx wrangler@4.158.0 pages deploy app/dist --project-name pump-near-893 --branch hackathon/near-2026
+```
+
+Use the stable project URL for QA so the browser workspace persists across
+releases. The Pages project uses Direct Upload. Deploying a commit to GitHub
+alone does not deploy it to Pages. A GitHub Actions release can be configured
+later with a dedicated Cloudflare API token; never commit deployment credentials.
+
+The build outputs the static site, its WASM inference runtime, and a small
+Cloudflare Function that forwards only public API routes to Railway.
+`_routes.json` invokes the Function only for `/api/*`; assets and SPA navigation
+are served directly by Pages. Unknown and private APIs return JSON errors.
+Requests retain their exact Origin for Railway's allowlist checks. The proxy
+does not forward cookies or wallet authentication headers.
 
 ## Railway backend
 
-Deploy the repository root using the included `Dockerfile` and `railway.json`.
-The image installs the locked Node dependencies, includes no local state or
-credentials, and runs `npm run start:public` on Railway's `PORT` at `0.0.0.0`.
-
-1. Create a Railway service from the `hackathon/near-2026` branch of this repo.
-2. Attach a persistent volume at `/data`. Keep one replica for the SQLite writer.
-3. Generate the service's public HTTPS domain.
-4. Set these service variables using the actual domains:
+The service uses the repository's Dockerfile, one replica, and a persistent
+volume at `/data`. Keep these variables scoped to the Pump service:
 
 ```text
 PUMP_PUBLIC_DB=/data/pump.sqlite
-PUMP_DIRECTORY_ORIGIN=https://YOUR-RAILWAY-DOMAIN/api/pump-directory
-PUMP_DIRECTORY_CLIENT_ORIGINS=https://YOUR-NETLIFY-DOMAIN
+PUMP_DIRECTORY_ORIGIN=https://pump-public-api-production.up.railway.app/api/pump-directory
+PUMP_DIRECTORY_CLIENT_ORIGINS=https://pump-near-893.pages.dev,https://pump-near-893.netlify.app
 ```
 
-`PUMP_DIRECTORY_ORIGIN` is also the signed publishing audience. Keep it stable.
-Do not set `PUMP_DIRECTORY_URL` on this service: it owns the shared directory.
-Do not upload the operator's `.local/` folder, model weights, or reporter keys.
+Preserve other already authorized exact origins when updating the allowlist.
+The directory origin is also the signed publishing audience; it must stay
+stable. Do not set `PUMP_DIRECTORY_URL` on the service that owns the directory.
+Never upload `.local/`, weights, or reporter keys. Hosting changes do not
+deploy contracts or move vault tokens.
 
-Railway checks `/health` before marking the deployment healthy. Verify
-`/api/near-demo/public-status` returns JSON and `/api/near-demo/status` returns
-403. The backend does not expose private agent management or sign transactions.
-NAV reporting remains on the separately authorized local reporting host.
+## Move an existing browser workspace
 
-## Netlify frontend
+In the old site's **My agents**, expand **Workspace backup and migration**
+and export the workspace. At the new site, use the same section to import it.
+This stays local: the backup is not uploaded to Railway or Cloudflare.
+Verify the agent count and seed vault links before discarding any backup.
+Public publishing requires renewed wallet authorization on the new origin.
 
-1. Import the same repository and branch, with the repository root as the base.
-2. Use the included `netlify.toml`: build `npm run build:netlify`, publish `app/dist`.
-3. Set `PUMP_PUBLIC_API_URL` to the Railway HTTPS origin, without a path.
-4. Deploy, then put the actual Netlify origin in Railway's client allowlist.
+Connect the wallet again and allow model-folder access in Create an agent.
+Browser permissions and IndexedDB data do not automatically move between domains.
+Existing on-chain vaults retain their addresses and balances.
 
-The build generates Netlify proxy rules for public APIs before the SPA fallback.
-Direct navigation to `/docs/quick-setup`, `/vaults`, and agent profiles therefore
-loads the frontend. Local control APIs receive a JSON error, rather than the SPA
-HTML. The hosted build directs Create an agent, My agents, and the workbench to
-local setup. The normal `npm run dev` keeps the local application behavior.
+## Release verification
 
-## Connect a local runner
+- Open and reload home, Create an agent, My agents, and nested Docs URLs.
+- Verify the WASM asset has an `application/wasm` content type.
+- Confirm public API requests return JSON, including POST requests from the Pages origin.
+- Confirm private APIs return an error rather than SPA HTML.
+- Confirm the seed flow shows a shortfall before opening the wallet.
+- Test transactions only on NEAR testnet with the owner's wallet approvals.
 
-Set `PUMP_DIRECTORY_URL` on each local operator computer to the exact Railway
-directory URL ending in `/api/pump-directory`, then restart the local dev server.
-Use My agents → Shared directory to authorize publishing with the owner wallet.
-An earlier authorization for a different URL cannot be reused automatically.
-
-For the current deployment, start your local workspace from the repository root:
-
-```sh
-PUMP_DIRECTORY_URL=https://pump-public-api-production.up.railway.app/api/pump-directory npm run dev
-```
-
-A new hosted database starts empty. Public agents appear after an authorized
-local runner publishes them. The local model must remain online to produce new
-decisions. No private agent or journal is copied as part of deployment.
-
-## Verify the release
-
-- Visit the Netlify home page, Docs, Explore agents, and Leaderboard.
-- Reload a nested docs URL directly.
-- Check backend health and public status, and confirm local controls reject requests.
-- Authorize a runner, inspect its public record, and verify restart persistence.
-- Test wallet connection and testnet investment with the owner's approval.
-
-Provider references: [Netlify rewrites and proxies](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/),
-[Railway configuration](https://docs.railway.com/config-as-code),
-[Railway persistent volumes](https://docs.railway.com/volumes).
+The prior Netlify project remains separate. Its credit limit prevented further
+production releases; it is retained as a source for existing browser backups.
