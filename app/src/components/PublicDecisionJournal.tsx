@@ -56,11 +56,12 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
     return () => { active = false; clearInterval(refresh); };
   }, [agentId, strategy, before]);
 
-  const current = latest?.strategies.find(item => item.id === latest.strategyId);
+  const selectedStrategyId = strategy ?? latest?.strategyId;
+  const current = latest?.strategies.find(item => item.id === selectedStrategyId);
   const market = Object.values(markets).find(pair => pair.label === current?.market);
   const quote = market ?? {quoteDecimals:0,quoteSymbol:'quote base units'};
   const format = (value:string|null) => value === null ? '—' : `${market ? paperAmount(value, market.quoteDecimals) : value} ${quote.quoteSymbol}`;
-  const switchingStrategy = strategy !== undefined && strategy !== current?.id;
+  const switchingStrategy = strategy !== undefined && strategy !== latest?.strategyId;
   const events = switchingStrategy ? [] : latest?.events ?? [];
   const fills = events.filter(event => event.kind === 'fill');
   const decisions = events.filter(event => event.kind === 'model');
@@ -72,6 +73,7 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
     setStrategy(id);
     setPage(undefined);
     setCursors([]);
+    setError('');
   }
 
   function selectTab(next:InvestorProfileTab) {
@@ -116,12 +118,15 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
         </div>
         <div className="nd-buttons">
           <button className="nd-button secondary" type="button" onClick={()=>selectTab('Model & evidence')}>Agent identity</button>
-          <a className="nd-button" href={`#${fundingId}`}>{vault?(vault.archived?'Withdraw':'Invest'):'Investment pending'} <ArrowRight size={14}/></a>
+          <a className="nd-button" href={`#${fundingId}`}>{switchingStrategy?'View investment status':vault?(vault.archived?'Withdraw':'Invest'):'Investment pending'} <ArrowRight size={14}/></a>
         </div>
       </div>}
       investment={vault?<VaultWorkspace key={vault.contractId+account} fundingId={fundingId} v={vault} account={account} api={publicVaultRequest} refresh={async()=>{}}/>:<section className="nd-card av-invest-cta ag-switch-note" id={fundingId} aria-label="Investment availability">
-        <div className="nd-eyebrow">NEAR TESTNET</div><h2>Investments are not open yet.</h2>
-        <p>{current ? `Strategy v${current.version} has no investment vault linked to this profile.` : 'This agent has no published strategy to invest in.'} Each investable strategy version has its own vault and pump coin.</p>
+        <div className="nd-eyebrow">NEAR TESTNET</div>
+        {switchingStrategy ? <h2 role="status">{error ? 'Could not check investment availability.' : 'Checking investment availability…'}</h2> : <>
+          <h2>Investments are not open yet.</h2>
+          <p>{current ? `Strategy v${current.version} has no investment vault linked to this profile.` : 'This agent has no published strategy to invest in.'} Each investable strategy version has its own vault and pump coin.</p>
+        </>}
       </section>}>
       <div className="ip-version">
         <div>{current ? <label>Strategy record
@@ -145,17 +150,17 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
             <EquityChart key={current?.id} market={quote} observations={[...events].reverse()} initial={null} gapMs={180000} loading={switchingStrategy}/>
             <div className="ip-stat-row">
               <Metric label="Realized P&L change" value={events.length ? format(String(realized)) : '—'} hint={subset}/>
-              <Metric label="Filled orders" value={String(fills.length)} hint={subset}/>
-              <Metric label="Model decisions" value={String(decisions.length)} hint={subset}/>
+              <Metric label="Filled orders" value={switchingStrategy?'—':String(fills.length)} hint={subset}/>
+              <Metric label="Model decisions" value={switchingStrategy?'—':String(decisions.length)} hint={subset}/>
             </div>
           </section>
           <aside className="nd-card ip-at-glance">
             <div className="nd-eyebrow">AT A GLANCE</div><h3>The record behind the return.</h3>
             <div className="ip-counts">
-              <Metric label="HOLD outcomes" value={String(events.filter(event=>event.kind==='hold').length)}/>
-              <Metric label="Blocked attempts" value={String(events.filter(event=>event.kind==='blocked').length)}/>
+              <Metric label="HOLD outcomes" value={switchingStrategy?'—':String(events.filter(event=>event.kind==='hold').length)}/>
+              <Metric label="Blocked attempts" value={switchingStrategy?'—':String(events.filter(event=>event.kind==='blocked').length)}/>
             </div>
-            <div className="ip-latest"><small>Latest recorded model decision</small><strong>{decisions[0]?.action ?? 'No decision yet'}</strong>
+            <div className="ip-latest"><small>Latest recorded model decision</small><strong>{switchingStrategy?'—':decisions[0]?.action ?? 'No decision yet'}</strong>
               {decisions[0]&&<p>{displayTime(decisions[0].at)}</p>}
             </div>
           </aside>
@@ -163,7 +168,7 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
         <div className="ip-section-head"><div><div className="nd-eyebrow">RECENT EXECUTION</div><h3>See how decisions became positions.</h3></div>
           <button className="nd-text-button" onClick={()=>selectTab('Trades & decisions')}>All trades & decisions <ArrowRight size={13}/></button>
         </div>
-        <JournalEvents events={fills.slice(0,5)} format={format} empty="No filled orders in the published events."/>
+        <JournalEvents events={fills.slice(0,5)} format={format} empty={switchingStrategy?'Loading published fills…':'No filled orders in the published events.'}/>
         {latest.strategies.length>0&&<section className="nd-card ip-versions">
           <div className="nd-eyebrow">STRATEGY HISTORY</div><h3>A version change never inherits an old return.</h3>
           <div className="nd-table-wrap"><table><thead><tr><th>Version</th><th>Last synced</th><th>Record</th></tr></thead>

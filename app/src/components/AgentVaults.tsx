@@ -15,7 +15,15 @@ import { PublishedInvestorProfile } from './PublicDecisionJournal';
 export type VaultRow={liveNav?:boolean;archived?:boolean;agentId:string;runId:string;name:string;version:number;strategyHash:string;manifestHash:string;contractId:string|null;network:string;mode:string;controllerId:string;reporterId:string;tokenId:string};
 type Props={loading?:boolean;ownerView?:boolean;agents:InvestorAgent[];vaults:VaultRow[];runs:ConsoleRun[];api:(path:string,body?:unknown)=>Promise<any>;refresh:()=>Promise<void>};
 const human=(s:string|null|undefined)=>{if(s==null)return '—';const n=BigInt(s);return `${n/1000000n}.${String(n%1000000n).padStart(6,'0')}`;};
-const parse=(s:string)=>{if(!/^\d+(?:\.\d{1,6})?$/.test(s))throw new Error('Use up to six decimal places.');const [a,b='']=s.split('.');const n=BigInt(a)*1000000n+BigInt(b.padEnd(6,'0'));if(!n)throw new Error('Enter a positive amount.');return String(n);};
+function parse(amount:string) {
+ const value=amount.trim();
+ if(!/^\d+(?:\.\d+)?$/.test(value))throw new Error('Enter a positive amount.');
+ const [whole,fraction='']=value.split('.');
+ if(fraction.length>6)throw new Error('Use up to six decimal places.');
+ const units=BigInt(whole)*1000000n+BigInt(fraction.padEnd(6,'0'));
+ if(!units)throw new Error('Enter a positive amount.');
+ return String(units);
+}
 export function AgentVaults({agents,vaults,runs,api,refresh,loading=false,ownerView=false}:Props){
  const [params,setParams]=useSearchParams(),selected=params.get('agent');
  const {account}=useNearWallet();
