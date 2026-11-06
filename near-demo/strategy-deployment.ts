@@ -45,6 +45,21 @@ export class StrategyDeployment {
     return {network:'testnet', signerId, receiverId, description, actions:[{type:'FunctionCall',
       params:{methodName,args,gas,deposit}}]};
   }
+  async savePaper(agentId: string, expectedVersion: number, settings: StrategySettings) {
+    const assertPaperOnly = () => {
+      if (this.agents.visibility(this.agents.read(agentId)) !== 'private' ||
+          this.vaults.config().vaults.some(v => v.agentId === agentId) || this.draft(agentId)) {
+        throw new Error('This agent must use the wallet-approved vault workflow.');
+      }
+    };
+    assertPaperOnly();
+    const run = this.agents.strategies.prepare(agentId, expectedVersion, settings);
+    if (typeof run.config.market === 'object') {
+      await this.markets.check(run.config.market, run.config.tradeCap, run.config.slippageBps);
+    }
+    assertPaperOnly();
+    return { phase: 'active' as const, run: this.agents.strategies.activate(run, () => {}) };
+  }
   async prepare(agentId: string, expectedVersion: number, settings: StrategySettings, account: string) {
     const a = this.agents.read(agentId);
     const owner = testAccount(account);
