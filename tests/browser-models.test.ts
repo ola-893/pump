@@ -26,8 +26,9 @@ test('browser directory scan descends into the permitted folder and checks GGUF 
 test('browser folder selection resolves Ollama blobs and rejects incomplete MLX bundles', async () => {
   const digest = 'a'.repeat(64);
   const artifactNames = ['config.json', 'model.safetensors.index.json', 'model.safetensors', 'joint_head.safetensors', 'joint_head_config.json', 'tokenizer.json', 'tokenizer_config.json', 'clef_mlx.py'];
+  const weightMap = Object.fromEntries(Array.from({ length: 5_000 }, (_, index) => [`layer.${index}.weight`, 'model.safetensors']));
   const artifacts = artifactNames.map(name => modelFile(`clef/${name}`, name === 'model.safetensors.index.json'
-    ? JSON.stringify({ weight_map: { weight: 'model.safetensors' } }) : 'artifact'));
+    ? JSON.stringify({ weight_map: weightMap }) : 'artifact'));
   const bundle = modelFile('clef/pump-classifier.json', JSON.stringify({
     schema: 'PUMP-CLEF-BUNDLE-v1', runtime: 'clef-mlx', context: 4096, name: 'CLEF', quantization: '4 bit',
     files: artifacts.map(file => ({ name: file.name, bytes: file.size, sha256: digest })),

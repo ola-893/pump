@@ -16,6 +16,7 @@ export const pickModelDirectory = typeof window === 'undefined' ? undefined : (w
 
 const maxEntries = 15_000;
 const maxManifestBytes = 65_536;
+const maxWeightIndexBytes = 4 * 1024 * 1024;
 type ModelFiles = Map<string, () => Promise<File>>;
 
 function checkSize(size: number) {
@@ -72,9 +73,9 @@ async function scanModelFiles(files: ModelFiles) {
     });
   }
 
-  async function readManifest(path: string) {
+  async function readManifest(path: string, maxBytes = maxManifestBytes) {
     const file = await files.get(path)?.();
-    if (!file || file.size > maxManifestBytes) return;
+    if (!file || file.size > maxBytes) return;
     return JSON.parse(await file.text());
   }
 
@@ -103,7 +104,7 @@ async function scanModelFiles(files: ModelFiles) {
       bytes += file.size;
     }
     if (!requiredClefFiles.every(name => names.has(name))) return;
-    const index = await readManifest(prefix + 'model.safetensors.index.json');
+    const index = await readManifest(prefix + 'model.safetensors.index.json', maxWeightIndexBytes);
     if (!index?.weight_map || !Object.values(index.weight_map).every(name => typeof name === 'string' && names.has(name))) return;
     const weights = [...names].filter(name => name.endsWith('.safetensors')).length;
     await addModel(path, manifest.lastModified, { name: bundle.name, filename: `MLX bundle · ${weights} weight files`, bytes,
