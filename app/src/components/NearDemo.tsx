@@ -1,6 +1,5 @@
 import { WebsiteAvailability } from './WebsiteAvailability';
-import { LocalRunnerConnection } from './LocalRunnerConnection';
-import { hostedApp, runnerFetch, useLocalRunner } from '../lib/local-runner';
+import { hostedApp } from '../lib/hosting';
 import { useEffect, useRef, useState } from 'react';
 import { Activity, ArrowUpRight, ArrowDownLeft, ArrowRight, Bot, Download, Layers3, Menu, Play, Plus, RefreshCw, ShieldCheck, Square, X } from 'lucide-react';
 import type { Event, Session } from '../../../near-demo/types';
@@ -15,13 +14,13 @@ const short=(v:string)=>v.length>24?`${v.slice(0,10)}…${v.slice(-8)}`:v;
 function amount(v:string){if(!/^\d+(?:\.\d{1,6})?$/.test(v))throw new Error('Use an amount with at most six decimals.');const [a,b='']=v.split('.');return String(BigInt(a)*1000000n+BigInt(b.padEnd(6,'0')));}
 export function NearDemo(){
   const {account}=useNearWallet();
-  const runner=useLocalRunner(),available=!hostedApp||runner.connected;
+  const available=!hostedApp;
   const [menuOpen,setMenuOpen]=useState(false);
   const [sessions,setSessions]=useState<View[]>([]),[id,setId]=useState(new URLSearchParams(window.location.search).get('session')??''),[events,setEvents]=useState<Event[]>([]),[config,setConfig]=useState<TestnetConfig>(),[chain,setChain]=useState<any>();
   const [error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(''),[testAmount,setTestAmount]=useState('5'),[tab,setTab]=useState('activity'),[plans,setPlans]=useState<WalletPlan[]>([]);
   const [sessionsLoaded,setSessionsLoaded]=useState(false);
   const token=useRef(''),selection=useRef(new URLSearchParams(window.location.search).get('session')??'');const s=sessions.find(x=>x.id===id);
-  async function api(path:string,body:unknown){const r=await runnerFetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Pumpcoin-Demo-Token':token.current},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Demo request failed.');return d;}
+  async function api(path:string,body:unknown){const r=await fetch('/api/near-demo'+path,{method:'POST',headers:{'Content-Type':'application/json','X-Pumpcoin-Demo-Token':token.current},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error||'Demo request failed.');return d;}
   function selectSession(value:string){
     const url=new URL(window.location.href);
     if(value)url.searchParams.set('session',value);
@@ -33,8 +32,8 @@ export function NearDemo(){
     setPlans([]);
   }
   async function load(){
-    const r=await runnerFetch('/status');
-    if(!r.ok)throw new Error('Local demo API unavailable. Check that the runner is connected.');
+    const r=await fetch('/api/near-demo/status');
+    if(!r.ok)throw new Error('The paper trading workspace is temporarily unavailable.');
     const d=await r.json() as {token:string;sessions:View[];testnet:TestnetConfig};
     token.current=d.token;
     const workbenchSessions=d.sessions.filter(session=>!session.agent?.strategyRunId);
@@ -48,7 +47,7 @@ export function NearDemo(){
   async function task(label:string,run:()=>Promise<void>){if(busy)return;setBusy(label);setError('');setNotice('');try{await run();await load();await history();}catch(e){setError(e instanceof Error?e.message:'Demo action failed.');}finally{setBusy('');}}
   useEffect(()=>{
     document.title='pump · NEAR paper trading';
-    if(!available){void Promise.resolve().then(()=>{setSessions([]);setEvents([]);setSessionsLoaded(false);});return;}
+    if(!available)return;
     const refresh=async()=>{await history(await load());};
     void refresh().catch(e=>setError(e.message));
     const timer=setInterval(()=>void refresh().catch(()=>{}),4000);
@@ -74,7 +73,7 @@ export function NearDemo(){
       <div className="nd-header-right"><span className="nd-network"><i/>NEAR testnet</span><NearWalletButton/></div>
     </header>
     <div className="nd-banner"><ShieldCheck size={14}/><strong>Paper trading</strong><span>Live quotes · Simulated fills · Reserve-funded testnet payouts</span><span>Mainnet trading disabled</span></div>
-    <main className="nd-main" id="workbench">{available?<><LocalRunnerConnection/><div className="nd-title"><div><div className="nd-eyebrow">YOUR INTELLIGENCE. A VISIBLE RECORD.</div><h1>Let the agent show its work<span>.</span></h1><p>Watch decisions become paper positions. Follow every quote, assumption, and outcome.</p></div><a className="nd-button" href="/register"><Plus size={16}/>Register an agent</a></div>
+    <main className="nd-main" id="workbench">{available?<><div className="nd-title"><div><div className="nd-eyebrow">YOUR INTELLIGENCE. A VISIBLE RECORD.</div><h1>Let the agent show its work<span>.</span></h1><p>Watch decisions become paper positions. Follow every quote, assumption, and outcome.</p></div><a className="nd-button" href="/register"><Plus size={16}/>Register an agent</a></div>
       {error&&<div className="nd-alert" role="alert">{error}<button onClick={()=>setError('')} aria-label="Dismiss error"><X size={16}/></button></div>}{notice&&<div className="nd-notice" role="status">{notice}</div>}
       <div className="nd-workspace"><aside className="nd-sidebar"><div className="nd-label">PAPER SESSIONS <span>{sessions.length}</span></div>{!sessions.length&&<p className="nd-muted">Register an agent to begin. Paper trading needs no funded wallet.</p>}{sessions.map(a=><button className={`nd-agent ${a.id===id?'selected':''}`} key={a.id} aria-pressed={a.id===id} onClick={()=>{selectSession(a.id);void history(a.id).catch(e=>setError(e.message));}}><span className="nd-avatar"><Bot size={20}/></span><span><strong>{a.config.name}</strong><small>{a.state==='running'?'● Running':'○ Stopped'} · {a.config.source==='live'?'Live quotes':'Synthetic'}</small></span></button>)}<div className="nd-side-note"><Layers3 size={21}/><h3>Two ledgers.<br/>Clear boundaries.</h3><p>Paper trades track strategy results. The testnet surplus funds demo payouts separately.</p><a href="#funding">View clearing reserve <ArrowRight size={13}/></a></div></aside>
       <section className="nd-content">{missingSession?<section className="nd-card nd-welcome"><h2>Paper session not found.</h2><p>{sessions.length?'Choose a session from the list to continue.':'No paper sessions are available in this workspace.'}</p></section>:!s?<div className="nd-card nd-welcome"><span className="nd-avatar large"><Bot size={32}/></span><div className="nd-eyebrow">READY WHEN YOUR MODEL IS</div><h2>A small start.<br/>A complete trading record.</h2><p>Register an installed model, set a virtual balance, and let your agent decide. Every fill stays simulated.</p><a className="nd-button" href="/register">Register your first agent <ArrowRight size={16}/></a><div className="nd-steps"><span>01 · Local model</span><span>02 · Dry-run quote</span><span>03 · Paper portfolio</span></div></div>:<>
