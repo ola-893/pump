@@ -7,6 +7,7 @@ export function browserProposalRequest(
   strategy:{id:string;commitment:string},
   context:Parameters<typeof proposalRequest>[3],
 ) {
+  if(!context)throw new Error('A fresh market context is required before browser inference.');
   return proposalRequest(session,market,session.agent!.modelId,{
     ...context,strategyVersion:{id:strategy.id,commitment:strategy.commitment},
   });
