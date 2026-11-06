@@ -1,13 +1,15 @@
 {
   "createdOn": "2026-11-06",
   "network": "testnet",
-  "sourceCommit": "cff034f9f74723e55bddc42f8e3d2fc4315ddc33",
   "frontend": {
     "provider": "netlify",
     "name": "pump-near-893",
     "siteId": "e37557bf-38e8-4f65-84ce-ae16ba9479d8",
-    "deploymentId": "6aed51546bac2581f38eebd0",
-    "url": "https://pump-near-893.netlify.app"
+    "deploymentId": "6aed55431485a001cd01f85b",
+    "url": "https://pump-near-893.netlify.app",
+    "sourceCommit": "35345846ee936b66b64b26077e72325eb8f039cf",
+    "verifiedOn": "2026-11-06",
+    "qaReport": "docs/testing/LIVE-WEBSITE-QA-20261106.md"
   },
   "backend": {
     "provider": "railway",
@@ -21,6 +23,7 @@
     "directoryUrl": "https://pump-public-api-production.up.railway.app/api/pump-directory",
     "healthPath": "/health",
     "volumeId": "07469ed1-b950-45c0-8f50-20f4f7fb45df",
-    "volumeMount": "/data"
+    "volumeMount": "/data",
+    "sourceCommit": "cff034f9f74723e55bddc42f8e3d2fc4315ddc33"
   }
 }
