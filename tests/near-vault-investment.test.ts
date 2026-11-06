@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {runInvestorFlow,type InvestorReceipt} from '../app/src/lib/vault-investment.js';
 import {vaultReceiptEffect} from '../near-demo/vault-receipt.js';
+import {seedVaultAccount,verifySeedReceipt} from '../app/src/lib/seed-vault.js';
 import {TEST_USDC,type WalletPlan} from '../near-demo/types.js';
 const account='alice.testnet',vault='v123456781234.parent.testnet',agentId='12345678-1234-1234-1234-123456789abc';
 const encode=(x:unknown)=>Buffer.from(JSON.stringify(x)).toString('base64');
@@ -14,6 +15,29 @@ function deposit(){const r=receipt('ft_transfer_call',{receiver_id:vault,amount:
 test('deposit success requires actual token movement, vault acceptance and a matching share mint',()=>{
  const r=deposit();assert.deepEqual(vaultReceiptEffect(r,account,vault),{kind:'deposit',assets:'5000000',shares:'4500000',method:'ft_transfer_call',outcome:'confirmed'});
  for(const mutate of [(x:any)=>x.receipts_outcome[0].outcome.logs=[],(x:any)=>x.receipts_outcome[1].outcome.logs.pop(),(x:any)=>x.receipts_outcome[1].outcome.logs.shift(),(x:any)=>x.receipts_outcome[1].outcome.executor_id='spoof.testnet',(x:any)=>x.status.SuccessValue=encode('4000000'),(x:any)=>x.final_execution_status='EXECUTED']){const x=structuredClone(r);mutate(x);assert.equal(vaultReceiptEffect(x,account,vault).outcome,'unverified');}
+});
+test('registration accepts only a finalized owner seed receipt for the exact strategy vault and amount',async t=>{
+ const factoryId='pl.parent.testnet',contractId=seedVaultAccount(account,agentId,factoryId),hash='a'.repeat(44);
+ const binding={factoryId,contractId,owner:account,agentId,strategyId:agentId,manifestHash:'a'.repeat(64),
+  strategyHash:'b'.repeat(64),amount:'5000000',strategyName:'Test agent'};
+ const response=JSON.parse(JSON.stringify(deposit()).replaceAll(vault,contractId));
+ response.transaction.hash=hash;
+ response.transaction.actions[0].FunctionCall.args=encode({
+  receiver_id:contractId,amount:'5000000',msg:JSON.stringify({kind:'deposit',min_shares:'4500000',expected_nonce:4}),
+ });
+ t.mock.method(globalThis,'fetch',async (_url:unknown,init:RequestInit)=>{
+  const {method,params}=JSON.parse(String(init.body));
+  assert.equal(method,'tx');
+  assert.deepEqual(params,{tx_hash:hash,sender_account_id:account,wait_until:'FINAL'});
+  return Response.json({result:response});
+ });
+ assert.equal(await verifySeedReceipt(binding,hash),true);
+ await assert.rejects(verifySeedReceipt({...binding,amount:'4000000'},hash),/exact owner deposit/);
+ response.final_execution_status='EXECUTED';
+ await assert.rejects(verifySeedReceipt(binding,hash),/unconfirmed/);
+ response.final_execution_status='FINAL';
+ response.transaction.signer_id='bob.testnet';
+ await assert.rejects(verifySeedReceipt(binding,hash),/outside this agent vault/);
 });
 test('a finalized refund and account setup never masquerade as an investment',()=>{
  const r=deposit();r.status.SuccessValue=encode('0');r.receipts_outcome[1]=outcome(TEST_USDC,[log('nep141','ft_transfer',{old_owner_id:vault,new_owner_id:account,amount:'5000000'})]);assert.equal(vaultReceiptEffect(r,account,vault).outcome,'refunded');

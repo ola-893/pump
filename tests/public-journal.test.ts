@@ -15,8 +15,8 @@ test('public journal requires owner authorization, rejects gaps and rewrites, an
     const key = `ed25519:${base58.encode(ed25519.getPublicKey(secret))}`;
     const agent = { id: '00000000-0000-4000-8000-000000000001', name: 'Test agent', model: 'Test model', controller: 'owner.testnet' };
     const strategy = { id: '00000000-0000-4000-8000-000000000002', version: 1, market: 'wNEAR / USDC', openingSequence: 7 };
-    const publish = (events: PublicJournalEvent[]) => {
-      const batch: JournalBatch = { schema: journalSchema, agent, strategy, events };
+    const publish = (events: PublicJournalEvent[], selected:JournalBatch['strategy']=strategy) => {
+      const batch: JournalBatch = { schema: journalSchema, agent, strategy:selected, events };
       const signature = Buffer.from(ed25519.sign(publicationHash(batch), secret)).toString('base64');
       return directory.journals.publish(batch, key, signature);
     };
@@ -37,6 +37,13 @@ test('public journal requires owner authorization, rejects gaps and rewrites, an
     assert.equal(latest.events[0].sequence, 108);
     assert.equal(latest.nextBefore, 9);
     assert.deepEqual(directory.journals.page(agent.id, strategy.id, latest.nextBefore!).events.map(item => item.sequence), [8]);
+    const funded={...strategy,id:'00000000-0000-4000-8000-000000000003',version:2,openingSequence:0,vault:{
+      contractId:'sabcdef.pl.owner.testnet',manifestHash:'a'.repeat(64),strategyHash:'b'.repeat(64),seedAmount:'10000',seedReceipt:'c'.repeat(44),
+    }};
+    publish([],funded);
+    assert.equal(directory.journals.catalog(0).agents[0].strategyVault,funded.vault.contractId);
+    assert.deepEqual(directory.journals.page(agent.id).strategies[0].vault,funded.vault);
+    assert.throws(()=>publish([],{...funded,vault:{...funded.vault,seedAmount:'20000'}}),/identity cannot be changed/);
     db.prepare('UPDATE directory_runners SET revoked=1').run();
     assert.throws(() => publish([event(109)]), /not authorized/);
   } finally {

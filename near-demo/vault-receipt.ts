@@ -1,7 +1,7 @@
 import {TEST_USDC,units} from './types.js';
 import type {VaultEffect} from './types.js';
 export type {VaultEffect} from './types.js';
-function decoded(value:unknown){try{if(typeof value!=='string'||value.length>65536)return undefined;return JSON.parse(Buffer.from(value,'base64').toString());}catch{return undefined;}}
+function decoded(value:unknown){try{if(typeof value!=='string'||value.length>65536)return undefined;return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(value),character=>character.charCodeAt(0))));}catch{return undefined;}}
 function entries(r:any,executor:string,standard:string,event:string){return (r.receipts_outcome??[]).filter((x:any)=>x.outcome?.executor_id===executor&&!x.outcome?.status?.Failure).flatMap((x:any)=>(x.outcome.logs??[]).flatMap((line:unknown)=>{if(typeof line!=='string'||!line.startsWith('EVENT_JSON:'))return [];try{const e=JSON.parse(line.slice(11));return e.standard===standard&&e.event===event&&Array.isArray(e.data)?e.data:[];}catch{return [];}}));}
 /** A finalized transaction is not necessarily an investment: setup and refunds are distinct. */
 export function vaultReceiptEffect(r:any,account:string,vault:string):VaultEffect{

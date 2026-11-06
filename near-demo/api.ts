@@ -1,6 +1,6 @@
 import {DirectoryNavSource} from './directory/nav-source.js';
 import {directoryHandler} from './directory/server.js';
-import {publishedVaults} from './directory/read-model.js';
+import {journalVaults,publishedVaults} from './directory/read-model.js';
 import {PumpDirectory} from './directory/service.js';
 import {DirectoryRunner} from './directory/runner.js';
 import { randomBytes } from 'node:crypto';
@@ -76,7 +76,17 @@ export function nearDemoApi(options:{publicOnly?:boolean;paper?:PaperDemo;testne
           path==='/nav-evidence'||path==='/strategy-report'||path==='/strategy-history'?agents.strategies.records().some(r=>r.id===b.runId):local.some(a=>a.id===b.agentId);
         if(!known){
           const catalog=await externalCatalog(),source=catalog.find(x=>x.entry.agent.id===b.agentId||x.entry.agent.sessionId===b.id||x.entry.runs.some((r:any)=>r.id===b.runId||r.sessionId===b.id));
-          if(!source)throw new Error('Public agent unavailable.');
+          if(!source){
+            if(!['/vault-state','/vault-plan','/vault-receipt'].includes(path))throw new Error('Public agent unavailable.');
+            const remote=await journalVaults(directory.journals.page(b.agentId,b.runId),agents,testnet);
+            if(path==='/vault-state')send(res,200,{observation:await remote.inspect(b.agentId,b.runId,b.account)});
+            else if(path==='/vault-receipt')send(res,200,await remote.receipt(b.agentId,b.runId,b.account,b.hash));
+            else {
+              if(!['prepare','deposit','redeem','withdraw'].includes(b.action))throw new Error('Unsupported public vault action.');
+              send(res,200,{plans:await remote.plan(b.agentId,b.action,b.account,b.amount,b.runId)});
+            }
+            return;
+          }
           const {entry}=await directoryRunner.read(source.entry.agent.id);let result;
           const run=entry.runs.find((r:any)=>r.id===b.runId||r.sessionId===b.id),history=run?entry.histories[run.id]:null;
           if(path==='/nav-evidence')result={evidence:liveNav.evidence(b.runId)};

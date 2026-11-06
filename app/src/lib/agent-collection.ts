@@ -1,6 +1,6 @@
 import type { JournalListing } from '../../../near-demo/directory/public-journal.js';
 
-export type CollectionAgent={visibility?:'private'|'public';id:string;createdAt?:string;journalUpdatedAt?:string;manifest:{name:string;controller?:string;model:{id:string};strategy?:{description:string}}};
+export type CollectionAgent={visibility?:'private'|'public';id:string;createdAt?:string;journalUpdatedAt?:string;strategyVault?:string;manifest:{name:string;controller?:string;model:{id:string};strategy?:{description:string}}};
 
 export function catalogAgents(registry: CollectionAgent[], journals: JournalListing[]): CollectionAgent[] {
  const known = new Set(registry.map(agent => agent.id));
@@ -9,7 +9,7 @@ export function catalogAgents(registry: CollectionAgent[], journals: JournalList
   if (known.has(journal.id)) continue;
   known.add(journal.id);
   agents.push({
-   id: journal.id, visibility: 'public', journalUpdatedAt: new Date(journal.updatedAt).toISOString(),
+   id: journal.id, visibility: 'public', journalUpdatedAt: new Date(journal.updatedAt).toISOString(),strategyVault:journal.strategyVault,
    manifest: { name: journal.name, controller: journal.controller, model: { id: journal.model } },
   });
  }
@@ -23,7 +23,7 @@ export function matchesController(controller?:string, account?:string) {
 export function agentEntries<A extends CollectionAgent>(agents:A[],runs:(CollectionRun&{config:{initialCash:string}})[],vaults:{agentId:string;contractId:string|null}[]=[]):AgentEntry<A>[] {
  const latest=new Map<string,typeof runs[number]>(),working=new Map<string,typeof runs[number]>();for(const r of runs){if(!latest.has(r.agentId)||latest.get(r.agentId)!.version<r.version)latest.set(r.agentId,r);if(r.session.state==='running')working.set(r.agentId,r);}
  const deployed=new Set(vaults.filter(v=>v.contractId).map(v=>v.agentId));
- return agents.map(agent=>{const run=latest.get(agent.id),active=working.get(agent.id),total=run?.session.metrics.total;return {agent,run,returnPct:run&&run.activity.decisions>0&&total!=null&&!run.session.valuationStale&&Number(run.config.initialCash)>0?Number(total)*100/Number(run.config.initialCash):null,drawdown:run&&run.activity.decisions>0?run.session.portfolio.maxDrawdownBps/100:null,state:active?active.session.error?'attention':'running':run?.session.error?'attention':run?.session.state==='running'?'running':run?'stopped':'unconfigured',funded:deployed.has(agent.id)};});
+ return agents.map(agent=>{const run=latest.get(agent.id),active=working.get(agent.id),total=run?.session.metrics.total;return {agent,run,returnPct:run&&run.activity.decisions>0&&total!=null&&!run.session.valuationStale&&Number(run.config.initialCash)>0?Number(total)*100/Number(run.config.initialCash):null,drawdown:run&&run.activity.decisions>0?run.session.portfolio.maxDrawdownBps/100:null,state:active?active.session.error?'attention':'running':run?.session.error?'attention':run?.session.state==='running'?'running':run?'stopped':'unconfigured',funded:deployed.has(agent.id)||!!agent.strategyVault};});
 }
 export function selectAgents<A extends CollectionAgent>(entries:AgentEntry<A>[],options:{query?:string;filter?:string;sort?:string;account?:string;mine?:boolean}) {
  const terms=(options.query??'').toLowerCase().trim().split(/\s+/).filter(Boolean);

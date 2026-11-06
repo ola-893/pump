@@ -22,9 +22,17 @@ function validateBatch(batch: JournalBatch) {
   testAccount(batch.agent.controller);
   if (batch.strategy === null && batch.events.length === 0) return;
   const strategy = batch.strategy;
-  if (!strategy || !keys(strategy, 'id,market,openingSequence,version') || !uuid(strategy.id) ||
+  if (!strategy || !keys(strategy, strategy.vault ? 'id,market,openingSequence,vault,version' : 'id,market,openingSequence,version') || !uuid(strategy.id) ||
     !text(strategy.market, 80) || !integer(strategy.openingSequence) || !integer(strategy.version) || strategy.version < 1) {
     throw new Error('Invalid public strategy identity.');
+  }
+  if (strategy.vault) {
+    const vault=strategy.vault;
+    if (!keys(vault,'contractId,manifestHash,seedAmount,seedReceipt,strategyHash') || !hash(vault.manifestHash) || !hash(vault.strategyHash) ||
+        typeof vault.seedAmount!=='string'||!/^[1-9][0-9]{0,12}$/.test(vault.seedAmount) || BigInt(vault.seedAmount)>1_000_000_000_000n ||
+        typeof vault.seedReceipt!=='string'||!/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(vault.seedReceipt))
+      throw new Error('Invalid public strategy vault.');
+    testAccount(vault.contractId);
   }
   for (const event of batch.events) {
     if (!keys(event, 'action,at,equity,kind,realized,receipt,sequence,sourceHash') || !integer(event.sequence) ||
@@ -110,9 +118,13 @@ export class PublicJournalStore {
 
   catalog(offset: number) {
     const start = integer(offset) ? offset : 0;
-    const rows = this.db.prepare('SELECT body,updated FROM journal_agents ORDER BY updated DESC,id LIMIT 51 OFFSET ?').all(start);
+    const rows = this.db.prepare(`SELECT body,updated,(SELECT json_extract(strategy.body,'$.vault.contractId')
+      FROM journal_strategies strategy WHERE strategy.agent_id=agent.id
+      ORDER BY json_extract(strategy.body,'$.version') DESC, strategy.id LIMIT 1) AS strategyVault
+      FROM journal_agents agent ORDER BY updated DESC,id LIMIT 51 OFFSET ?`).all(start);
     return {
-      agents: rows.slice(0, 50).map(row => ({ ...JSON.parse(String(row.body)), updatedAt: Number(row.updated) } as JournalListing)),
+      agents: rows.slice(0, 50).map(row => ({ ...JSON.parse(String(row.body)), updatedAt: Number(row.updated),
+        ...(row.strategyVault?{strategyVault:String(row.strategyVault)}:{}) } as JournalListing)),
       nextOffset: rows.length > 50 ? start + 50 : null,
     };
   }
