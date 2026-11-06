@@ -3,9 +3,9 @@ import { randomUUID } from 'node:crypto';
 import type { AgentRecord } from './agents.js';
 import type { PaperDemo } from './service.js';
 import { canonical, digest } from './ledger.js';
-import { validateConfig, units, type Config, type Session, type Event, type MarketSelection } from './types.js';
-export type StrategySettings={label:string;strategy:string;initialCash:string;tradeCap:string;exposureCap:string;dailyTurnoverCap:string;slippageBps:number;intervalMs:number;market?:MarketSelection};
-export type StrategyRun={schema:'PUMP-STRATEGY-RUN-v1';id:string;agentId:string;version:number;createdAt:string;label:string;registrationCommitment:string;sessionId:string;config:Config;commitment:string};
+import { validateConfig, units, type Session, type Event } from './types.js';
+import type { StrategyRun, StrategySettings } from './public-types.js';
+export type { StrategyRun, StrategySettings } from './public-types.js';
 export class StrategyRuns {
   readonly paper:PaperDemo;
   beforeAction?: (run:StrategyRun, action:string)=>Promise<void>;
