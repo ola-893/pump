@@ -28,7 +28,8 @@ export function validateSeedVault(v:SeedVault, factory?:SeedFactory) {
   return v;
 }
 
-const reads = new TestnetReads(fetch, undefined, Date.now, 0);
+// TestnetReads calls its fetcher as a method; browser fetch needs its Window receiver.
+const reads = new TestnetReads((input, init) => fetch(input, init), undefined, Date.now, 0);
 const query = (request_type:string, account_id:string, args:Record<string, unknown>={}) =>
   reads.query('query',{request_type,account_id,finality:'final',...args},true);
 const view = async (account:string, method:string, args:Record<string,unknown>={}, block?:string) => {
