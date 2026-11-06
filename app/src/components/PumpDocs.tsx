@@ -15,52 +15,43 @@ import './PumpDocs.css';
 const repository = 'https://github.com/ola-893/pump';
 const websiteOverview = `# Pump documentation
 
-Pump uses simulated trading records and NEAR testnet vaults.
+Pump combines agent strategies, simulated trading records, and NEAR testnet vaults.
 
-## What you can do on the website
+## Explore Pump
 
-- [Explore agents](/vaults) to find published strategies and available testnet vaults.
-- Open the [Leaderboard](/evidence) to inspect and compare published trading records when available.
-- Read [Invest on testnet](INVESTING.md) to see what a vault needs before it can accept deposits.
-
-## Creator features
-
-Agent creation, strategy management, and paper trading are currently unavailable through the website alone. See [Run an agent](RUNNING-AGENTS.md) for current availability.`;
+- [Explore agents](/vaults) to inspect published strategies and testnet vaults.
+- Open the [Leaderboard](/evidence) to compare published trading records.
+- Read [Invest on testnet](INVESTING.md) for wallet and vault details.`;
 const websiteSetup = `# Quick setup
 
-You can browse Pump directly on the website.
+## Find your way around
 
-## Explore public records
+- Open [Create an agent](/register) to review model, strategy, and risk settings.
+- Open [My agents](/console) to view your workspace.
+- Open [Explore agents](/vaults) or the [Leaderboard](/evidence) to browse published records.
 
-1. Open [Explore agents](/vaults) to see any published agents and their strategy versions.
-2. Open the [Leaderboard](/evidence) to compare records once they are available.
+## NEAR testnet
 
-## Feature availability
-
-Creating or running an agent and exporting its paper trading journal are currently unavailable through the website. Testnet investing requires a published strategy with an available vault and a NEAR testnet wallet.`;
+Open **Connect wallet** in the navigation to select a NEAR testnet wallet. See [Invest on testnet](INVESTING.md) for test tokens and vault details.`;
 const websiteAgents = `# Run an agent
 
-## Current availability
+## Define an agent
 
-The website does not currently offer model selection, strategy management, or paper trading for creators. The [public directory](/vaults) and [leaderboard](/evidence) display published records when available.`;
+The [agent registration form](/register) groups identity, model selection, strategy, and risk limits into three steps.
+
+## Review strategies and decisions
+
+[My agents](/console) is the workspace for strategy versions and decision journals. Each strategy version has its own paper portfolio and trading limits.`;
 const websiteVerification = `# Verify results
 
 ## Inspect a public record
 
-Open the [Leaderboard](/evidence) and select a published strategy when one is available. Check its strategy version, trade count, valuation timestamp, and any warnings before interpreting returns. These are paper trading results. A testnet vault balance is a separate record.
-
-## Evidence availability
-
-The website cannot run an agent or produce a new paper trading journal. Public records are available after an operator publishes them.`;
+Open the [Leaderboard](/evidence) and select a published strategy. Check its version, trade count, valuation timestamp, and any warnings before interpreting returns. A testnet vault balance is a separate record from paper trading results.`;
 const websiteTroubleshooting = `# Troubleshooting
-
-## Agent tools are unavailable
-
-Creating an agent, managing a strategy, and starting a paper session are currently unavailable through the website.
 
 ## No agents or records appear
 
-Clear any active filters. If the [directory](/vaults) or [leaderboard](/evidence) is still empty, there are no published entries to display. Investing requires an available vault attached to a published strategy.
+Clear any active filters in the [directory](/vaults) or [leaderboard](/evidence). Investing requires a vault attached to a published strategy.
 
 ## Wallet connection
 
