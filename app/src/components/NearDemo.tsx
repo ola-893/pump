@@ -1,5 +1,3 @@
-import { WebsiteAvailability } from './WebsiteAvailability';
-import { hostedApp } from '../lib/hosting';
 import { useEffect, useRef, useState } from 'react';
 import { Activity, ArrowUpRight, ArrowDownLeft, ArrowRight, Bot, Download, Layers3, Menu, Play, Plus, RefreshCw, ShieldCheck, Square, X } from 'lucide-react';
 import type { Event, Session } from '../../../near-demo/types';
@@ -14,7 +12,6 @@ const short=(v:string)=>v.length>24?`${v.slice(0,10)}…${v.slice(-8)}`:v;
 function amount(v:string){if(!/^\d+(?:\.\d{1,6})?$/.test(v))throw new Error('Use an amount with at most six decimals.');const [a,b='']=v.split('.');return String(BigInt(a)*1000000n+BigInt(b.padEnd(6,'0')));}
 export function NearDemo(){
   const {account}=useNearWallet();
-  const available=!hostedApp;
   const [menuOpen,setMenuOpen]=useState(false);
   const [sessions,setSessions]=useState<View[]>([]),[id,setId]=useState(new URLSearchParams(window.location.search).get('session')??''),[events,setEvents]=useState<Event[]>([]),[config,setConfig]=useState<TestnetConfig>(),[chain,setChain]=useState<any>();
   const [error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(''),[testAmount,setTestAmount]=useState('5'),[tab,setTab]=useState('activity'),[plans,setPlans]=useState<WalletPlan[]>([]);
@@ -33,7 +30,7 @@ export function NearDemo(){
   }
   async function load(){
     const r=await fetch('/api/near-demo/status');
-    if(!r.ok)throw new Error('The paper trading workspace is temporarily unavailable.');
+    if(!r.ok)throw new Error('Could not load paper sessions.');
     const d=await r.json() as {token:string;sessions:View[];testnet:TestnetConfig};
     token.current=d.token;
     const workbenchSessions=d.sessions.filter(session=>!session.agent?.strategyRunId);
@@ -47,12 +44,11 @@ export function NearDemo(){
   async function task(label:string,run:()=>Promise<void>){if(busy)return;setBusy(label);setError('');setNotice('');try{await run();await load();await history();}catch(e){setError(e instanceof Error?e.message:'Demo action failed.');}finally{setBusy('');}}
   useEffect(()=>{
     document.title='pump · NEAR paper trading';
-    if(!available)return;
     const refresh=async()=>{await history(await load());};
     void refresh().catch(e=>setError(e.message));
     const timer=setInterval(()=>void refresh().catch(()=>{}),4000);
     return()=>clearInterval(timer);
-  },[available]);
+  },[]);
   useEffect(()=>{setPlans([]);setChain(undefined);},[account]);
   async function prepare(action:string){if(!account)throw new Error('Connect your NEAR testnet wallet first.');const d=await api('/testnet-plan',{action,account,amount:amount(testAmount),id});setPlans(d.plans);if(!d.plans.length)setNotice('Account storage is already prepared.');}
   async function send(){if(!config)return;let remaining=[...plans];while(remaining.length){const r=await sendDemoPlan(remaining[0],account,config),hash=r?.transaction?.hash;remaining=remaining.slice(1);setPlans(remaining);if(!hash)throw new Error('Wallet returned no hash. Inspect its history before retrying.');const receipt=await api('/testnet-receipt',{hash,account});if(receipt.status!=='final')throw new Error(`Transaction ${hash} is ${receipt.status}. Inspect before continuing.`);setChain(receipt.observation);setNotice(`Testnet transaction finalized: ${hash}. Trading remains simulated.`);}}
@@ -67,13 +63,13 @@ export function NearDemo(){
       <nav id="workbench-navigation" className={menuOpen?'nd-workbench-nav-open':''}>
         <a href="#workbench" onClick={()=>setMenuOpen(false)}>Agent workbench</a>
         <a href="/vaults" onClick={()=>setMenuOpen(false)}>Explore agents</a>
-        {available&&<a href="#funding" onClick={()=>setMenuOpen(false)}>Testnet funding</a>}
-        <a href={available&&s?'#record':'/evidence'} onClick={()=>setMenuOpen(false)}>{available&&s?'Evidence':'Public leaderboard'}</a>
+        <a href="#funding" onClick={()=>setMenuOpen(false)}>Testnet funding</a>
+        <a href={s?'#record':'/evidence'} onClick={()=>setMenuOpen(false)}>{s?'Evidence':'Public leaderboard'}</a>
       </nav>
       <div className="nd-header-right"><span className="nd-network"><i/>NEAR testnet</span><NearWalletButton/></div>
     </header>
     <div className="nd-banner"><ShieldCheck size={14}/><strong>Paper trading</strong><span>Live quotes · Simulated fills · Reserve-funded testnet payouts</span><span>Mainnet trading disabled</span></div>
-    <main className="nd-main" id="workbench">{available?<><div className="nd-title"><div><div className="nd-eyebrow">YOUR INTELLIGENCE. A VISIBLE RECORD.</div><h1>Let the agent show its work<span>.</span></h1><p>Watch decisions become paper positions. Follow every quote, assumption, and outcome.</p></div><a className="nd-button" href="/register"><Plus size={16}/>Register an agent</a></div>
+    <main className="nd-main" id="workbench"><div className="nd-title"><div><div className="nd-eyebrow">YOUR INTELLIGENCE. A VISIBLE RECORD.</div><h1>Let the agent show its work<span>.</span></h1><p>Watch decisions become paper positions. Follow every quote, assumption, and outcome.</p></div><a className="nd-button" href="/register"><Plus size={16}/>Register an agent</a></div>
       {error&&<div className="nd-alert" role="alert">{error}<button onClick={()=>setError('')} aria-label="Dismiss error"><X size={16}/></button></div>}{notice&&<div className="nd-notice" role="status">{notice}</div>}
       <div className="nd-workspace"><aside className="nd-sidebar"><div className="nd-label">PAPER SESSIONS <span>{sessions.length}</span></div>{!sessions.length&&<p className="nd-muted">Register an agent to begin. Paper trading needs no funded wallet.</p>}{sessions.map(a=><button className={`nd-agent ${a.id===id?'selected':''}`} key={a.id} aria-pressed={a.id===id} onClick={()=>{selectSession(a.id);void history(a.id).catch(e=>setError(e.message));}}><span className="nd-avatar"><Bot size={20}/></span><span><strong>{a.config.name}</strong><small>{a.state==='running'?'● Running':'○ Stopped'} · {a.config.source==='live'?'Live quotes':'Synthetic'}</small></span></button>)}<div className="nd-side-note"><Layers3 size={21}/><h3>Two ledgers.<br/>Clear boundaries.</h3><p>Paper trades track strategy results. The testnet surplus funds demo payouts separately.</p><a href="#funding">View clearing reserve <ArrowRight size={13}/></a></div></aside>
       <section className="nd-content">{missingSession?<section className="nd-card nd-welcome"><h2>Paper session not found.</h2><p>{sessions.length?'Choose a session from the list to continue.':'No paper sessions are available in this workspace.'}</p></section>:!s?<div className="nd-card nd-welcome"><span className="nd-avatar large"><Bot size={32}/></span><div className="nd-eyebrow">READY WHEN YOUR MODEL IS</div><h2>A small start.<br/>A complete trading record.</h2><p>Register an installed model, set a virtual balance, and let your agent decide. Every fill stays simulated.</p><a className="nd-button" href="/register">Register your first agent <ArrowRight size={16}/></a><div className="nd-steps"><span>01 · Local model</span><span>02 · Dry-run quote</span><span>03 · Paper portfolio</span></div></div>:<>
@@ -84,7 +80,6 @@ export function NearDemo(){
         <div className="nd-card nd-record" id="record"><div className="nd-card-top"><div className="nd-tabs"><button className={tab==='activity'?'active':''} onClick={()=>setTab('activity')}>Activity <span>{events.length}</span></button><button className={tab==='evidence'?'active':''} onClick={()=>setTab('evidence')}>Decision evidence</button></div><span className="nd-muted">Append-only local journal</span></div>{!events.length?<div className="nd-empty"><Activity size={23}/><p>No decisions yet. Run your model or a labeled manual scenario.</p></div>:tab==='evidence'?<div className="nd-evidence">{[...events].reverse().slice(0,40).map(e=><details key={e.hash}><summary>#{e.sequence} · {e.kind} · {short(e.hash)}</summary><pre>{JSON.stringify(e,null,2)}</pre></details>)}</div>:<div className="nd-table-wrap"><table><thead><tr><th>EVENT</th><th>QUOTE</th><th>SOURCE</th><th>TIME</th></tr></thead><tbody>{[...events].reverse().slice(0,100).map(e=><tr key={e.hash}><td><strong>{e.action?`Paper ${e.action.toLowerCase()}`:e.kind==='model'?(e.evidence==='manual-scenario'?'Scenario request':'Model proposal'):e.kind}</strong><small>{e.reason}</small></td><td>{e.quote?<><strong>{fmt(e.quote.tokenIn==='nep141:wrap.near'?e.quote.amountOut:e.quote.amountIn)} USDC</strong><small>{e.quote.tokenIn==='nep141:wrap.near'?'Quoted proceeds':'Quoted input'}</small></>:<span className="nd-muted">{e.kind==='blocked'?'No fill':'Recorded'}</span>}</td><td><span className="nd-pill">{e.evidence==='manual-scenario'?'Manual scenario':e.evidence==='live-local-model'?'Local model':'Quote mark'}</span>{e.quote?.source==='replay'&&<small>Synthetic price</small>}</td><td className="nd-muted">{new Date(e.at).toLocaleTimeString()}</td></tr>)}</tbody></table></div>}</div>
       </>}</section></div>
       <section className="nd-card nd-funding" id="funding"><div><div className="nd-eyebrow">CIRCLE USDC · NEAR TESTNET</div><h2>Make the fund flow tangible.</h2><p>Use faucet tokens for deposits and withdrawals. A separate surplus supplies simulated gains. Test tokens have no financial value.</p><a href="https://faucet.circle.com/" target="_blank" rel="noreferrer">Get Circle test USDC <ArrowUpRight size={14}/></a><div className="nd-boundary"><ShieldCheck size={17}/><span>Testnet transfers are real testnet transactions. Trading and profit remain simulated.</span></div></div><div><div className="nd-card-top"><h3>Demo clearing reserve</h3><span className={`nd-pill ${config?.contractId?'':'warning'}`}>{config?.contractId?'Configured':'Awaiting deployment'}</span></div><div className="nd-clearing-stats">{[['Free surplus',chain?.contractState?.reserve],['Investor claims',chain?.contractState?.total_claims],['Your claim',chain?.claim?.claim]].map(([label,value])=><div key={label}><small>{label}</small><strong>{fmt(value)}</strong></div>)}</div><p className="nd-address">Controller: {config?short(config.controllerId):'Loading…'}<br/>Clearing: {config?.contractId??'Contract not deployed yet'}</p><div className="nd-funding-input"><label>Amount · test USDC<input inputMode="decimal" value={testAmount} onChange={e=>setTestAmount(e.target.value)}/></label><button className="nd-icon" aria-label="Inspect testnet balances" disabled={!!busy||!config?.contractId} onClick={()=>void task('inspect',async()=>{const d=await api('/testnet-state',{account});setChain(d.observation);})}><RefreshCw size={17}/></button></div><div className="nd-buttons">{[['prepare','Prepare account'],['deposit','Deposit'],['withdraw','Redeem'],['reserve','Fund surplus']].map(([a,label])=><button key={a} className="nd-button secondary" disabled={!!busy||!account||!config?.contractId||(a==='deposit'&&(!s||s.sequence!==0))||(a==='reserve'&&account!==config?.controllerId)} onClick={()=>void task('plan',()=>prepare(a))}>{label}</button>)}</div><div className="nd-buttons"><button className="nd-text-button" disabled={!!busy||!account||!s||s.sequence!==0||!config?.contractId} onClick={()=>void task('link',async()=>{await api('/testnet-link',{id,account});})}>Link confirmed deposit to fresh session</button><button className="nd-text-button" disabled={!!busy||!s?.testnet||account!==config?.reporterId||!config?.contractId} onClick={()=>void task('result',()=>prepare('result'))}>Review closed paper result</button></div>{plans.length>0&&<div className="nd-plan-review"><h4>Review {plans.length} testnet transaction{plans.length===1?'':'s'}</h4>{plans.map((p,i)=><div key={i}><strong>{p.description}</strong><small>{p.receiverId} · {p.actions[0].params.methodName}</small></div>)}<p>Wallet approval required. A result plan seals its paper session.</p><button className="nd-button" disabled={!!busy} onClick={()=>void task('transaction',send)}>Approve in testnet wallet <ArrowUpRight size={14}/></button><button className="nd-text-button" onClick={()=>setPlans([])}>Dismiss</button></div>}</div></section>
-      </>:<WebsiteAvailability feature="workbench"/>}
       <footer className="nd-footer"><span>pump · Evidence before capital.</span><span>Paper returns are hypothetical. Mainnet execution is disabled.</span></footer>
     </main>
   </div>;
