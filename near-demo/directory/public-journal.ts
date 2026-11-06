@@ -1,0 +1,44 @@
+import type { Event } from '../types.js';
+
+export const journalSchema = 'PUMP-PUBLIC-JOURNAL-v1';
+export const journalBatchSize = 100;
+export type PublicJournalEvent = {
+  sequence: number;
+  at: string;
+  kind: Event['kind'];
+  action: 'BUY' | 'SELL' | 'HOLD' | null;
+  receipt: { id: string; observedAt: string; amountIn: string; amountOut: string } | null;
+  equity: string | null;
+  realized: string;
+  sourceHash: string;
+};
+export type JournalAgent = { id: string; name: string; model: string; controller: string };
+export type JournalStrategy = { id: string; version: number; market: string; openingSequence: number };
+export type JournalBatch = {
+  schema: typeof journalSchema;
+  agent: JournalAgent;
+  strategy: JournalStrategy | null;
+  events: PublicJournalEvent[];
+};
+export type JournalListing = JournalAgent & { updatedAt: number };
+export type JournalPage = {
+  agent: JournalListing;
+  strategies: (JournalStrategy & { updatedAt: number; head: number })[];
+  strategyId: string | null;
+  events: PublicJournalEvent[];
+  nextBefore: number | null;
+};
+
+export function publicJournalEvent(event: Event): PublicJournalEvent {
+  return {
+    sequence: event.sequence, at: event.at, kind: event.kind,
+    action: event.action ?? event.model?.proposal.action ?? (event.kind === 'hold' ? 'HOLD' : null),
+    receipt: event.quote?.signatureVerified ? {
+      id: event.quote.id, observedAt: event.quote.observedAt,
+      amountIn: event.quote.amountIn, amountOut: event.quote.amountOut,
+    } : null,
+    equity: event.after.equity,
+    realized: String(BigInt(event.after.realized) - BigInt(event.before.realized)),
+    sourceHash: event.hash,
+  };
+}

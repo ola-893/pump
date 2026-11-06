@@ -1,5 +1,4 @@
-import { randomUUID } from 'node:crypto';
-import { DemoStore } from './store.js';
+import type { DemoStore } from './store.js';
 import { makeEvent, initialPortfolio, fill, mark, metrics, digest, freshQuote, isPaperDust, retirePaperDust } from './ledger.js';
 import { liveQuotes, scenarioQuotes, type QuoteProvider } from './quotes.js';
 import { infer, parseProposal } from './model.js';
@@ -7,7 +6,8 @@ import { marketContext } from './market-context.js';
 import { executionExercise, exerciseGuidance } from './exercise.js';
 import { validateConfig, paperMarket, marketObservationSize, units, type Session, type Proposal, type Event, type Quote } from './types.js';
 
-export class PaperDemo {
+type PaperStore = Pick<DemoStore, 'list' | 'read' | 'create' | 'history' | 'lastQuotedValuation' | 'recent' | 'acquire' | 'renew' | 'release' | 'save' | 'export'>;
+export class PaperDemo<Store extends PaperStore = DemoStore> {
   private timers=new Map<string,ReturnType<typeof setTimeout>>();
   private workers=new Map<string,symbol>();
   private lastErrors=new Map<string,string>();
@@ -18,9 +18,9 @@ export class PaperDemo {
   private marks?:ReturnType<typeof setInterval>;
   get execution(){return {activeId:this.activeId,queued:[...this.pending].filter(id=>id!==this.activeId)};}
   get busy(){return this.pending.size>0;}
-  readonly store:DemoStore;
+  readonly store:Store;
   private options:{quotes?:(s:Session)=>QuoteProvider;infer?:typeof infer;now?:()=>number;delay?:(ms:number)=>Promise<void>};
-  constructor(store:DemoStore,options:{quotes?:(s:Session)=>QuoteProvider;infer?:typeof infer;now?:()=>number;delay?:(ms:number)=>Promise<void>}={}){this.store=store;this.options=options;}
+  constructor(store:Store,options:{quotes?:(s:Session)=>QuoteProvider;infer?:typeof infer;now?:()=>number;delay?:(ms:number)=>Promise<void>}={}){this.store=store;this.options=options;}
   private strategyGuard?: (id:string)=>void;
   setStrategyGuard(guard:(id:string)=>void){this.strategyGuard=guard;}
   private checkStrategy(s:Session){if(s.agent?.strategyRunId)this.strategyGuard?.(s.agent.strategyRunId);}
@@ -38,10 +38,10 @@ export class PaperDemo {
     const lastValuation=stale&&quoted?.equity!=null&&quoted.markAt?{equity:quoted.equity,at:quoted.markAt,realized:quoted.realized,sequence:prior?.sequence??s.sequence}:null;
     return {...shown,lastValuation,valuationStale:stale,state:this.timers.has(s.id)?'running':'stopped',metrics:metrics(shown),error:this.lastErrors.get(s.id)??null,capabilities:{mainnetTrading:false,quotesOnly:true}};
   }
-  create(config:unknown,id:string=randomUUID()){const c=validateConfig(config),s:Session={id,version:1,createdAt:new Date(this.now()).toISOString(),config:c,portfolio:initialPortfolio(c.initialCash),revision:0,sequence:0,head:null,state:'stopped',turnover:{day:'',used:'0'}};this.store.create(s);return this.view(s);}
+  create(config:unknown,id:string=crypto.randomUUID()){const c=validateConfig(config),s:Session={id,version:1,createdAt:new Date(this.now()).toISOString(),config:c,portfolio:initialPortfolio(c.initialCash),revision:0,sequence:0,head:null,state:'stopped',turnover:{day:'',used:'0'}};this.store.create(s);return this.view(s);}
   checkExercise(id:string){const s=this.store.read(id);if(this.pending.has(id)||this.timers.has(id))throw new Error('Stop the worker and wait for its active decision first.');if(s.agent?.strategyRunId)throw new Error('Strategy portfolios do not accept forced execution exercises.');if(s.testnet||units(s.portfolio.position)>0n||units(s.portfolio.cash)<2000000n||units(s.config.tradeCap)<2000000n||units(s.config.exposureCap)<2000000n)throw new Error('The exercise requires an unfunded paper session with no position and room for a 2 USDC test.');if(s.exercise&&exerciseGuidance(s,this.store.history(id))?.phase!=='COMPLETE')throw new Error('Complete the active execution exercise before requesting another.');return s;}
-  async requestExercise(id:string){return this.locked(id,async token=>{const s=this.checkExercise(id),exercise=executionExercise(randomUUID(),new Date(this.now()).toISOString());const next=this.record({...s,exercise},token,{kind:'mandate',evidence:'operator-mandate',exercise,reason:exercise.disclosure+' '+exercise.objective,after:s.portfolio});return this.view(next);});}
-  private async locked<T>(id:string,run:(token:string)=>Promise<T>){const token=this.store.acquire(id);const heartbeat=setInterval(()=>{try{this.store.renew(id,token);}catch{clearInterval(heartbeat);}},30000);heartbeat.unref();try{return await run(token);}finally{clearInterval(heartbeat);this.store.release(id,token);}}
+  async requestExercise(id:string){return this.locked(id,async token=>{const s=this.checkExercise(id),exercise=executionExercise(crypto.randomUUID(),new Date(this.now()).toISOString());const next=this.record({...s,exercise},token,{kind:'mandate',evidence:'operator-mandate',exercise,reason:exercise.disclosure+' '+exercise.objective,after:s.portfolio});return this.view(next);});}
+  private async locked<T>(id:string,run:(token:string)=>Promise<T>){const token=this.store.acquire(id);const heartbeat=setInterval(()=>{try{this.store.renew(id,token);}catch{clearInterval(heartbeat);}},30000);if(typeof heartbeat==='object')heartbeat.unref();try{return await run(token);}finally{clearInterval(heartbeat);this.store.release(id,token);}}
   private record(s:Session,token:string,detail:Omit<Event,'id'|'sessionId'|'sequence'|'previousHash'|'before'|'hash'|'at'>){const at=(detail.kind==='mark'||detail.kind==='dust')&&detail.after.markAt?detail.after.markAt:new Date(this.now()).toISOString();const e=makeEvent(s,{...detail,at});return this.store.save(s,token,e);}
   private clearPaperDust(s:Session,token:string){
     if(units(s.portfolio.position)===0n||units(s.portfolio.position)>10n**18n||units(s.portfolio.cost)>10n||!s.agent?.strategyRunId||s.testnet)return s;
@@ -171,7 +171,7 @@ export class PaperDemo {
     const worker=Symbol(id);this.workers.set(id,worker);
     const enabled=()=>this.workers.get(id)===worker&&!this.closing;
     const tick=async()=>{try{await this.enqueue(id,undefined,enabled);}catch{this.lastErrors.set(id,'Cycle locked or storage unavailable.');}if(enabled())this.timers.set(id,setTimeout(()=>void tick(),s.config.intervalMs));};
-    if(!this.marks){this.marks=setInterval(()=>{for(const current of this.store.list())if(this.timers.has(current.id)&&!this.pending.has(current.id)&&units(current.portfolio.position)>0n&&!current.testnet?.settlementPrepared)void this.refresh(current.id).catch(()=>{});},20000);this.marks.unref();}
+    if(!this.marks){this.marks=setInterval(()=>{for(const current of this.store.list())if(this.timers.has(current.id)&&!this.pending.has(current.id)&&units(current.portfolio.position)>0n&&!current.testnet?.settlementPrepared)void this.refresh(current.id).catch(()=>{});},20000);if(typeof this.marks==='object')this.marks.unref();}
     this.timers.set(id,setTimeout(()=>void tick(),0));return this.view(s);
   }
   stop(id:string){clearTimeout(this.timers.get(id));this.timers.delete(id);this.workers.delete(id);if(!this.timers.size){clearInterval(this.marks);this.marks=undefined;}return this.view(this.store.read(id));}

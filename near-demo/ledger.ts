@@ -1,10 +1,11 @@
-import { createHash } from 'node:crypto';
+import { sha256 } from '@noble/hashes/sha256';
+import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
 import { verifyQuoteSignature } from '@defuse-protocol/one-click-sdk-typescript';
 import { paperMarket, units, type Config, type Portfolio, type Quote, type Session, type Event } from './types.js';
 import { executionExercise, type ExecutionExercise } from './exercise.js';
 import { canonical, initialPortfolio } from './paper-state.js';
 export { canonical, initialPortfolio, metrics } from './paper-state.js';
-export const digest = (v: unknown) => createHash('sha256').update(canonical(v)).digest('hex');
+export const digest = (v: unknown) => bytesToHex(sha256(utf8ToBytes(canonical(v))));
 export function freshQuote(q: Quote, s: {config:Pick<Config,'source'|'maxQuoteAgeMs'>}, now: number) {
   const age = now - Date.parse(q.receivedAt), sourceAge = now - Date.parse(q.observedAt);
   if (q.source !== s.config.source || !Number.isFinite(age) || age < 0 || age > s.config.maxQuoteAgeMs || !Number.isFinite(sourceAge) || sourceAge < -5000 || sourceAge > s.config.maxQuoteAgeMs) throw new Error('Quote is stale or belongs to a different source.');

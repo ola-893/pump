@@ -2,7 +2,10 @@ import type { InstalledModel } from '../../../near-demo/public-types.js';
 import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex } from '@noble/hashes/utils';
 
-export type BrowserModel = InstalledModel & { measure(progress?: (completedBytes: number) => void): Promise<string> };
+export type BrowserModel = InstalledModel & {
+  measure(progress?: (completedBytes: number) => void): Promise<string>;
+  openWeights?: (checksum: string) => Promise<File>;
+};
 
 type DirectoryEntries = {
   kind: 'directory';
@@ -68,11 +71,11 @@ async function scanModelFiles(files: ModelFiles) {
   const checkedWeights = new Set<string>();
   const detectedAt = new Date().toISOString();
 
-  async function addModel(path: string, modified: number, metadata: Omit<InstalledModel, 'id' | 'copies' | 'detectedAt'>, measure: BrowserModel['measure']) {
+  async function addModel(path: string, modified: number, metadata: Omit<InstalledModel, 'id' | 'copies' | 'detectedAt'>, measure: BrowserModel['measure'], openWeights?: BrowserModel['openWeights']) {
     const key = JSON.stringify([path, metadata.bytes, modified]);
     const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key));
     const id = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
-    models.set(path, { ...metadata, id, copies: 1, detectedAt, measure });
+    models.set(path, { ...metadata, id, copies: 1, detectedAt, measure, openWeights });
   }
 
   async function addGguf(path: string, filename: string) {
@@ -85,11 +88,16 @@ async function scanModelFiles(files: ModelFiles) {
       name, filename, bytes: file.size,
       quantization: filename.match(/(?:I?Q\d[^.]*)/i)?.[0] ?? 'See model metadata',
       runtime: 'llama.cpp',
-    }, async progress => {
-      const current = await files.get(path)!();
-      if (current.size !== file.size || current.lastModified !== file.lastModified) throw new Error('The model changed. Detect it again before registering.');
-      return hashFile(current, progress);
+    }, async progress => hashFile(await currentFile(), progress), async checksum => {
+      const current = await currentFile();
+      if (await hashFile(current) !== checksum) throw new Error('The selected weights do not match this agent’s checksum.');
+      return current;
     });
+    async function currentFile() {
+      const current = await files.get(path)!();
+      if (current.size !== file!.size || current.lastModified !== file!.lastModified) throw new Error('The model changed. Detect it again.');
+      return current;
+    }
   }
 
   async function readManifest(path: string, maxBytes = maxManifestBytes) {
