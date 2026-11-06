@@ -21,6 +21,7 @@ type PaperRecord = WorkspacePaper;
 type StoredRun = WorkspaceStrategy;
 type StoredAgent = WorkspaceAgent & {
   ownerName: string;
+  publicationRequested?: boolean;
   publication?: { confirmed: boolean; cutoffs: Record<string, number> };
 };
 export type FundingDraft = {
@@ -137,6 +138,7 @@ function activity(events: Event[]) {
 function agentView(agent: StoredAgent) {
   return {
     visibility: agent.publication?.confirmed ? 'public' as const : 'private' as const,
+    publicationPending: !agent.publication?.confirmed && (!!agent.publicationRequested || !!agent.publication),
     publicSyncError: publicSyncErrors.get(agent.id), id: agent.id, manifest: agent.manifest, commitment: agent.commitment, seedVault: agent.seedVault,
     sessionId: agent.paper.session.id, createdAt: agent.paper.session.createdAt,
     session: sessionView(agent.paper.session), activity: activity(agent.paper.events),
@@ -272,6 +274,7 @@ export async function finishBrowserAgent(draft:FundingDraft, factory:SeedFactory
     throw new Error('The wallet deposit has not been confirmed for this agent.');
   const agent: StoredAgent = {
     id, ownerName, manifest, commitment:vault.manifestHash, runs:[], seedVault:vault,
+    publicationRequested:draft.visibility==='public',
     paper: openSession(config, { id, modelId, weightsHash:manifest.model.sha256 }),
   };
   const db=await workspaceDatabase();
@@ -492,7 +495,7 @@ async function browserStrategyAction(agent: StoredAgent, run: StoredRun, action:
 }
 
 export async function exportBrowserWorkspace(): Promise<WorkspaceTransfer> {
-  return { version: 'PUMP-LOCAL-WORKSPACE-v1', agents: (await listAgents()).map(({ ownerName: _key, publication: _publication, ...agent }) => agent) };
+  return { version: 'PUMP-LOCAL-WORKSPACE-v1', agents: (await listAgents()).map(({ ownerName: _key, publication: _publication, publicationRequested: _requested, ...agent }) => agent) };
 }
 
 export function validateWorkspaceTransfer(value: unknown): StoredAgent[] {

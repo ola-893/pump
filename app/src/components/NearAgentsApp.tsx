@@ -206,7 +206,7 @@ function Register({data,api,refresh}:Props){
     const {id}=await finishBrowserAgent(funding,seedFactory);
     if(funding.visibility==='public'){
       try{await authorizeWithOwnerWallet(funding.vault.owner,wallet.account);await publishBrowserAgent(id);}
-      catch{navigate(`/console?agent=${id}&scope=local&publication=pending`);return;}
+      catch{navigate(`/console?agent=${id}&scope=local`);return;}
       navigate(`/public-journal/${id}`);
     }else navigate(`/console?agent=${id}&scope=local`);
   }
