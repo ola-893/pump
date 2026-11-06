@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowRight, Wallet } from 'lucide-react';
 import { NearWalletButton, useNearWallet } from './NearWalletProvider';
 import { approveSeedStep, readSeedVault, seedStep, withdrawSeed, type SeedFactory, type SeedStep, type SeedVault } from '../lib/seed-vault';
@@ -72,6 +72,16 @@ export function AgentSeedFunding({draft,factory,onFinish,onBack,onArchive}:{draf
 export function AgentSeedBalance({vault,factory}:{vault:SeedVault;factory:SeedFactory}){
   const wallet=useNearWallet();
   const [state,setState]=useState<Awaited<ReturnType<typeof readSeedVault>>>(),[busy,setBusy]=useState(false),[error,setError]=useState(''),[review,setReview]=useState(false);
+  const cancelButton=useRef<HTMLButtonElement>(null),withdrawButton=useRef<HTMLButtonElement>(null);
+  const restoreFocus=useRef(false);
+  const canWithdraw=state&&state.shares!=='0'&&!state.pending&&wallet.account===vault.owner;
+  useLayoutEffect(()=>{
+    if(review)cancelButton.current?.focus();
+    else if(restoreFocus.current){
+      restoreFocus.current=false;
+      withdrawButton.current?.focus();
+    }
+  },[review]);
   async function update(withdraw=false){
     setError('');setBusy(true);
     try{
@@ -92,8 +102,10 @@ export function AgentSeedBalance({vault,factory}:{vault:SeedVault;factory:SeedFa
     </div></div>
     <div className="ac-run-buttons">
       <button type="button" className="nd-button secondary" onClick={()=>void update()} disabled={busy}>Refresh vault</button>
-      {review&&<button type="button" className="nd-button secondary" disabled={busy} onClick={()=>setReview(false)}>Cancel withdrawal</button>}
-      {state&&state.shares!=='0'&&!state.pending&&wallet.account===vault.owner&&<button type="button" className="nd-button secondary" disabled={busy} onClick={()=>review?void update(true):setReview(true)}>{review?'Approve withdrawal':'Withdraw seed'}</button>}
+      {review?<>
+        <button ref={cancelButton} type="button" className="nd-button secondary" disabled={busy} onClick={()=>{restoreFocus.current=true;setReview(false);}}>Cancel withdrawal</button>
+        {canWithdraw&&<button type="button" className="nd-button secondary" disabled={busy} onClick={()=>void update(true)}>Approve withdrawal</button>}
+      </>:canWithdraw&&<button ref={withdrawButton} type="button" className="nd-button secondary" disabled={busy} onClick={()=>setReview(true)}>Withdraw seed</button>}
     </div>
   </section>;
 }
