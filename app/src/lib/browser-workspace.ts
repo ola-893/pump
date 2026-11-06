@@ -10,7 +10,9 @@ import { paperMarket, testAccount, validateConfig, type Config, type Event, type
 import { journalBatchSize, journalSchema, publicJournalEvent } from '../../../near-demo/directory/public-journal.js';
 import { readJournal, sendJournalBatch } from './public-journal-client.js';
 import type { BrowserModel } from './browser-models.js';
-import { readSeedVault, seedVaultAccount, validateSeedVault, type SeedFactory, type SeedVault } from './seed-vault.js';
+import { changeStrategyVault, readSeedVault, seedVaultAccount, validateSeedVault, verifyRecordedSeed, type SeedFactory, type SeedVault } from './seed-vault.js';
+import { strategySeedFactory } from './strategy-seed-factory-config.js';
+import { seedFactory } from './seed-factory-config.js';
 
 type Registration = Pick<Config, 'name' | 'strategy' | 'initialCash' | 'tradeCap' | 'exposureCap' | 'dailyTurnoverCap' | 'slippageBps' | 'intervalMs'> & {
   controller: string;
@@ -32,6 +34,7 @@ export type FundingDraft = {
   ownerName: string;
   visibility: Registration['visibility'];
   vault: SeedVault;
+  strategy?: StrategyRun;
   archived?: boolean;
 };
 const publicSyncErrors = new Map<string, string>();
@@ -141,7 +144,8 @@ function agentView(agent: StoredAgent) {
   return {
     visibility: agent.publication?.confirmed ? 'public' as const : 'private' as const,
     publicationPending: !agent.publication?.confirmed && (!!agent.publicationRequested || !!agent.publication),
-    publicSyncError: publicSyncErrors.get(agent.id), id: agent.id, manifest: agent.manifest, commitment: agent.commitment, seedVault: agent.seedVault,
+    publicSyncError: publicSyncErrors.get(agent.id), id: agent.id, manifest: agent.manifest, commitment: agent.commitment,
+    seedVault: agent.seedVault, strategyVaults: agent.strategyVaults,
     sessionId: agent.paper.session.id, createdAt: agent.paper.session.createdAt,
     session: sessionView(agent.paper.session), activity: activity(agent.paper.events),
   };
@@ -161,8 +165,8 @@ function strategyView(run: StoredRun, archived: boolean, otherTabRunId?: string)
 }
 
 export async function browserWorkspace() {
-  const [stored, locks] = await Promise.all([listAgents(), navigator.locks?.query()]);
-  const records = stored.filter(agent=>agent.seedVault);
+  const [stored, locks, drafts] = await Promise.all([listAgents(), navigator.locks?.query(), allFundingDrafts()]);
+  const records = stored.filter(agent=>agent.seedVault||agent.strategyVaults?.length);
   const held = locks?.held ?? [];
   const runtimeBusy = executions.size > 0 || held.some(lock => lock.name === executionLock);
   const otherTabBusy = executions.size === 0 && runtimeBusy;
@@ -172,6 +176,7 @@ export async function browserWorkspace() {
   return {
     agents: records.map(agentView),
     strategyRuns: records.flatMap(agent => agent.runs.map((run, index) => strategyView(run, index !== 0, otherTabRunId))),
+    strategyFundingDrafts: drafts.filter(draft=>draft.strategy && records.some(agent=>agent.id===draft.vault.agentId)),
     // Runtime and vault state are only populated by an actual runtime or vault.
     vaults: [], execution: { activeId: activeSession, queued: [], runtimeBusy, otherTabBusy, otherTabRunId }, models: [], measurement: null,
     continuous: null, runtime: { modelId: null, phase: runtimePhase, progress: inferenceProgress }, comparisons: [], market: null,
@@ -179,7 +184,7 @@ export async function browserWorkspace() {
   };
 }
 
-export async function browserFundingDrafts():Promise<FundingDraft[]> {
+async function allFundingDrafts():Promise<FundingDraft[]> {
   const db=await workspaceDatabase();
   try {
     return await new Promise((resolve,reject)=>{
@@ -188,6 +193,12 @@ export async function browserFundingDrafts():Promise<FundingDraft[]> {
       request.onerror=()=>reject(request.error);
     });
   } finally { db.close(); }
+}
+
+export async function browserFundingDrafts() {
+  const [drafts,agents]=await Promise.all([allFundingDrafts(),listAgents()]);
+  const registered=new Set(agents.map(agent=>agent.id));
+  return drafts.filter(draft=>!registered.has(draft.vault.agentId));
 }
 
 export async function archiveFundingDraft(id: string, archived: boolean) {
@@ -243,11 +254,14 @@ export async function prepareBrowserAgent(input: Registration, model: BrowserMod
     },
     mode: 'Circle test USDC seed vault; paper trading only', evidence: 'locally measured weights; unsigned local declaration',
   };
-  const agentId=crypto.randomUUID(), strategyId=crypto.randomUUID(), manifestHash=digest(manifest);
+  const agentId=crypto.randomUUID(), manifestHash=digest(manifest);
+  const strategy=newStrategy(agentId,manifestHash,1,'Initial strategy',config);
+  const strategyId=strategy.id;
   const vault:SeedVault={factoryId:factory.id,contractId:seedVaultAccount(owner,strategyId,factory.id),owner,agentId,manifestHash,strategyId,
-    strategyHash:digest({strategyId,manifestHash,config}),amount:config.initialCash};
+    strategyHash:strategy.commitment,amount:config.initialCash,
+    ...(factory.reporterId?{strategyName:manifest.name}:{})};
   validateSeedVault(vault,factory);
-  const draft:FundingDraft={manifest,config,modelId,ownerName,visibility,vault};
+  const draft:FundingDraft={manifest,config,modelId,ownerName,visibility,vault,strategy};
   const db=await workspaceDatabase();
   try {
     await new Promise<void>((resolve,reject)=>{
@@ -271,14 +285,18 @@ export async function prepareBrowserAgent(input: Registration, model: BrowserMod
 }
 
 export async function finishBrowserAgent(draft:FundingDraft, factory:SeedFactory) {
-  const { vault,config,manifest,modelId,ownerName }=draft, id=vault.agentId;
+  const { vault,config,manifest,modelId,ownerName,strategy }=draft, id=vault.agentId;
   const state=await readSeedVault(vault,factory);
-  if (!state || state.received!==vault.amount || state.assets!==vault.amount || state.shares!==vault.amount || state.pending ||
+  const funding=state&&await ownerDepositConfirmed(vault,factory,state);
+  if (!funding || state?.pending || state?.archived ||
       config.initialCash!==vault.amount || manifest.controller!==vault.owner || digest(manifest)!==vault.manifestHash ||
-      digest({strategyId:vault.strategyId,manifestHash:vault.manifestHash,config})!==vault.strategyHash)
+      (strategy ? !matchesStrategyVault(strategy,vault) || digest(strategy.config)!==digest(config)
+        : digest({strategyId:vault.strategyId,manifestHash:vault.manifestHash,config})!==vault.strategyHash))
     throw new Error('The wallet deposit has not been confirmed for this agent.');
   const agent: StoredAgent = {
-    id, ownerName, manifest, commitment:vault.manifestHash, runs:[], seedVault:vault,
+    id, ownerName, manifest, commitment:vault.manifestHash,
+    runs:strategy?[attachPaper(strategy,modelId,manifest.model.sha256)]:[],
+    ...(strategy?{strategyVaults:[{...vault,...(typeof funding==='string'?{seedReceipt:funding}:{})}]}:{seedVault:vault}),
     publicationRequested:draft.visibility==='public',
     paper: openSession(config, { id, modelId, weightsHash:manifest.model.sha256 }),
   };
@@ -299,47 +317,112 @@ export async function finishBrowserAgent(draft:FundingDraft, factory:SeedFactory
   return agentView(agent);
 }
 
-async function saveStrategy(agentId: string, expectedVersion: number, settings: StrategySettings) {
-  const save = () => writeStrategyVersion(agentId, expectedVersion, settings);
-  if (!navigator.locks) return save();
-  const current = (await readAgent(agentId))?.runs[0];
-  if (!current) return save();
-  return navigator.locks.request(strategyLockPrefix + current.id, { mode: 'shared', ifAvailable: true }, lock => {
-    if (!lock) throw new Error('Stop the active strategy before saving another version.');
-    return save();
-  });
+function newStrategy(agentId:string,registrationCommitment:string,version:number,label:string,config:Config):StrategyRun {
+  const body:Omit<StrategyRun,'commitment'>={
+    schema:'PUMP-STRATEGY-RUN-v1',id:crypto.randomUUID(),agentId,version,createdAt:new Date().toISOString(),
+    label,registrationCommitment,sessionId:crypto.randomUUID(),config,
+  };
+  return {...body,commitment:digest(body)};
 }
 
-function writeStrategyVersion(agentId: string, expectedVersion: number, settings: StrategySettings) {
-  return agentStore<ReturnType<typeof strategyView>>('readwrite', (store, finish, fail) => {
-    const read = store.get(agentId);
-    read.onsuccess = () => {
-      try {
-        const agent = read.result as StoredAgent | undefined;
-        if (!agent) throw new Error('Agent registration not found in this browser.');
-        const latest = agent.runs[0]?.version ?? 0;
-        if (latest !== expectedVersion) throw new Error('A newer strategy version was saved. Refresh before saving again.');
-        const { label, strategy, ...limits } = settings;
-        if (!label.trim() || label.length > 80 || strategy.trim().length < 20) throw new Error('Name the strategy and describe when it should trade or hold.');
-        const config = validateConfig({ ...agent.paper.session.config, ...limits, strategy: strategy.trim() });
-        if(agent.seedVault && (config.initialCash!==agent.seedVault.amount || paperMarket(config).quote!==paperMarket(agent.paper.session.config).quote))
-          throw new Error('Use the confirmed USDC seed amount for this agent’s paper strategy.');
-        const body: Omit<StrategyRun, 'commitment'> = {
-          schema: 'PUMP-STRATEGY-RUN-v1', id: crypto.randomUUID(), agentId, version: latest + 1,
-          createdAt: new Date().toISOString(), label: label.trim(), registrationCommitment: agent.commitment,
-          sessionId: crypto.randomUUID(), config,
+function matchesStrategyVault(strategy:StrategyRun,vault:SeedVault) {
+  const {commitment,...body}=strategy;
+  return commitment===digest(body)&&commitment===vault.strategyHash&&strategy.agentId===vault.agentId&&
+    strategy.id===vault.strategyId&&strategy.registrationCommitment===vault.manifestHash&&strategy.config.initialCash===vault.amount;
+}
+
+async function ownerDepositConfirmed(vault:SeedVault,factory:SeedFactory,state:NonNullable<Awaited<ReturnType<typeof readSeedVault>>>) {
+  return factory.reporterId ? state.public&&BigInt(state.shares)>0n&&await verifyRecordedSeed(vault)
+    : state.received===vault.amount&&state.assets===vault.amount&&state.shares===vault.amount;
+}
+
+function attachPaper(strategy:StrategyRun,modelId:string,weightsHash:string):StoredRun {
+  const paper=openSession(strategy.config,{id:strategy.agentId,modelId,weightsHash,strategyRunId:strategy.id},strategy.sessionId);
+  return {...strategy,paper};
+}
+
+export async function prepareBrowserStrategy(agentId:string,expectedVersion:number,settings:StrategySettings) {
+  const {label,strategy,...limits}=settings;
+  if (!label.trim()||label.length>80||strategy.trim().length<20) throw new Error('Name the strategy and describe when it should trade or hold.');
+  const db=await workspaceDatabase();
+  try {
+    return await new Promise<FundingDraft>((resolve,reject)=>{
+      const tx=db.transaction(['agents','funding'],'readwrite'),funding=tx.objectStore('funding');
+      let result:FundingDraft,problem:unknown;
+      tx.oncomplete=()=>resolve(result);
+      tx.onabort=()=>reject(problem??tx.error??new Error('Could not save the funding draft.'));
+      const agents=tx.objectStore('agents').get(agentId);
+      agents.onsuccess=()=>{
+        try {
+          const agent=agents.result as StoredAgent|undefined;
+          if (!agent || (agent.runs[0]?.version??0)!==expectedVersion) throw new Error('Refresh the current strategy before creating a new version.');
+          const isPublic=!!agent.publication?.confirmed||!!agent.publicationRequested;
+          const factory=isPublic?strategySeedFactory:seedFactory;
+          if (!factory) throw new Error('The strategy vault factory is not configured.');
+          const config=validateConfig({...agent.paper.session.config,...limits,strategy:strategy.trim()});
+          if (paperMarket(config).quote!==paperMarket().quote) throw new Error('Funded strategies must use USDC as the quote currency.');
+          const run=newStrategy(agent.id,agent.commitment,expectedVersion+1,label.trim(),config);
+          const owner=agent.manifest.controller;
+          const vault:SeedVault={factoryId:factory.id,contractId:seedVaultAccount(owner,run.id,factory.id),owner,agentId,
+            manifestHash:agent.commitment,strategyId:run.id,strategyHash:run.commitment,amount:config.initialCash,
+            ...(factory.reporterId?{strategyName:agent.manifest.name}:{})};
+          validateSeedVault(vault,factory);
+          result={manifest:agent.manifest,config,modelId:agent.paper.session.agent!.modelId,ownerName:agent.ownerName,
+            visibility:isPublic?'public':'private',strategy:run,vault};
+          const lookup=funding.get(agentId);
+          lookup.onsuccess=()=>{
+            if (lookup.result) { result=lookup.result; return; }
+            funding.add(result,agentId);
+          };
+        } catch (error) { problem=error;tx.abort(); }
+      };
+    });
+  } finally { db.close(); }
+}
+
+export async function finishBrowserStrategy(draft:FundingDraft,factory:SeedFactory) {
+  const {strategy,vault}=draft;
+  if (!strategy||!matchesStrategyVault(strategy,vault)) throw new Error('The strategy draft does not match its vault.');
+  const finish=async()=>{
+    const agent=await readAgent(vault.agentId);
+    if (!agent || agent.commitment!==vault.manifestHash || (agent.runs[0]?.version??0)+1!==strategy.version)
+      throw new Error('This draft no longer follows the active strategy.');
+    const previous=agent.strategyVaults?.find(item=>item.strategyId===agent.runs[0]?.id);
+    const state=await readSeedVault(vault,factory);
+    const confirmedFunding=state&&await ownerDepositConfirmed(vault,factory,state);
+    if (!confirmedFunding||state?.pending||state?.archived) throw new Error('Wait for this strategy’s owner seed to confirm.');
+    const previousFactory=previous?.factoryId===strategySeedFactory.id?strategySeedFactory:seedFactory;
+    if (previous&&previousFactory) await changeStrategyVault(previous,previousFactory,'archive');
+    const db=await workspaceDatabase();
+    try {
+      await new Promise<void>((resolve,reject)=>{
+        const tx=db.transaction(['agents','funding'],'readwrite'),agents=tx.objectStore('agents'),funding=tx.objectStore('funding');
+        tx.oncomplete=()=>resolve();
+        tx.onabort=()=>reject(tx.error??new Error('This strategy was changed in another tab.'));
+        const read=agents.get(agent.id), saved=funding.get(agent.id);
+        const commit=()=>{
+          if(read.readyState!=='done'||saved.readyState!=='done')return;
+          const current=read.result as StoredAgent|undefined;
+          if (!current||saved.result?.strategy?.commitment!==strategy.commitment||(current.runs[0]?.version??0)+1!==strategy.version) {tx.abort();return;}
+          const run=attachPaper(strategy,draft.modelId,agent.manifest.model.sha256);
+          current.runs.unshift(run);
+          current.strategyVaults=[...(current.strategyVaults??[]),{...vault,...(typeof confirmedFunding==='string'?{seedReceipt:confirmedFunding}:{})}];
+          agents.put(current);funding.delete(agent.id);
         };
-        const binding = agent.paper.session.agent!;
-        const run: StoredRun = {
-          ...body, commitment: digest(body),
-          paper: openSession(config, { ...binding, strategyRunId: body.id }, body.sessionId),
-        };
-        agent.runs.unshift(run);
-        store.put(agent).onsuccess = () => finish(strategyView(run, false));
-      } catch (error) {
-        fail(error);
-      }
-    };
+        read.onsuccess=commit;
+        saved.onsuccess=commit;
+      });
+    } finally { db.close(); }
+    void syncIfPublic(agent.id);
+    return strategy;
+  };
+  return navigator.locks.request(`pump-strategy-funding:${vault.agentId}`,async()=>{
+    const current=(await readAgent(vault.agentId))?.runs[0];
+    if (!current) return finish();
+    return navigator.locks.request(strategyLockPrefix+current.id,{ifAvailable:true},lock=>{
+      if (!lock) throw new Error('Stop the active strategy before switching vaults.');
+      return finish();
+    });
   });
 }
 
@@ -351,9 +434,7 @@ export async function browserWorkspaceAction(path: string, body: unknown) {
   }
   const request = body as { agentId: string; expectedVersion: number; settings: StrategySettings; id: string; runId: string; action: string };
   if (path === '/strategy-save-paper') {
-    const run = await saveStrategy(request.agentId, request.expectedVersion, request.settings);
-    void syncIfPublic(request.agentId);
-    return { phase: 'active', run };
+    throw new Error('Fund the vault before saving this strategy version.');
   }
   if (path === '/history') {
     const agent = (await listAgents()).find(item => item.paper.session.id === request.id);
@@ -553,7 +634,17 @@ export function validateWorkspaceTransfer(value: unknown): StoredAgent[] {
       seedVault.owner!==controller || seedVault.amount!==paper.session.config.initialCash ||
       seedVault.strategyHash!==digest({strategyId:seedVault.strategyId,manifestHash:seedVault.manifestHash,config:paper.session.config})))
       throw new Error('A saved seed vault does not match its agent.');
-    return { id: agent.id, ownerName, manifest: agent.manifest, commitment: agent.commitment, paper, runs, seedVault };
+    const strategyVaults=agent.strategyVaults?.map(vault=>{
+      validateSeedVault(vault);
+      const run=runs.find(item=>item.id===vault.strategyId);
+      if (!run || vault.owner!==controller || vault.strategyName!==undefined&&vault.strategyName!==agent.manifest.name) throw new Error('A strategy vault does not match its owner.');
+      const {paper:_paper,...record}=run;
+      if (!matchesStrategyVault(record,vault)) throw new Error('A strategy vault does not match its version.');
+      return vault;
+    });
+    if (strategyVaults && new Set(strategyVaults.map(vault=>vault.strategyId)).size!==strategyVaults.length)
+      throw new Error('A strategy version has more than one vault.');
+    return { id: agent.id, ownerName, manifest: agent.manifest, commitment: agent.commitment, paper, runs, seedVault, strategyVaults };
   });
 }
 
@@ -593,13 +684,20 @@ function journalIdentity(agent: StoredAgent) {
   return { id: agent.id, name: agent.manifest.name, model: agent.manifest.model.id, controller: agent.manifest.controller };
 }
 
+function journalStrategy(agent:StoredAgent,run:StoredRun) {
+  const vault=agent.strategyVaults?.find(item=>item.strategyId===run.id&&item.factoryId===strategySeedFactory.id&&item.seedReceipt);
+  return { id:run.id,version:run.version,market:paperMarket(run.config).label,
+    openingSequence:agent.publication?.cutoffs[run.id]??0,
+    ...(vault?.seedReceipt?{vault:{contractId:vault.contractId,manifestHash:vault.manifestHash,strategyHash:vault.strategyHash,
+      seedAmount:vault.amount,seedReceipt:vault.seedReceipt}}:{}) };
+}
+
 async function syncJournal(agent: StoredAgent) {
   if (!agent.publication?.confirmed) return;
   const profile = journalIdentity(agent);
   const remote = await readJournal(agent.id);
   for (const run of agent.runs) {
-    const strategy = { id: run.id, version: run.version, market: paperMarket(run.config).label,
-      openingSequence: agent.publication.cutoffs[run.id] ?? 0 };
+    const strategy=journalStrategy(agent,run);
     const existing = remote.strategies.find(item => item.id === run.id);
     const pending = run.paper.events.filter(event => event.sequence > (existing?.head ?? strategy.openingSequence));
     if (!existing && pending.length === 0) await sendJournalBatch({ schema: journalSchema, agent: profile, strategy, events: [] });
@@ -624,7 +722,8 @@ async function syncIfPublic(agentId: string) {
 
 export async function publishBrowserAgent(agentId: string) {
   const pending = await setPublication(agentId, false);
-  await sendJournalBatch({ schema: journalSchema, agent: journalIdentity(pending), strategy: null, events: [] });
+  const latest=pending.runs[0]&&journalStrategy(pending,pending.runs[0]);
+  await sendJournalBatch({ schema: journalSchema, agent: journalIdentity(pending), strategy:latest?.vault?latest:null, events: [] });
   await setPublication(agentId, true);
   await syncIfPublic(agentId);
 }

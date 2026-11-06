@@ -5,26 +5,31 @@ import { RpcQueryError, TestnetReads } from '../../../near-demo/rpc-reads.js';
 import { nearConnector } from './near-demo-wallet.js';
 import type { SeedVault } from '../../../near-demo/workspace-transfer.js';
 import { seedNearBalance, type SeedNearBalance } from './seed-vault-fees.js';
+import { vaultReceiptEffect } from '../../../near-demo/vault-receipt.js';
 export type { SeedVault } from '../../../near-demo/workspace-transfer.js';
 
-export type SeedFactory = { id:string; codeHash:string; vaultCodeHash:string; funding:string };
-type SeedState = { assets:string; nonce:number; pending:unknown; archived:boolean; paused:boolean; shares:string; received:string };
+export type SeedFactory = { id:string; codeHash:string; vaultCodeHash:string; funding:string; reporterId?:string };
+type SeedState = { assets:string; nonce:number; pending:unknown; archived:boolean; paused:boolean; shares:string; received:string; public:boolean; supply:string; tracking:boolean };
 const bytes = new TextEncoder();
 const hex = (value:Uint8Array) => Array.from(value, byte=>byte.toString(16).padStart(2,'0')).join('');
 const uuid = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
 const hash = /^[a-f0-9]{64}$/;
+const transactionId = /^[1-9A-HJ-NP-Za-km-z]{32,64}$/;
 const maxSeed = 1_000_000_000_000n;
 
 export function seedVaultAccount(owner:string, strategyId:string, factoryId:string) {
   testAccount(owner);
-  if (!uuid.test(strategyId) || !/^ps\.[a-z0-9._-]+\.testnet$/.test(testAccount(factoryId))) throw new Error('Invalid seed vault binding.');
+  if (!uuid.test(strategyId) || !/^p[sl]\.[a-z0-9._-]+\.testnet$/.test(testAccount(factoryId))) throw new Error('Invalid seed vault binding.');
   return testAccount('s'+hex(sha256(bytes.encode(owner+':'+strategyId))).slice(0,24)+'.'+factoryId);
 }
 
 export function validateSeedVault(v:SeedVault, factory?:SeedFactory) {
+  const shared = v.factoryId.startsWith('pl.');
   if (v.contractId!==seedVaultAccount(v.owner,v.strategyId,v.factoryId) || !uuid.test(v.agentId) ||
     !hash.test(v.manifestHash) || !hash.test(v.strategyHash) || units(v.amount,false)>maxSeed ||
-    factory && (v.factoryId!==factory.id || units(factory.funding,false)>5n*10n**24n))
+    v.seedReceipt!==undefined&&(!shared||!transactionId.test(v.seedReceipt)) ||
+    (shared ? typeof v.strategyName!=='string'||!v.strategyName.trim()||bytes.encode(v.strategyName).length>64 : v.strategyName!==undefined) ||
+    factory && (v.factoryId!==factory.id || units(factory.funding,false)>5n*10n**24n || shared&&!factory.reporterId))
     throw new Error('Invalid seed vault binding.');
   return v;
 }
@@ -42,29 +47,32 @@ const missing = (error:unknown) => error instanceof RpcQueryError && error.data?
 
 export async function readSeedVault(v:SeedVault, factory:SeedFactory):Promise<SeedState|null> {
   validateSeedVault(v,factory);
+  const shared = !!factory.reporterId;
   let account;
   try { account=await query('view_account',v.contractId); } catch (error) { if (missing(error)) return null; throw error; }
   if (account.code_hash!==factory.vaultCodeHash || typeof account.block_hash!=='string') throw new Error('The vault code did not match Pump’s verified deployment.');
   const block=account.block_hash;
   const [keys,s,seed,shares]=await Promise.all([reads.query('query',{request_type:'view_access_key_list',account_id:v.contractId,block_id:block},true),
-    view(v.contractId,'get_state',{},block),view(v.contractId,'seed_funding',{},block),view(v.contractId,'ft_balance_of',{account_id:v.owner},block)]);
+    view(v.contractId,'get_state',{},block),shared?null:view(v.contractId,'seed_funding',{},block),view(v.contractId,'ft_balance_of',{account_id:v.owner},block)]);
   if (keys.keys?.length!==0 ||
-      s.controller_id!==v.owner || s.factory_id!==factory.id || s.reporter_id!==factory.id || s.token_id!==TEST_USDC ||
+      s.controller_id!==v.owner || s.factory_id!==factory.id || s.reporter_id!==(factory.reporterId??factory.id) || s.token_id!==TEST_USDC ||
       s.agent_id!==v.agentId || s.manifest_hash!==v.manifestHash || s.strategy_id!==v.strategyId || s.strategy_hash!==v.strategyHash ||
-      s.public!==false || s.live_nav!==null || seed?.required!==v.amount || !['0',v.amount].includes(seed.received) ||
-      !Number.isSafeInteger(s.nonce) || s.nonce<0 || units(s.assets)>units(seed.received) || units(shares)>units(s.assets))
+      (shared ? s.version!=='PUMP-STRATEGY-VAULT-v4'||!s.live_nav||s.name!==v.strategyName||typeof s.public!=='boolean'
+        : s.public!==false||s.live_nav!==null||seed?.required!==v.amount||!['0',v.amount].includes(seed.received)||units(s.assets)>units(seed.received)||units(shares)>units(s.assets)) ||
+      !Number.isSafeInteger(s.nonce) || s.nonce<0 || units(shares)>units(s.total_supply))
     throw new Error('The testnet vault did not match this agent. No funds were sent.');
-  return { assets:s.assets, nonce:s.nonce, pending:s.pending, archived:s.archived, paused:s.paused, shares, received:seed.received };
+  return { assets:s.assets, nonce:s.nonce, pending:s.pending, archived:s.archived, paused:s.paused, shares, received:seed?.received??'0',
+    public:s.public,supply:s.total_supply,tracking:!!s.live_nav?.tracking };
 }
 
 const plan = (v:SeedVault, receiverId:string, methodName:string, args:Record<string,unknown>, gas:string, deposit:string):WalletPlan =>
   ({network:'testnet',signerId:v.owner,receiverId,description:methodName,actions:[{type:'FunctionCall',params:{methodName,args,gas,deposit}}]});
 
 export type SeedStep =
-  | { kind:'deploy'|'storage'|'fund'; plan:WalletPlan; balance:SeedNearBalance }
+  | { kind:'deploy'|'storage'|'share-storage'|'open'|'fund'; plan:WalletPlan; balance:SeedNearBalance }
   | { kind:'confirmed'; state:SeedState };
 
-async function checkedStep(kind:'deploy'|'storage'|'fund', transaction:WalletPlan):Promise<SeedStep> {
+async function checkedStep(kind:Exclude<SeedStep['kind'],'confirmed'>, transaction:WalletPlan):Promise<SeedStep> {
   const account=await query('view_account',transaction.signerId);
   if(typeof account.block_hash!=='string'||!account.block_hash)throw new Error('Could not verify your NEAR testnet balance.');
   const block=account.block_hash;
@@ -78,6 +86,8 @@ async function checkedStep(kind:'deploy'|'storage'|'fund', transaction:WalletPla
 export async function seedStep(v:SeedVault, factory:SeedFactory):Promise<SeedStep> {
   const state=await readSeedVault(v,factory);
   if (state?.received===v.amount) return {kind:'confirmed',state};
+  const shared=!!factory.reporterId;
+  if (state&&shared&&await verifyRecordedSeed(v)) return {kind:'confirmed',state:{...state,received:v.amount}};
   const balance=await view(TEST_USDC,'ft_balance_of',{account_id:v.owner});
   if (units(balance)<units(v.amount,false)) throw new Error('Your wallet does not have enough Circle test USDC to fund this agent.');
   if (!state) {
@@ -86,8 +96,11 @@ export async function seedStep(v:SeedVault, factory:SeedFactory):Promise<SeedSte
     if (account.code_hash!==factory.codeHash || keys.keys?.length!==0 || funding!==factory.funding ||
       base58.encode(Uint8Array.from(atob(child),c=>c.charCodeAt(0)))!==factory.vaultCodeHash)
       throw new Error('The NEAR testnet factory did not match Pump’s verified deployment.');
-    return checkedStep('deploy',plan(v,factory.id,'deploy_seeded',{agent_id:v.agentId,manifest_hash:v.manifestHash,
-      strategy_id:v.strategyId,strategy_hash:v.strategyHash,seed:v.amount},'220000000000000',factory.funding));
+    if (factory.reporterId && await view(factory.id,'reporter_id')!==factory.reporterId)
+      throw new Error('The strategy vault factory has a different NAV reporter.');
+    const binding={agent_id:v.agentId,manifest_hash:v.manifestHash,strategy_id:v.strategyId,strategy_hash:v.strategyHash};
+    const args=shared?{...binding,name:v.strategyName,initial_equity:v.amount,public:false,open_after_archive:false,previous_vault:null}:{...binding,seed:v.amount};
+    return checkedStep('deploy',plan(v,factory.id,shared?'deploy':'deploy_seeded',args,'220000000000000',factory.funding));
   }
   if (state.paused||state.archived||state.pending) throw new Error('The agent vault is not accepting seed deposits.');
   if (!await view(TEST_USDC,'storage_balance_of',{account_id:v.contractId})) {
@@ -95,7 +108,49 @@ export async function seedStep(v:SeedVault, factory:SeedFactory):Promise<SeedSte
     if (units(min,false)>10n**23n) throw new Error('Unexpected test USDC storage fee.');
     return checkedStep('storage',plan(v,TEST_USDC,'storage_deposit',{account_id:v.contractId,registration_only:true},'25000000000000',min));
   }
+  if (shared) {
+    if (!await view(v.contractId,'storage_balance_of',{account_id:v.owner})) {
+      const {min}=await view(v.contractId,'storage_balance_bounds');
+      if (units(min,false)>10n**23n) throw new Error('Unexpected pump coin storage fee.');
+      return checkedStep('share-storage',plan(v,v.contractId,'storage_deposit',{account_id:v.owner,registration_only:true},'25000000000000',min));
+    }
+    if (!state.public) return checkedStep('open',plan(v,v.contractId,'publish',{},'30000000000000','0'));
+    const minimum=String(units(state.supply)===0n?units(v.amount):units(v.amount)*units(state.supply)/units(state.assets,false));
+    if (units(minimum)===0n) throw new Error('The owner deposit would mint zero pump coin.');
+    const message=JSON.stringify({kind:'deposit',min_shares:minimum,expected_nonce:state.nonce});
+    return checkedStep('fund',plan(v,TEST_USDC,'ft_transfer_call',{receiver_id:v.contractId,amount:v.amount,msg:message},'100000000000000','1'));
+  }
   return checkedStep('fund',plan(v,TEST_USDC,'ft_transfer_call',{receiver_id:v.contractId,amount:v.amount,msg:'{"kind":"seed"}'},'100000000000000','1'));
+}
+
+const receiptKey=(v:SeedVault)=>`pump-owner-deposit:${v.contractId}:${v.owner}`;
+export async function verifySeedReceipt(v:SeedVault, transactionHash:string) {
+  if (!transactionId.test(transactionHash)) throw new Error('Enter a valid NEAR testnet transaction hash.');
+  const receipt=await reads.query('tx',{tx_hash:transactionHash,sender_account_id:v.owner,wait_until:'FINAL'},true);
+  if (receipt.transaction?.hash!==transactionHash) throw new Error('The owner deposit transaction hash did not match.');
+  const effect=vaultReceiptEffect(receipt,v.owner,v.contractId);
+  if (effect.kind!=='deposit'||effect.assets!==v.amount) throw new Error('This receipt is not the exact owner deposit for this strategy.');
+  if (effect.outcome==='refunded') return false;
+  if (effect.outcome!=='confirmed') throw new Error('The owner deposit is unconfirmed. Check this transaction before retrying.');
+  return true;
+}
+
+export async function recoverStrategySeed(v:SeedVault, hash:string) {
+  if (!await verifySeedReceipt(v,hash)) {
+    const key=receiptKey(v);
+    if (localStorage.getItem(key)===hash||localStorage.getItem(key)==='awaiting-wallet') localStorage.removeItem(key);
+    throw new Error('The test USDC was refunded. You can check the vault and send a new deposit.');
+  }
+  localStorage.setItem(receiptKey(v),hash);
+}
+
+export async function verifyRecordedSeed(v:SeedVault) {
+  const key=receiptKey(v), saved=localStorage.getItem(key);
+  if (!saved) return false;
+  if (saved==='awaiting-wallet') throw new Error('The wallet did not return a receipt. Verify the transaction hash before sending again.');
+  if (await verifySeedReceipt(v,saved)) return saved;
+  localStorage.removeItem(key);
+  throw new Error('The test USDC was refunded. Check the vault before sending a new deposit.');
 }
 
 async function send(v:SeedVault, transaction:WalletPlan) {
@@ -109,6 +164,18 @@ async function send(v:SeedVault, transaction:WalletPlan) {
 export async function approveSeedStep(v:SeedVault, factory:SeedFactory, expected:Exclude<SeedStep['kind'],'confirmed'>) {
   const step=await seedStep(v,factory);
   if (step.kind==='confirmed'||step.kind!==expected||step.balance.shortfall>0n) return step;
+  if(expected==='fund'&&factory.reporterId){
+    const key=receiptKey(v);
+    localStorage.setItem(key,'awaiting-wallet');
+    const result=await send(v,step.plan).catch(error=>{
+      if (error instanceof Error && error.message==='User rejected') localStorage.removeItem(key);
+      throw error;
+    });
+    const hash=result?.transaction?.hash;
+    if (!hash) throw new Error('The wallet did not return a receipt. Verify the transaction hash before sending again.');
+    localStorage.setItem(key,hash);
+    return waitFor(()=>seedStep(v,factory),next=>next.kind==='confirmed');
+  }
   await send(v,step.plan);
   if(expected==='fund'){
     const state=await waitFor(()=>readSeedVault(v,factory), next=>next?.received===v.amount);
@@ -119,10 +186,22 @@ export async function approveSeedStep(v:SeedVault, factory:SeedFactory, expected
 
 export async function withdrawSeed(v:SeedVault, factory:SeedFactory) {
   const state=await readSeedVault(v,factory);
-  if (!state || state.pending || state.received!==v.amount || units(state.shares)===0n)
+  if (!state || state.pending || (!factory.reporterId&&state.received!==v.amount) || units(state.shares)===0n)
     throw new Error('No seed capital is available to withdraw.');
-  await send(v,plan(v,v.contractId,'redeem',{shares:state.shares,min_assets:state.shares,expected_nonce:state.nonce},'100000000000000','1'));
+  const minimum = String(units(state.shares) * units(state.assets) / units(state.supply,false));
+  await send(v,plan(v,v.contractId,'redeem',{shares:state.shares,min_assets:minimum,expected_nonce:state.nonce},'100000000000000','1'));
   return waitFor(()=>readSeedVault(v,factory), next=>!!next&&!next.pending&&units(next.shares)<units(state.shares));
+}
+
+export async function changeStrategyVault(v:SeedVault, factory:SeedFactory, action:'publish'|'archive') {
+  const state=await readSeedVault(v,factory);
+  if (!state || state.pending) throw new Error('Wait for vault deployment or payout confirmation.');
+  const complete = (next:SeedState|null) => !!next && (action==='publish'?next.public:next.archived);
+  if (complete(state)) return;
+  if (action==='publish'&&state.archived || action==='archive'&&state.tracking)
+    throw new Error('Stop and settle the previous strategy before switching vaults.');
+  await send(v,plan(v,v.contractId,action,action==='archive'?{agent_id:v.agentId}:{},'30000000000000','0'));
+  await waitFor(()=>readSeedVault(v,factory),complete);
 }
 
 async function waitFor<T>(read:()=>Promise<T>, ready:(value:T)=>boolean) {

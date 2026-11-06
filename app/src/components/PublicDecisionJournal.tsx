@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 import { ArrowRight, Download, Fingerprint } from 'lucide-react';
-import { markets } from '../../../near-demo/types';
+import { markets, TEST_USDC } from '../../../near-demo/types';
 import type { JournalPage, PublicJournalEvent } from '../../../near-demo/directory/public-journal';
 import { readJournal } from '../lib/public-journal-client';
 import { paperAmount } from '../lib/paper-amount';
 import { AgentBackLink } from './AgentCollections';
+import { VaultWorkspace, type VaultRow } from './AgentVaults';
+import { useNearWallet } from './NearWalletProvider';
+import { strategySeedFactory } from '../lib/strategy-seed-factory-config';
+import { seedVaultAccount } from '../lib/seed-vault';
 import {
   EquityChart, InvestorProfile, InvestorProfileTabs, Metric, saveInvestorReport, type InvestorProfileTab,
 } from './InvestorAgentDetails';
@@ -25,6 +29,7 @@ export function PublicDecisionJournal() {
 
 export function PublishedInvestorProfile({agentId}: {agentId:string}) {
   const { search } = useLocation();
+  const { account } = useNearWallet();
   const [page, setPage] = useState<JournalPage>();
   const [latest, setLatest] = useState<JournalPage>();
   const [strategy, setStrategy] = useState<string>();
@@ -88,6 +93,14 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
   if (!latest) return <>{back}{alert}{!error&&<p role="status">Loading public decisions…</p>}</>;
 
   const agent = latest.agent;
+  const factory=strategySeedFactory;
+  const binding=current?.vault;
+  const vault:VaultRow|undefined = !switchingStrategy&&factory?.reporterId&&current&&binding&&
+    binding.contractId===seedVaultAccount(agent.controller,current.id,factory.id)?{
+      ...binding,agentId,runId:current.id,version:current.version,name:agent.name,network:'testnet',mode:'journal-nav',
+      controllerId:agent.controller,reporterId:factory.reporterId,tokenId:TEST_USDC,liveNav:true,
+      archived:latest.strategies[0]?.id!==current.id,
+    }:undefined;
   const selectedPage = !switchingStrategy && page?.strategyId === latest.strategyId ? page : undefined;
   const subset = latest.nextBefore !== null ? 'Latest 100 published events' : 'Published events';
   return <>
@@ -103,10 +116,10 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
         </div>
         <div className="nd-buttons">
           <button className="nd-button secondary" type="button" onClick={()=>selectTab('Model & evidence')}>Agent identity</button>
-          <a className="nd-button" href={`#${fundingId}`}>Investment pending <ArrowRight size={14}/></a>
+          <a className="nd-button" href={`#${fundingId}`}>{vault?(vault.archived?'Withdraw':'Invest'):'Investment pending'} <ArrowRight size={14}/></a>
         </div>
       </div>}
-      investment={<section className="nd-card av-invest-cta ag-switch-note" id={fundingId} aria-label="Investment availability">
+      investment={vault?<VaultWorkspace key={vault.contractId+account} fundingId={fundingId} v={vault} account={account} api={publicVaultRequest} refresh={async()=>{}}/>:<section className="nd-card av-invest-cta ag-switch-note" id={fundingId} aria-label="Investment availability">
         <div className="nd-eyebrow">NEAR TESTNET</div><h2>Investments are not open yet.</h2>
         <p>{current ? `Strategy v${current.version} has no investment vault linked to this profile.` : 'This agent has no published strategy to invest in.'} Each investable strategy version has its own vault and pump coin.</p>
       </section>}>
@@ -204,4 +217,13 @@ function JournalEvents({events,format,empty}:{events:PublicJournalEvent[];format
           </details></td>
         </tr>)}</tbody></table></div>}
   </div>;
+}
+
+async function publicVaultRequest(path:string,body?:unknown) {
+  const response=await fetch('/api/near-demo/public-'+path.slice(1),{
+    method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),
+  });
+  const result=await response.json();
+  if (!response.ok) throw new Error(result.error??'Could not verify the strategy vault.');
+  return result;
 }

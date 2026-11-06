@@ -13,14 +13,15 @@ export type PublicJournalEvent = {
   sourceHash: string;
 };
 export type JournalAgent = { id: string; name: string; model: string; controller: string };
-export type JournalStrategy = { id: string; version: number; market: string; openingSequence: number };
+export type JournalStrategy = { id: string; version: number; market: string; openingSequence: number;
+  vault?: { contractId:string; manifestHash:string; strategyHash:string; seedAmount:string; seedReceipt:string } };
 export type JournalBatch = {
   schema: typeof journalSchema;
   agent: JournalAgent;
   strategy: JournalStrategy | null;
   events: PublicJournalEvent[];
 };
-export type JournalListing = JournalAgent & { updatedAt: number };
+export type JournalListing = JournalAgent & { updatedAt: number; strategyVault?: string };
 export type JournalPage = {
   agent: JournalListing;
   strategies: (JournalStrategy & { updatedAt: number; head: number })[];

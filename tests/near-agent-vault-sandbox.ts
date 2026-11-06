@@ -195,6 +195,24 @@ try{
  assert.equal(await balanceOf(seeded),'0');
  assert.equal((await view(seeded,'seed_funding')).received,seedAmount);
  console.log('PASS: zero initial balance, exact owner seed, third-party and duplicate refunds, and owner withdrawal on NEAR Sandbox.');
+ const fundedRun='00000000-0000-4000-8000-000000000005';
+ const shared=await deployOwned(fundedRun,false);
+ await call(alice,TEST_USDC,'storage_deposit',{account_id:shared,registration_only:true},10n**23n);
+ for(const who of [alice,bob])await call(who,shared,'storage_deposit',{account_id:who,registration_only:true},10n**23n);
+ assert.equal(vaultReceiptEffect(await transfer(shared,bob,'1000000'),bob,shared).outcome,'refunded');
+ await call(alice,shared,'publish',{});
+ assert.equal(vaultReceiptEffect(await transfer(shared,alice,'2000000'),alice,shared).outcome,'confirmed');
+ assert.equal(vaultReceiptEffect(await transfer(shared,bob,'1000000'),bob,shared).outcome,'confirmed');
+ assert.equal(await balanceOf(shared),'3000000');
+ assert.equal(await view(shared,'ft_balance_of',{account_id:alice}),'2000000');
+ assert.equal(await view(shared,'ft_balance_of',{account_id:bob}),'1000000');
+ const replacement=await deployOwned('00000000-0000-4000-8000-000000000006',false);
+ await call(alice,shared,'archive',{agent_id:agentIds[0]});
+ assert.equal(vaultReceiptEffect(await transfer(shared,bob,'1000000'),bob,shared).outcome,'refunded');
+ assert.equal(vaultReceiptEffect(await redeem(shared,bob,'1000000'),bob,shared).outcome,'confirmed');
+ assert.equal(await balanceOf(shared),'2000000');
+ assert.equal(await balanceOf(replacement),'0');
+ console.log('PASS: owner seed and investor deposit share the existing strategy vault; a new version does not inherit their tokens.');
  if(!process.argv.includes('--skip-evidence'))writeFileSync(resolve('docs/testing/near-agent-vault-sandbox.json'),JSON.stringify({at:new Date().toISOString(),environment:'local NEAR Sandbox 2.13.4',token:'Sandbox FT fixture only, NOT Circle-issued USDC',observations},null,2)+'\n');
  console.log('PASS: keyless isolated WASM vaults, real FT mint/deposit/redemption callbacks, gain/loss conservation, same-wallet multi-strategy ownership, failed payout restoration, transferable shares.');
 }finally{node.kill('SIGTERM');await new Promise<void>(r=>node.exitCode!==null?r():node.once('exit',()=>r()));closeSync(log);}

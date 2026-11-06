@@ -23,9 +23,11 @@ import { authorizeWithOwnerWallet } from '../lib/public-journal-wallet';
 import { BrowserWorkspaceTransfer } from './BrowserWorkspaceTransfer';
 import { AgentSeedFunding } from './AgentSeedFunding';
 import { seedFactory } from '../lib/seed-factory-config';
+import { strategySeedFactory } from '../lib/strategy-seed-factory-config';
+
 const PumpDocs = lazy(() => import('./PumpDocs'));
 type Agent={visibility?:'private'|'public';id:string;createdAt:string;manifest:AgentManifest;commitment:string;sessionId:string;session:Session&{valuationStale:boolean;error?:string|null;metrics:{total:string|null;realized:string;unrealized:string|null;returnBps:number|null}};exercise?:{phase:string;disclosure:string;startedAt:string};activity:{buys:number;sells:number;directed:boolean;directedFills:number;decisions:number;holds:number;fills:number;blocked:number;latest:{at:string;proposal?:Proposal}|null;manual:boolean;firstAt:string|null;lastAt:string|null}};
-type Registry={directory?:{mode:string;url:string;enabledOwners:string[];error:string};directoryError?:string;vaultFactoryReady?:boolean;pendingStrategyAgents?:string[];vaults:VaultRow[];strategyRuns:ConsoleRun[];continuous:{enabled:boolean;targetPerAgent:number;activeAgentId:string|null;phase:string;error:string|null}|null;agents:Agent[];execution:ConsoleExecution;models:InstalledModel[];measurement:{modelId:string;completedBytes:number;totalBytes:number}|null;runtime:{modelId:string|null;phase:string;progress?:InferenceProgress};comparisons:BenchmarkRun[];market:{id:string;source:string;symbol:string;count:number;from:number;through:number;capturedAt:string;stale:boolean}|null;policy:{startingCash:string;decisions:number;feeBps:number;slippageBps:number;fill:string}};
+type Registry={directory?:{mode:string;url:string;enabledOwners:string[];error:string};directoryError?:string;vaultFactoryReady?:boolean;pendingStrategyAgents?:string[];strategyFundingDrafts?:FundingDraft[];vaults:VaultRow[];strategyRuns:ConsoleRun[];continuous:{enabled:boolean;targetPerAgent:number;activeAgentId:string|null;phase:string;error:string|null}|null;agents:Agent[];execution:ConsoleExecution;models:InstalledModel[];measurement:{modelId:string;completedBytes:number;totalBytes:number}|null;runtime:{modelId:string|null;phase:string;progress?:InferenceProgress};comparisons:BenchmarkRun[];market:{id:string;source:string;symbol:string;count:number;from:number;through:number;capturedAt:string;stale:boolean}|null;policy:{startingCash:string;decisions:number;feeBps:number;slippageBps:number;fill:string}};
 const dollars=(s:string|null|undefined)=>s==null?'—':(Number(s)/1e6).toLocaleString(undefined,{maximumFractionDigits:2});
 const percent=(n:number|undefined|null)=>n==null?'—':`${n>=0?'+':''}${(n/100).toFixed(2)}%`;
 const date=(s:string|number)=>new Date(s).toLocaleString();
@@ -80,7 +82,7 @@ function RegistryApp(){
   return <div className="near-demo na-shell"><Header/><main className="nd-main na-main">{needsRegistry&&error&&<p role="alert" className="nd-alert">{error}<button className="nd-text-button" onClick={()=>void refresh().catch(e=>setError(e.message))}>Retry</button></p>}{needsRegistry&&data?.directoryError&&<p role="alert" className="nd-alert">{data.directoryError}</p>}<Routes><Route path="/docs/:slug?" element={<Suspense fallback={<p role="status">Loading documentation…</p>}><PumpDocs/></Suspense>}/><Route path="/" element={<NearLanding data={data}/>}/><Route path="/console" element={<ConsolePage data={data} api={api} refresh={refresh} loadFailed={!!error}/>}/><Route path="/public-journal/:agentId" element={<PublicDecisionJournal/>}/><Route path="/vaults" element={<AgentVaults loading={!data} agents={data?.agents??[]} vaults={data?.vaults??[]} runs={data?.strategyRuns??[]} api={api} refresh={refresh}/>}/><Route path="/register" element={<Register data={data} api={api} refresh={refresh}/>}/><Route path="/agents/:agentId" element={<Profile data={data} api={api}/>}/><Route path="/evidence" element={data?<AgentLeaderboard api={api} agents={data.agents} runs={data.strategyRuns??[]} vaults={data.vaults??[]}/>:<p role="status">Loading leaderboard…</p>}/><Route path="/evidence/archive" element={<Evidence data={data} api={api}/>}/><Route path="*" element={<Navigate to="/vaults" replace/>}/></Routes><footer className="nd-footer"><span>pump · Evidence before capital.</span><span>Local declarations · Hypothetical returns · NEAR testnet</span></footer></main></div>;
 }
 type Props={data?:Registry;api:(path:string,body?:unknown)=>Promise<any>;refresh:()=>Promise<void>};
-function ConsolePanel({data,api,refresh}:Props){return data?<AgentConsole vaultFactoryReady={data.vaultFactoryReady} pendingStrategyAgents={data.pendingStrategyAgents} agents={data.agents} runs={data.strategyRuns??[]} execution={data.execution} runtime={data.runtime} vaults={data.vaults} unavailable={!!data.continuous?.enabled||data.comparisons.some(r=>r.state==='running')} api={api} refresh={refresh}/>:<p role="status">Loading agent console…</p>;}
+function ConsolePanel({data,api,refresh}:Props){return data?<AgentConsole vaultFactoryReady={data.vaultFactoryReady} pendingStrategyAgents={data.pendingStrategyAgents} strategyFundingDrafts={data.strategyFundingDrafts} agents={data.agents} runs={data.strategyRuns??[]} execution={data.execution} runtime={data.runtime} vaults={data.vaults} unavailable={!!data.continuous?.enabled||data.comparisons.some(r=>r.state==='running')} api={api} refresh={refresh}/>:<p role="status">Loading agent console…</p>;}
 function ConsolePage(props:Props&{loadFailed?:boolean}){
   const location=useLocation(),wallet=useNearWallet(),q=new URLSearchParams(location.search),id=q.get('agent');
   if(!props.data&&props.loadFailed)return <Title eyebrow="CREATOR WORKSPACE" title="My agents" body="Configure strategies and follow your agents’ decisions."><Link className="nd-button" to="/register">Create an agent</Link></Title>;
@@ -182,11 +184,12 @@ function Register({data,api,refresh}:Props){
       const input=registration();
       let agentId:string;
       if(hostedApp){
-        if(!seedFactory)throw new Error('The testnet seed vault factory has not been released yet.');
+        const registrationFactory=input.visibility==='public'?strategySeedFactory:seedFactory;
+        if(!registrationFactory)throw new Error('The testnet strategy vault factory has not been released yet.');
         if(wallet.account!==input.controller)throw new Error('Connect the agent owner’s NEAR testnet wallet.');
         const selected=browserModels.find(candidate=>candidate.id===input.modelId);
         if(!selected)throw new Error('Select one of the detected installed models.');
-        const draft=await prepareBrowserAgent(input,selected,seedFactory,bytes=>setMeasurementPercent(Math.floor(bytes/selected.bytes*100)));
+        const draft=await prepareBrowserAgent(input,selected,registrationFactory,bytes=>setMeasurementPercent(Math.floor(bytes/selected.bytes*100)));
         setFunding(draft);
         setSavedFunding(items=>[...items,draft]);
         return;
@@ -202,9 +205,10 @@ function Register({data,api,refresh}:Props){
       if(hostedApp)await browserFundingDrafts().then(setSavedFunding).catch(()=>{});
     }finally{setBusy('');}
   }
+  const fundingFactory=funding?.vault.factoryId===strategySeedFactory.id?strategySeedFactory:seedFactory;
   async function finishFunding(){
-    if(!funding||!seedFactory)return;
-    const {id}=await finishBrowserAgent(funding,seedFactory);
+    if(!funding||!fundingFactory)return;
+    const {id}=await finishBrowserAgent(funding,fundingFactory);
     if(funding.visibility==='public'){
       try{await authorizeWithOwnerWallet(funding.vault.owner,wallet.account);await publishBrowserAgent(id);}
       catch{navigate(`/console?agent=${id}&scope=local`);return;}
@@ -225,14 +229,14 @@ function Register({data,api,refresh}:Props){
   }
   function next(){try{registration(step>1);setError('');setStep(step+1);window.scrollTo(0,0);}catch(e){setError((e as Error).message);}}
   const input=(label:string,value:string,set:(s:string)=>void,hint?:string)=><label>{label}<input required value={value} onChange={e=>set(e.target.value)}/>{hint&&<small>{hint}</small>}</label>;
-  if(funding&&seedFactory)return <AgentSeedFunding key={funding.vault.agentId} draft={funding} factory={seedFactory}
+  if(funding&&fundingFactory)return <AgentSeedFunding key={funding.vault.agentId} draft={funding} factory={fundingFactory}
     onFinish={finishFunding} onBack={closeFunding} onArchive={()=>changeFundingArchive(funding,true)}/>;
   const pendingFunding=savedFunding.filter(draft=>!draft.archived),archivedFunding=savedFunding.filter(draft=>draft.archived);
   return <><div className="nd-title na-title"><h1>Create your trading agent.</h1></div>
-    {seedFactory&&pendingFunding.length>0&&<section className="nd-card na-detail"><h2>Continue vault funding</h2>
+    {pendingFunding.length>0&&<section className="nd-card na-detail"><h2>Continue vault funding</h2>
       <div className="nd-buttons">{pendingFunding.map(draft=><button type="button" className="nd-button secondary" key={draft.vault.agentId}
         onClick={()=>setFunding(draft)}>Resume {draft.manifest.name}</button>)}</div></section>}
-    {seedFactory&&archivedFunding.length>0&&<details className="nd-card na-detail"><summary>Archived funding drafts</summary>
+    {archivedFunding.length>0&&<details className="nd-card na-detail"><summary>Archived funding drafts</summary>
       <div className="nd-buttons">{archivedFunding.map(draft=><button type="button" className="nd-button secondary" key={draft.vault.agentId}
         disabled={restoringFunding} onClick={()=>void restoreFunding(draft)}>Restore {draft.manifest.name}</button>)}</div></details>}
     <div className="na-registration">
