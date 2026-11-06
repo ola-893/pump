@@ -35,6 +35,7 @@ const publicSyncErrors = new Map<string, string>();
 
 const databaseName = 'pump-browser-workspace';
 const executionLock = 'pump-browser-inference';
+const strategyLockPrefix = 'pump-browser-strategy:';
 const executions = new Map<string, { controller: AbortController; continuous: boolean }>();
 const errors = new Map<string, string>();
 let activeSession: string | null = null;
@@ -145,12 +146,17 @@ function strategyView(run: StoredRun, archived: boolean) {
 }
 
 export async function browserWorkspace() {
-  const records = await listAgents();
+  const [records, locks] = await Promise.all([listAgents(), navigator.locks?.query()]);
+  const held = locks?.held ?? [];
+  const otherTabBusy = executions.size === 0 && held.some(lock => lock.name === executionLock);
+  const otherTabRunId = otherTabBusy
+    ? held.find(lock => lock.name?.startsWith(strategyLockPrefix))?.name?.slice(strategyLockPrefix.length)
+    : undefined;
   return {
     agents: records.map(agentView),
     strategyRuns: records.flatMap(agent => agent.runs.map((run, index) => strategyView(run, index !== 0))),
     // Runtime and vault state are only populated by an actual runtime or vault.
-    vaults: [], execution: { activeId: activeSession, queued: [] }, models: [], measurement: null,
+    vaults: [], execution: { activeId: activeSession, queued: [], otherTabBusy, otherTabRunId }, models: [], measurement: null,
     continuous: null, runtime: { modelId: null, phase: runtimePhase }, comparisons: [], market: null,
     policy: BENCHMARK_POLICY,
   };
@@ -376,9 +382,24 @@ async function runPaperCycle(agent: StoredAgent, run: StoredRun, signal: AbortSi
   }
 }
 
+function withPaperExecution<T>(runId: string, work: () => Promise<T>) {
+  return navigator.locks.request(executionLock, { ifAvailable: true }, lock => {
+    if (!lock) throw new Error('A browser paper session is already running.');
+    // The strategy lock identifies the run to other tabs and disappears if this tab closes.
+    return navigator.locks.request(strategyLockPrefix + runId, work);
+  });
+}
+
 async function browserStrategyAction(agent: StoredAgent, run: StoredRun, action: string) {
   if (action === 'stop') {
-    executions.get(run.id)?.controller.abort();
+    const execution = executions.get(run.id);
+    if (!execution) {
+      const locks = await navigator.locks?.query();
+      if (locks?.held?.some(lock => lock.name === strategyLockPrefix + run.id))
+        throw new Error('Switch to the tab running this strategy to stop it.');
+      return { session: strategySession(run) };
+    }
+    execution.controller.abort();
     if (activeSession === run.sessionId) runtimePhase = 'stopping';
     return { session: strategySession(run) };
   }
@@ -386,8 +407,7 @@ async function browserStrategyAction(agent: StoredAgent, run: StoredRun, action:
   if (agent.runs[0]?.id !== run.id) throw new Error('This strategy is archived. Open the current version.');
   if (!navigator.locks) throw new Error('This browser cannot coordinate paper sessions across tabs.');
   if (action !== 'start') {
-    return navigator.locks.request(executionLock, { ifAvailable: true }, async lock => {
-      if (!lock) throw new Error('A browser paper session is already running.');
+    return withPaperExecution(run.id, async () => {
       const controller = new AbortController();
       executions.set(run.id, { controller, continuous: false });
       try {
@@ -403,8 +423,7 @@ async function browserStrategyAction(agent: StoredAgent, run: StoredRun, action:
   const existing = executions.get(run.id);
   if (existing?.continuous && !existing.controller.signal.aborted) return { session: strategySession(run) };
   return new Promise<{ session: ReturnType<typeof strategySession> }>((resolve, reject) => {
-    void navigator.locks.request(executionLock, { ifAvailable: true }, async lock => {
-      if (!lock) throw new Error('A browser paper session is already running.');
+    void withPaperExecution(run.id, async () => {
       const controller = new AbortController();
       executions.set(run.id, { controller, continuous: true });
       errors.delete(run.id);
