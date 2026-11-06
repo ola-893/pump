@@ -2,6 +2,7 @@ import { digest, verifyHistory } from '../../../near-demo/ledger.js';
 import { PaperDemo } from '../../../near-demo/service.js';
 import { IntentMarkets } from '../../../near-demo/intent-markets.js';
 import { BrowserPaperStore } from './browser-paper-store.js';
+import type { InferenceProgress, ReportInferenceProgress } from './browser-inference-progress.js';
 import type { WorkspaceAgent, WorkspacePaper, WorkspaceStrategy, WorkspaceTransfer } from '../../../near-demo/workspace-transfer.js';
 import { initialPortfolio, metrics } from '../../../near-demo/paper-state.js';
 import { BENCHMARK_POLICY, type AgentManifest, type StrategyRun, type StrategySettings } from '../../../near-demo/public-types.js';
@@ -43,6 +44,7 @@ const executions = new Map<string, { controller: AbortController; continuous: bo
 const errors = new Map<string, string>();
 let activeSession: string | null = null;
 let runtimePhase = 'idle';
+let inferenceProgress: InferenceProgress | undefined;
 
 async function workspaceDatabase() {
   const db = await new Promise<IDBDatabase>((resolve, reject) => {
@@ -159,7 +161,8 @@ function strategyView(run: StoredRun, archived: boolean, otherTabRunId?: string)
 }
 
 export async function browserWorkspace() {
-  const [records, locks] = await Promise.all([listAgents(), navigator.locks?.query()]);
+  const [stored, locks] = await Promise.all([listAgents(), navigator.locks?.query()]);
+  const records = stored.filter(agent=>agent.seedVault);
   const held = locks?.held ?? [];
   const runtimeBusy = executions.size > 0 || held.some(lock => lock.name === executionLock);
   const otherTabBusy = executions.size === 0 && runtimeBusy;
@@ -171,7 +174,7 @@ export async function browserWorkspace() {
     strategyRuns: records.flatMap(agent => agent.runs.map((run, index) => strategyView(run, index !== 0, otherTabRunId))),
     // Runtime and vault state are only populated by an actual runtime or vault.
     vaults: [], execution: { activeId: activeSession, queued: [], runtimeBusy, otherTabBusy, otherTabRunId }, models: [], measurement: null,
-    continuous: null, runtime: { modelId: null, phase: runtimePhase }, comparisons: [], market: null,
+    continuous: null, runtime: { modelId: null, phase: runtimePhase, progress: inferenceProgress }, comparisons: [], market: null,
     policy: BENCHMARK_POLICY,
   };
 }
@@ -406,17 +409,24 @@ async function runPaperCycle(agent: StoredAgent, run: StoredRun, signal: AbortSi
   const service = new PaperDemo(store);
   const sessionId = current.sessionId;
   activeSession = sessionId;
+  const startedAt=Date.now();
+  const reportProgress:ReportInferenceProgress=(stage,completedBytes,totalBytes)=>{
+    inferenceProgress={stage,completedBytes,totalBytes,startedAt};
+  };
+  reportProgress('scanning');
   try {
     if (action === 'cycle') {
       runtimePhase = 'loading';
       const { prepareBrowserModel, browserInference } = await import('./browser-inference.js');
-      const model = await prepareBrowserModel(agent.manifest, current.paper.session.agent!.modelId, signal);
+      const model = await prepareBrowserModel(agent.manifest, current.paper.session.agent!.modelId, signal, reportProgress);
       signal.throwIfAborted();
       runtimePhase = 'running';
-      service.setInferenceProvider(browserInference(model, {id:current.id,commitment:current.commitment}, signal));
+      service.setInferenceProvider(browserInference(model, {id:current.id,commitment:current.commitment}, signal, reportProgress));
     }
+    reportProgress('quoting');
     const result = await (action === 'mark' ? service.refresh(sessionId) : service.cycle(sessionId));
     signal.throwIfAborted();
+    reportProgress('saving');
     await saveCycle(agent.id, current.id, revision, current.paper, signal);
     void syncIfPublic(agent.id);
     if (result.error) errors.set(current.id, result.error);
@@ -426,6 +436,7 @@ async function runPaperCycle(agent: StoredAgent, run: StoredRun, signal: AbortSi
     service.close();
     activeSession = null;
     runtimePhase = 'idle';
+    inferenceProgress = undefined;
   }
 }
 
