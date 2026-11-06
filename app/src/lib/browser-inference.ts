@@ -1,10 +1,11 @@
 /// <reference path="../vite-env.d.ts" />
 import type { Wllama } from '@wllama/wllama/esm/wllama.js';
 import wasmUrl from '@wllama/wllama/esm/wasm/wllama.wasm?url';
-import { parseProposal, proposalRequest, type ModelDecision } from '../../../near-demo/model.js';
+import { parseProposal, type ModelDecision } from '../../../near-demo/model.js';
 import type { AgentManifest } from '../../../near-demo/public-types.js';
 import { lastModelDirectory, scanModelDirectory } from './browser-models.js';
 import { BrowserRuntimeCache, runtimeDiagnostics } from './browser-runtime.js';
+import { browserProposalRequest } from './browser-proposal.js';
 
 const runtimes=new BrowserRuntimeCache<Wllama>();
 let diagnostics=runtimeDiagnostics();
@@ -49,7 +50,7 @@ export async function prepareBrowserModel(manifest: AgentManifest, modelId: stri
 export function browserInference(runtime: Wllama, strategyVersion: { id: string; commitment: string }, signal: AbortSignal): typeof import('../../../near-demo/model.js').infer {
   return async (session, market, _fetcher, context): Promise<ModelDecision> => {
     const id = session.agent!.modelId;
-    const request = proposalRequest(session, market, id, { ...context!, strategyVersion });
+    const request = browserProposalRequest(session, market, strategyVersion, context);
     const response = await runtimes.evaluate(runtime,()=>runtime.createChatCompletion({
       messages: request.messages.map(message => ({ role: message.role as 'system' | 'user', content: message.content })),
       model: id, temperature: 0, max_tokens: 512,

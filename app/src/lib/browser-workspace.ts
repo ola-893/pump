@@ -338,7 +338,7 @@ async function runPaperCycle(agent: StoredAgent, run: StoredRun, signal: AbortSi
       const model = await prepareBrowserModel(agent.manifest, current.paper.session.agent!.modelId);
       signal.throwIfAborted();
       runtimePhase = 'running';
-      service.setInferenceProvider(browserInference(model, current, signal));
+      service.setInferenceProvider(browserInference(model, {id:current.id,commitment:current.commitment}, signal));
     }
     const result = await (action === 'mark' ? service.refresh(sessionId) : service.cycle(sessionId));
     await saveCycle(agent.id, current.id, revision, current.paper);
