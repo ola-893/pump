@@ -86,8 +86,9 @@ test('catalog markets use native amounts and only pass with signed quotes both w
   const {market,entry,exit}=JSON.parse(readFileSync(new URL('../docs/testing/near-budget-20261020/signed-sol-eth-dry-quotes.json',import.meta.url),'utf8'));
   const now=()=>Date.parse(exit.receivedAt);
   let catalogs=0,failExit=false;
-  const fetcher:typeof fetch=async(url,options)=>{
+  const fetcher:typeof fetch=async function(this:void,url,options){
     if(String(url).endsWith('/tokens')){
+      assert.equal(this,undefined,'Browser fetch cannot be called as a method on the catalog object');
       catalogs++;
       return new Response(JSON.stringify([market.base,market.quote]));
     }

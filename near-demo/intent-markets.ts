@@ -16,7 +16,8 @@ export class IntentMarkets {
   }
 
   private async load() {
-    const response=await this.fetcher('https://1click.chaindefuser.com/v0/tokens',{redirect:'error',signal:AbortSignal.timeout(8000)});
+    const fetcher = this.fetcher;
+    const response=await fetcher('https://1click.chaindefuser.com/v0/tokens',{redirect:'error',signal:AbortSignal.timeout(8000)});
     if(!response.ok)throw new Error('The NEAR Intents asset catalog is unavailable. Try again shortly.');
     const text=await response.text();
     if(text.length>2*1024*1024)throw new Error('The NEAR Intents asset catalog exceeds the supported response size.');
