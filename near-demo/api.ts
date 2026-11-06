@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { allowedRequest } from './local-origin.js';
+import { LocalBridge } from './local-bridge.js';
 import { PaperDemo } from './service.js';
 import { DemoStore } from './store.js';
 import { TestnetDemo, type TestnetConfig } from './testnet.js';
@@ -22,7 +23,8 @@ import {StrategyVaultUpgrade} from './strategy-vault-upgrade.js';
 import {vaultReadiness} from './vault-readiness.js';
 const PREFIX='/api/near-demo';
 export function nearDemoApi(options:{publicOnly?:boolean;paper?:PaperDemo;testnet?:TestnetDemo;vaultConfig?:VaultConfig;vaultFetcher?:typeof fetch;directoryKeyPermission?:(account:string,key:string)=>Promise<string>}={}){
-  const paper=options.paper??new PaperDemo(new DemoStore(fileURLToPath(new URL('../.local/near-demo/paper.sqlite',import.meta.url))));
+  const paper=options.paper??new PaperDemo(new DemoStore(process.env.PUMP_DEMO_DB??fileURLToPath(new URL('../.local/near-demo/paper.sqlite',import.meta.url))));
+  const bridge=options.publicOnly?undefined:new LocalBridge();
   const testnet=options.testnet??new TestnetDemo(JSON.parse(readFileSync(new URL('../deployments/near-demo-testnet.json',import.meta.url),'utf8')) as TestnetConfig);
   const agents=new NearAgents(paper);
   const continuous=new ContinuousTrading(agents,{autoResume:!options.publicOnly});
@@ -45,6 +47,8 @@ export function nearDemoApi(options:{publicOnly?:boolean;paper?:PaperDemo;testne
   }
   const send=(res:ServerResponse,code:number,body:unknown)=>{res.writeHead(code,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(body));};
   async function handle(req:IncomingMessage,res:ServerResponse,next:()=>void){
+    if(await bridge?.handle(req,res))return;
+    const paired=bridge?.authorized(req)??false;
     if(req.url?.startsWith('/api/pump-directory/')){const original=req.url;req.url=req.url.slice('/api/pump-directory'.length);try{await sharedHandler(req,res);}finally{req.url=original;}return;}
     if(!req.url?.startsWith(PREFIX)){next();return;}
     if(options.publicOnly){
@@ -52,15 +56,15 @@ export function nearDemoApi(options:{publicOnly?:boolean;paper?:PaperDemo;testne
       if(!(req.method==='GET'&&req.url===PREFIX+'/public-status')&&!(req.method==='POST'&&reads.has(req.url.slice(PREFIX.length)))){
         send(res,403,{error:'Agent controls run on your computer. Open your local Pump workspace.'});return;
       }
-    }else if(!allowedRequest(req)){send(res,403,{error:'Demo controls accept only this loopback application origin.'});return;}
+    }else if(!allowedRequest(req)&&!paired){send(res,403,{error:'Connect this browser tab to the local runner.'});return;}
     if(req.url===PREFIX+'/public-status'&&req.method==='GET'){const registry=agents.publicStatus();let directoryError='';let external:any[]=[];try{external=await externalCatalog();}catch{directoryError='Shared directory unavailable; local public agents shown.';}
       registry.agents.push(...external.map(x=>({...x.entry.agent,directoryProof:x.proof,runnerOffline:x.offline})));
       registry.strategyRuns.push(...external.flatMap(x=>x.entry.runs.map((r:any)=>({...r,session:{...r.session,state:x.offline?'stopped':r.session.state,valuationStale:x.offline||r.session.portfolio.position!=='0'&&(!r.session.portfolio.markAt||Date.now()-Date.parse(r.session.portfolio.markAt)>30000)}}))));
       const ids=new Set(registry.agents.map(a=>a.id));send(res,200,{mode:'public-paper-catalog',mainnetTrading:false,registry:{...registry,directoryError,liveNavErrors:liveNav.status().filter(x=>registry.strategyRuns.some(r=>r.id===x.runId)),vaults:[...vaults.list().filter(v=>ids.has(v.agentId)),...external.flatMap(x=>x.entry.vaults)]}});return;}
     const publicPaths=new Set(['/nav-evidence','/strategy-report','/strategy-history','/history','/vault-state','/vault-plan','/vault-receipt']);
     const publicRequest=req.url.startsWith(PREFIX+'/public-'),requestedPath=publicRequest?'/'+req.url.slice((PREFIX+'/public-').length):req.url.slice(PREFIX.length);
-    if(req.url===PREFIX+'/status'&&req.method==='GET'){send(res,200,{token,sessions:paper.list(),testnet:testnet.config,mode:'paper-with-optional-testnet-clearing',mainnetTrading:false,registry:{...agents.status(),directory:directoryRunner.status(),liveNavErrors:liveNav.status(),vaults:vaults.list(),pendingStrategyAgents:strategyDeployment.pending(),vaultFactoryReady:vaults.config().factory?.liveNav===true,continuous:continuous.status()}});return;}
-    if(req.method!=='POST'||req.headers['content-type']?.split(';')[0]!=='application/json'||(publicRequest?!publicPaths.has(requestedPath):req.headers['x-pumpcoin-demo-token']!==token)){send(res,403,{error:'Refresh to establish a local demo session.'});return;}
+    if(req.url===PREFIX+'/status'&&req.method==='GET'){send(res,200,{token:paired?req.headers['x-pumpcoin-demo-token']:token,sessions:paper.list(),testnet:testnet.config,mode:'paper-with-optional-testnet-clearing',mainnetTrading:false,registry:{...agents.status(),directory:directoryRunner.status(),liveNavErrors:liveNav.status(),vaults:vaults.list(),pendingStrategyAgents:strategyDeployment.pending(),vaultFactoryReady:vaults.config().factory?.liveNav===true,continuous:continuous.status()}});return;}
+    if(req.method!=='POST'||req.headers['content-type']?.split(';')[0]!=='application/json'||(publicRequest?!publicPaths.has(requestedPath):!paired&&req.headers['x-pumpcoin-demo-token']!==token)){send(res,403,{error:'Refresh to establish a local demo session.'});return;}
     try {
       const chunks:Buffer[]=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>16384)throw new Error('Demo request too large.');chunks.push(Buffer.from(chunk));}
       const b=JSON.parse(Buffer.concat(chunks).toString('utf8'));if(!b||typeof b!=='object'||Array.isArray(b))throw new Error('Invalid request.');
