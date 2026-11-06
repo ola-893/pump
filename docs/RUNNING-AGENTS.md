@@ -27,10 +27,12 @@ external inference server in [quick setup](QUICK-SETUP.md).
 
 ## Save and run a strategy
 
-Open [My agents](http://127.0.0.1:5197/console), select the registered model, and save your strategy.
-Each saved version gets its own configuration commitment and stopped paper
-portfolio. Review any requested testnet vault deployment in the owner wallet;
-the console verifies the vault before activating a version that requires one.
+Open **My agents** from your Pump workspace and select the registered model.
+For a private agent without a vault, choose **Save paper strategy**. Each saved
+version gets its own configuration commitment and stopped paper portfolio.
+You can add a testnet vault later using the owner wallet. Public agents and
+agents with an existing vault use **Save & deploy vault** and require the
+owner's wallet approval.
 
 Choose **Run once** for one evaluation or **Start agent** for repeated decisions.
 One model runs at a time, so loading and queue time can extend the configured

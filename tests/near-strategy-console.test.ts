@@ -20,9 +20,10 @@ const fixtureNow=()=>Date.parse(raw.timestamp);
 const fixtureQuotes=()=>({get:async(tokenIn:string,tokenOut:string,amountIn:string)=>liveQuotes((async()=>new Response(JSON.stringify(raw),{status:201})) as typeof fetch,fixtureNow).get(tokenIn,tokenOut,amountIn,raw.quoteRequest.slippageTolerance)});
 const config:Config={name:'katana',initialCash:'100000000',tradeCap:'20000000',exposureCap:'80000000',dailyTurnoverCap:'100000000',slippageBps:50,executionDelayMs:1500,maxQuoteAgeMs:30000,source:'live',endpoint:'http://127.0.0.1:8093/v1',strategy:'Original public strategy; preserve capital.',intervalMs:60000};
 const settings={label:'Momentum strategy',strategy:'Buy only a confirmed rising hourly trend with volume. Size from volatility; exit if the trend breaks. HOLD without confirmation.',initialCash:'100000000',tradeCap:'15000000',exposureCap:'60000000',dailyTurnoverCap:'90000000',slippageBps:50,intervalMs:60000};
-function addAgent(agents:NearAgents,name='katana'){
+function addAgent(agents:NearAgents,name='katana',visibility?:AgentRecord['visibility']){
  const session=agents.paper.create({...config,name});const manifest:AgentManifest={version:'PUMPCOIN-NEAR-AGENT-v1',name,controller:'operator.testnet',network:'NEAR testnet',model:{id:'named-fixture-'+name,filename:name+'.gguf',bytes:1234,sha256:'a'.repeat(64),quantization:'fixture'},inference:{policy:'self-hosted-only',runtime:'llama.cpp',context:4096,attestation:'none'},strategy:{description:config.strategy,pair:'wNEAR / USDC',tradeCap:config.tradeCap,exposureCap:config.exposureCap,dailyTurnoverCap:config.dailyTurnoverCap,slippageBps:50,intervalMs:60000},mode:'paper trading; optional Circle testnet clearing',evidence:'locally measured weights; unsigned local declaration'};
  const a:AgentRecord={id:randomUUID(),createdAt:new Date().toISOString(),manifest,commitment:digest(manifest),sessionId:session.id,local:{modelId:'fixture-'+name,path:'/fixture/'+name+'.gguf',stamp:'test-fixture'}};
+ if(visibility)a.visibility=visibility;
  agents.paper.store.db.prepare('INSERT INTO near_agents(id,body) VALUES(?,?)').run(a.id,canonical(a));return a;
 }
 function fixture(){const store=new DemoStore(':memory:'),paper=new PaperDemo(store,{quotes:fixtureQuotes,now:fixtureNow,delay:async()=>{}}),agents=new NearAgents(paper),a=addAgent(agents);return {store,paper,agents,a};}
@@ -83,6 +84,16 @@ test('console endpoints wire save, view, run-once, journal and export while enfo
  const server=createServer((req,res)=>void api.handle(req,res,()=>{res.writeHead(404);res.end();}));server.listen(0,'127.0.0.1');await once(server,'listening');const base=`http://127.0.0.1:${(server.address() as any).port}/api/near-demo`;let token='';
  const post=async(path:string,body:unknown,extra:Record<string,string>={})=>{const r=await fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json','X-Pumpcoin-Demo-Token':token,...extra},body:JSON.stringify(body)});return {status:r.status,body:await r.json() as any};};
  try{const state=await (await fetch(base+'/status')).json() as any;token=state.token;
+ const privateAgent=addAgent(api.agents,'private-fixture','private');
+ const privateSave={agentId:privateAgent.id,expectedVersion:0,settings};
+ assert.equal((await post('/strategy-save-paper',privateSave,{'X-Pumpcoin-Demo-Token':'wrong'})).status,403);
+ assert.equal((await post('/strategy-save-paper',{...privateSave,agentId:a.id})).status,400);
+ const paperOnly=await post('/strategy-save-paper',privateSave);
+ assert.equal(paperOnly.status,200,JSON.stringify(paperOnly.body));
+ assert.equal(paperOnly.body.phase,'active');
+ assert.equal(paperOnly.body.run.session.state,'stopped');
+ assert.equal(api.vaults.list().length,0);
+ assert.equal((await post('/strategy-save-paper',privateSave)).status,400);
  assert.equal((await post('/strategy-save',{agentId:a.id,expectedVersion:0,settings,account},{Origin:'https://external.example'})).status,403);
  assert.equal((await post('/strategy-save',{agentId:a.id,expectedVersion:0,settings,account},{'X-Pumpcoin-Demo-Token':'wrong'})).status,403);
  assert.equal((await post('/strategy-save',{agentId:a.id,expectedVersion:0,settings,account,endpoint:'https://remote.example'})).status,400);
