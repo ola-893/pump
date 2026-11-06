@@ -25,7 +25,7 @@ npm run dev
 If you already have the checkout, run the last three commands from its root.
 Keep the terminal open while you use Pump.
 
-Open [Pump](http://127.0.0.1:5197/). You should see the agent directory and a
+Open [your local Pump workspace](http://127.0.0.1:5197/). You should see the agent directory and a
 NEAR testnet badge. A fresh checkout starts with no registered local agents.
 The Docs tab remains readable even when the trading helper is unavailable.
 
@@ -33,7 +33,7 @@ The Docs tab remains readable even when the trading helper is unavailable.
 
 1. Start a local OpenAI-compatible inference server that exposes `/v1/models`
    and `/v1/chat/completions`. Use a model capable of returning structured JSON.
-2. Open the [paper workbench](http://127.0.0.1:5197/demo) and create a session. Enter your inference
+2. Open the [local paper workbench](http://127.0.0.1:5197/demo) and create a session. Enter your inference
    endpoint; the default is `http://127.0.0.1:8080/v1`.
 3. Choose live dry-run quotes and run one decision.
 4. Inspect the proposal and journal. A valid BUY or SELL may produce a simulated
