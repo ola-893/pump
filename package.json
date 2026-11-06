@@ -38,7 +38,8 @@
     "nav:verify": "node --import tsx near-demo/verify-nav.ts",
     "strategy:verify": "node --import tsx near-demo/verify-strategy.ts",
     "start:public": "node --import tsx near-demo/public-server.ts",
-    "build:netlify": "node scripts/build-netlify.mjs"
+    "build:netlify": "node scripts/build-netlify.mjs",
+    "build:cloudflare": "node scripts/build-cloudflare.mjs"
   },
   "dependencies": {
     "@defuse-protocol/one-click-sdk-typescript": "0.1.26",

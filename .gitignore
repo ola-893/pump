@@ -26,3 +26,4 @@ staging/verifier/.git/
 .netlify/
 .railway/
 .data/
+.wrangler/
