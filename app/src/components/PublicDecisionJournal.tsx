@@ -64,10 +64,12 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
   const format = (value:string|null) => value === null ? '—' : `${market ? paperAmount(value, market.quoteDecimals) : value} ${quote.quoteSymbol}`;
   const switchingStrategy = strategy !== undefined && strategy !== latest?.strategyId;
   const events = switchingStrategy ? [] : latest?.events ?? [];
-  const lastEquity = events.find(event => event.equity !== null);
+  const liveMarks = switchingStrategy ? [] : latest?.marks ?? [];
+  const lastEquity = [...events, ...liveMarks].reduce<{at:string;equity:string}|undefined>((latest, item) =>
+    item.equity !== null && (!latest || item.at > latest.at) ? {at:item.at,equity:item.equity} : latest, undefined);
   const fills = events.filter(event => event.kind === 'fill');
   const decisions = events.filter(event => event.kind === 'model');
-  const pnl = publicPaperPnl(events,switchingStrategy?[]:latest?.marks);
+  const pnl = publicPaperPnl(events,liveMarks);
   const total = pnl.latest?.equity ?? null;
   const fundingId = `investor-vault-${agentId}`;
   const alert = error && <p role="alert" className="nd-alert">{error}</p>;
