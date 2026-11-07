@@ -6,6 +6,19 @@ import { base58 } from '@scure/base';
 import { PumpDirectory, publicationHash } from '../near-demo/directory/service.js';
 import { journalSchema, publicJournalEvent, type JournalBatch, type PublicJournalEvent } from '../near-demo/directory/public-journal.js';
 import type { Event } from '../near-demo/types.js';
+import { publicPaperPnl } from '../app/src/lib/public-paper-pnl.js';
+
+test('public P&L stays flat through funding and moves only by realized trading gains or losses', () => {
+  const opening = { at:'2026-11-07T11:00:00.000Z', equity:'1000000', realized:'0' };
+  const deposit = { at:'2026-11-07T11:47:10.000Z', equity:'21000000', realized:'0' };
+  const exit = { at:'2026-11-07T12:02:57.000Z', equity:'20905374', realized:'-94626' };
+  const later = { at:'2026-11-07T12:12:00.000Z', equity:'19905374', realized:'0' };
+  assert.equal(publicPaperPnl([deposit,opening]).total, '0');
+  assert.deepEqual(publicPaperPnl([later,exit,deposit,opening]), {
+    total:'-94626',
+    observations:[{at:opening.at,equity:'0'},{at:exit.at,equity:'-94626'},{at:later.at,equity:'-94626'}],
+  });
+});
 
 test('public journal requires owner authorization, rejects gaps and rewrites, and pages the signed record', () => {
   const db = new DatabaseSync(':memory:');
