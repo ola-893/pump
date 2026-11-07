@@ -569,7 +569,9 @@ async function runPaperCycle(agent: StoredAgent, run: StoredRun, signal: AbortSi
   try {
     if (action === 'cycle') {
       runtimePhase = 'loading';
-      const { prepareBrowserModel, browserInference } = await import('./browser-inference.js');
+      const { prepareBrowserModel, browserInference } = await import('./browser-inference.js').catch(cause => {
+        throw new Error('Pump could not download its browser runtime. Reload this tab and try Start agent again.', { cause });
+      });
       const model = await prepareBrowserModel(agent.manifest, current.paper.session.agent!.modelId, signal, reportProgress);
       signal.throwIfAborted();
       runtimePhase = 'running';
