@@ -138,7 +138,11 @@ export class AgentVaults {
  async stopRound(agentId:string,runId:string){const o=await this.inspect(agentId,runId);if(!o.state.round)throw new Error('No active round.');const r=this.agents.strategies.read(o.state.round.run_id);if(r.agentId!==agentId)throw new Error('Round belongs to another agent.');return this.agents.strategies.action(r.id,'stop');}
  async receipt(agentId:string,runId:string,account:string,hash:string){
   testAccount(account);const v=this.deployment(agentId,runId);if(!/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(hash))throw new Error('Invalid transaction hash.');
-  const r=await this.rpc('tx',{tx_hash:hash,sender_account_id:account,wait_until:'FINAL'});
+  const r=await this.rpc('tx',{tx_hash:hash,sender_account_id:account,wait_until:'NONE'}).catch(error=>{
+   if(error instanceof RpcQueryError&&error.data?.cause?.name==='UNKNOWN_TRANSACTION')
+    throw new Error('Transaction not found on NEAR testnet for this account. Check the hash and connected wallet.');
+   throw error;
+  });
   if(r.transaction?.hash!==hash)throw new Error('Transaction hash differs from the requested receipt.');
   const effect=vaultReceiptEffect(r,account,v.contractId),outcomes=[r.transaction_outcome,...(r.receipts_outcome??[])];
   return {hash,status:r.final_execution_status!=='FINAL'?'pending':r.status?.Failure||outcomes.some((x:any)=>x?.outcome?.status?.Failure)?'failed':'final',effect,observation:await this.inspect(agentId,runId,account)};

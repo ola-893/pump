@@ -6,6 +6,7 @@ import {PaperDemo} from '../near-demo/service.js';
 import {NearAgents,type AgentRecord} from '../near-demo/agents.js';
 import {AgentVaults,vaultAccount,ownedVaultAccount,type VaultConfig} from '../near-demo/agent-vaults.js';
 import {TestnetDemo} from '../near-demo/testnet.js';
+import {RpcQueryError} from '../near-demo/rpc.js';
 import {TEST_USDC,type Config} from '../near-demo/types.js';
 import {canonical,digest} from '../near-demo/ledger.js';
 import {validateVaultPlan} from '../app/src/lib/agent-vault-wallet.js';
@@ -25,6 +26,18 @@ function fixture(live=false){
  return {store,paper,agents,a,run,state,vaults,target,cfg,setWrongCode:()=>wrongCode=true,setKeys:()=>keys=[{public_key:'fixture'}],close:async()=>{paper.close();await agents.close();store.close();}};
 }
 test('agent vault observes pinned code, model declaration and separate share ownership',async()=>{const f=fixture();try{const o=await f.vaults.inspect(f.a.id,f.run.id,'alice.testnet');assert.equal(o.redeemable,'11000000');assert.equal(o.state.reserve,'30000000');assert.equal(o.shares,'10000000');assert.notEqual(vaultAccount(randomUUID(),'parent.testnet'),f.target.contractId);f.setWrongCode();await assert.rejects(f.vaults.inspect(f.a.id,f.run.id),/identity or code/);}finally{await f.close();}});
+test('an unknown vault receipt returns a lookup error without waiting for finality',async()=>{
+ const f=fixture();
+ const account='alice.testnet',hash='1'.repeat(32);
+ try{
+  f.vaults.rpc=async(method,params)=>{
+   assert.equal(method,'tx');
+   assert.deepEqual(params,{tx_hash:hash,sender_account_id:account,wait_until:'NONE'});
+   throw new RpcQueryError({cause:{name:'UNKNOWN_TRANSACTION'}});
+  };
+  await assert.rejects(f.vaults.receipt(f.a.id,f.run.id,account,hash),/Transaction not found on NEAR testnet for this account/);
+ }finally{await f.close();}
+});
 test('a configured vault for another workspace does not block listing local vaults', async () => {
   const f = fixture();
   try {
