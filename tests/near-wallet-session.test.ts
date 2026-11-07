@@ -114,9 +114,26 @@ test('switching Meteor accounts reconnects the wallet and cancellation preserves
  await state.selectAccount('bob.testnet');
  assert.equal(state.snapshot().account,'alice.testnet');
  assert.equal(state.snapshot().busy,false);
+ assert.equal(state.snapshot().error,'');
  reject=false;
  await state.selectAccount('bob.testnet');await tick();
  assert.equal(state.snapshot().account,'bob.testnet');
  assert.equal(wallet.connectCalls,2);
+ stop();rememberWalletAccount('meteor-wallet',[]);
+});
+
+test('choosing the existing Meteor account shows a dismissible status rather than an error',async()=>{
+ const wallet=new WalletFixture(),meteor={manifest:{id:'meteor-wallet'}};
+ wallet.accounts=[{accountId:'alice.testnet'},{accountId:'bob.testnet'}];
+ wallet.getConnectedWallet=async()=>({accounts:wallet.accounts,wallet:meteor});
+ wallet.connect=async()=>wallet.emit('wallet:signIn',{wallet:meteor,accounts:[{accountId:'alice.testnet'}],success:true});
+ rememberWalletAccount('meteor-wallet',[{accountId:'alice.testnet'}]);
+ const state=session(wallet),stop=state.start();await tick();
+ await state.selectAccount('bob.testnet');await tick();
+ assert.equal(state.snapshot().account,'alice.testnet');
+ assert.equal(state.snapshot().error,'');
+ assert.equal(state.snapshot().notice,'Connected to alice.testnet.');
+ state.dismissNotice();
+ assert.equal(state.snapshot().notice,'');
  stop();rememberWalletAccount('meteor-wallet',[]);
 });
