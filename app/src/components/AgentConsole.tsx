@@ -14,6 +14,7 @@ import { markets, paperMarket, type Config, type Event, type Session, type Propo
 import './AgentConsole.css';
 import { BrowserInferenceProgress } from './BrowserInferenceProgress';
 import type { InferenceProgress } from '../lib/browser-inference-progress';
+import { authorizeModelDirectory, lastModelDirectory, ModelFolderError, pickModelDirectory, rememberModelDirectory, type ModelDirectory } from '../lib/browser-models';
 import { StrategyVaultUpgrade } from './StrategyVaultUpgrade';
 import { AgentVisibility } from './AgentVisibility';
 import { CreatorAgents, AgentBackLink } from './AgentCollections';
@@ -21,8 +22,8 @@ import { collectionLink, matchesController } from '../lib/agent-collection';
 import type { WalletPlan } from '../../../near-demo/types';
 import { sendDeploymentPlan } from '../lib/vault-deployment-wallet';
 import { useNearWallet, NearWalletButton } from './NearWalletProvider';
-export type ConsoleAgent={seedVault?:SeedVault;strategyVaults?:SeedVault[];publicationPending?:boolean;publicSyncError?:string;visibility?:'private'|'public';id:string;createdAt?:string;modelRevalidatedAt?:string|null;manifest:{inference?:{runtime:string};name:string;controller?:string;strategy?:{description:string};model:{id:string;quantization:string}};session:{config:Config}};
-type SessionView=Session&{lastValuation?:LastPaperValuation|null;valuationStale:boolean;error:string|null;metrics:{total:string|null;realized:string;unrealized:string|null;returnBps:number|null}};
+export type ConsoleAgent={seedVault?:SeedVault;strategyVaults?:SeedVault[];publicationPending?:boolean;publicSyncError?:string;visibility?:'private'|'public';id:string;createdAt?:string;modelRevalidatedAt?:string|null;manifest:{inference?:{runtime:string};name:string;controller?:string;strategy?:{description:string};model:{id:string;quantization:string;sha256?:string}};session:{config:Config}};
+type SessionView=Session&{lastValuation?:LastPaperValuation|null;valuationStale:boolean;error:string|null;modelFolderError?:boolean;metrics:{total:string|null;realized:string;unrealized:string|null;returnBps:number|null}};
 export type ConsoleRun={archived?:boolean;id:string;agentId:string;version:number;label:string;createdAt:string;commitment:string;sessionId:string;config:Config;session:SessionView;activity:{operatorExits?:number;decisions:number;buys:number;sells:number;fills:number;holds:number;blocked:number;volume:string;latest:{at:string;proposal?:Proposal}|null}};
 export type ConsoleExecution={activeId:string|null;queued:string[];runtimeBusy?:boolean;otherTabBusy?:boolean;otherTabRunId?:string};
 type Props={vaultFactoryReady?:boolean;pendingStrategyAgents?:string[];strategyFundingDrafts?:FundingDraft[];vaults?:{liveNav?:boolean;agentId:string;runId:string;contractId:string|null}[];agents:ConsoleAgent[];runs:ConsoleRun[];execution:ConsoleExecution;runtime:{phase:string;progress?:InferenceProgress};unavailable:boolean;api:(path:string,body?:unknown)=>Promise<any>;refresh:()=>Promise<void>};
@@ -77,6 +78,18 @@ function StrategyEditor({agent,run,latestVersion,onSaved,onFund,...props}:Props&
     return initial;
   }),[busy,setBusy]=useState(''),[error,setError]=useState(''),[notice,setNotice]=useState(''),[events,setEvents]=useState<Event[]>([]),[journalFor,setJournalFor]=useState<number|null>(null),[journalBusy,setJournalBusy]=useState(false),[journalError,setJournalError]=useState(''),[journalAt,setJournalAt]=useState<string|null>(null),[view,setView]=useState(run?'monitor':'strategy');
   const [stopRequested,setStopRequested]=useState(false);
+  const [modelDirectory,setModelDirectory]=useState<ModelDirectory|null>();
+  const [folderError,setFolderError]=useState('');
+  const retryInference=useRef<'start'|'cycle'>('start');
+  const modelChecksum=hostedApp&&run&&!run.archived&&agent.manifest.inference?.runtime==='llama.cpp' ? agent.manifest.model.sha256 : undefined;
+  useEffect(()=>{
+    if(!modelChecksum)return;
+    let active=true;
+    void lastModelDirectory(modelChecksum).catch(()=>undefined).then(directory=>{
+      if(active)setModelDirectory(directory??null);
+    });
+    return()=>{active=false;};
+  },[modelChecksum]);
   const [catalog,setCatalog]=useState<MarketAsset[]>([]),[catalogStatus,setCatalogStatus]=useState(''),[route,setRoute]=useState<{key:string;message:string}>();
   const seedQuoteId=agent.seedVault?paperMarket(agent.session.config).quote:undefined;
   const quoteAsset=seedQuoteId
@@ -187,12 +200,24 @@ function StrategyEditor({agent,run,latestVersion,onSaved,onFund,...props}:Props&
       throw new Error('Testnet has not confirmed this step. Check wallet history and use Check deployment.');
     });
   }
-  async function action(action:string){if(!run||lock.current&&action!=='stop')return;const stopping=action==='stop';if(!stopping){lock.current=true;setBusy(action);}setError('');setNotice('');setStopRequested(false);try{const {session:result,cancelled}=await props.api('/strategy-action',{runId:run.id,action});await props.refresh();
+  async function action(action:string,chooseFolder=false){if(!run||lock.current&&action!=='stop')return;const stopping=action==='stop';if(!stopping){lock.current=true;setBusy(action);}setError('');setNotice('');setStopRequested(false);try{
+    if(modelChecksum&&(action==='start'||action==='cycle')){
+      retryInference.current=action;
+      const directory=await authorizeModelDirectory(chooseFolder?null:modelDirectory??null);
+      if(!directory)return;
+      await rememberModelDirectory(directory,modelChecksum);
+      setModelDirectory(directory);
+      setFolderError('');
+    }
+    const {session:result,cancelled}=await props.api('/strategy-action',{runId:run.id,action});await props.refresh();
     if(cancelled)return;
     if(stopping&&hostedApp){setStopRequested(true);return;}
     if((action==='mark'||action==='cycle')&&result?.error){setError(result.error);return;}
     if(action==='mark'&&result?.valuationStale){setError('Current paper equity is unavailable. Try refreshing the portfolio quote again.');return;}
-    setNotice(action==='stop'?'Stopped future decisions. An active decision may finish; stopping does not sell an open position.':action==='start'?'':action==='cycle'?'Decision completed. See the outcome and journal below.':'Portfolio valuation refreshed.');}catch(e){setError((e as Error).message);}finally{if(!stopping){lock.current=false;setBusy('');}}}
+    setNotice(action==='stop'?'Stopped future decisions. An active decision may finish; stopping does not sell an open position.':action==='start'?'':action==='cycle'?'Decision completed. See the outcome and journal below.':'Portfolio valuation refreshed.');}catch(e){
+      if(e instanceof ModelFolderError)setFolderError(e.message);
+      else setError((e as Error).message);
+    }finally{if(!stopping){lock.current=false;setBusy('');}}}
   const runId=run?.id;
   const inspect=useCallback(async()=>{
     if(!runId)return false;
@@ -234,10 +259,12 @@ function StrategyEditor({agent,run,latestVersion,onSaved,onFund,...props}:Props&
   const laterSignedMark = quoteFailure && blockedEvent && events.some(event =>
     event.sequence > blockedEvent.sequence && event.kind==='mark' && event.quote?.signatureVerified
   );
-  const lastFailure = session?.error ?? (laterSignedMark ? null : legacyQuoteFailure
+  const modelFolderFailure = folderError || (session?.modelFolderError ? session.error : null);
+  const lastFailure = modelFolderFailure || (session?.error ?? (laterSignedMark ? null : legacyQuoteFailure
     ? 'The initial 1Click dry-run quote request failed before the model ran.'
-    : blockedEvent?.reason);
-  const failureTitle = session?.error && !blockedEvent ? 'Portfolio or worker needs attention' : 'Last decision attempt was blocked';
+    : blockedEvent?.reason));
+  const failureTitle = modelFolderFailure ? 'Model folder access needed' : session?.error && !blockedEvent ? 'Portfolio or worker needs attention' : 'Last decision attempt was blocked';
+  const runDisabled=!run||run.archived||dirty||!!busy||occupied||!!otherVersion||props.unavailable||runtimeBusy||!!modelChecksum&&modelDirectory===undefined;
   const stopping=active&&props.runtime.phase==='stopping';
   const status=runningElsewhere?'Running in another tab':stopping?'Stopping':active?props.runtime.phase==='loading'?'Loading model':'Evaluating market':queued?'Queued':running&&lastFailure?'Needs attention':running?'Waiting for next decision':run?'Stopped':'Not configured';
   const valuation = session&&run?paperValuation(session,run.config.initialCash):null;
@@ -246,9 +273,9 @@ function StrategyEditor({agent,run,latestVersion,onSaved,onFund,...props}:Props&
   const pnl = valuation?.total;
   const journal=<ConsoleJournal events={shownEvents} loaded={journalFor!==null} busy={journalBusy} at={journalAt} behind={journalFor!==null&&!!run&&journalFor<run.session.sequence} refresh={()=>void inspect()}/>;
   return <>
-    <section className="ac-control-bar" aria-label="Agent run controls"><div className="ac-control-state"><span className={'ac-state-icon '+(lastFailure?'attention':'')} aria-hidden="true">{lastFailure?<AlertTriangle size={20}/>:<Activity size={20}/>}</span><div><span className="ac-overline">{run?`STRATEGY v${run.version}`:'STRATEGY DRAFT'}</span><h3>{run?.archived?'Archived':status}</h3><p>{run?.archived?'This version is preserved for inspection. The agent uses the latest active strategy.':runningElsewhere?'Switch to the tab running this strategy to stop it.':stopping?'Finishing cleanup before another run can start.':active?'The local model is evaluating this portfolio.':queued?`Position ${queuePosition} in the shared model queue.`:running?'Scheduling is enabled. Decisions are recorded only after validation.':otherTabBusy?'A paper session in another tab is using the browser runtime.':runtimeBusy?'Another paper session is running in this tab.':run?'Start a continuous session or evaluate the market once.':'Save a strategy before starting this agent.'}</p></div></div><div className="ac-run-buttons"><button type="button" className="nd-button" disabled={!run||run.archived||dirty||!!busy||occupied||!!otherVersion||props.unavailable||runtimeBusy} onClick={()=>void action('start')}><Play size={15}/>Start agent</button><button type="button" className="nd-button secondary" disabled={!run||run.archived||dirty||!!busy||occupied||!!otherVersion||props.unavailable||runtimeBusy} onClick={()=>void action('cycle')}><ArrowRight size={15}/>{busy==='cycle'?'Evaluating…':'Run once'}</button><button type="button" className="nd-button secondary ac-stop" disabled={!run||!occupied||stopping||runningElsewhere} onClick={()=>void action('stop')}><Square size={14}/>Stop</button></div></section>
+    <section className="ac-control-bar" aria-label="Agent run controls"><div className="ac-control-state"><span className={'ac-state-icon '+(lastFailure?'attention':'')} aria-hidden="true">{lastFailure?<AlertTriangle size={20}/>:<Activity size={20}/>}</span><div><span className="ac-overline">{run?`STRATEGY v${run.version}`:'STRATEGY DRAFT'}</span><h3>{run?.archived?'Archived':status}</h3><p>{run?.archived?'This version is preserved for inspection. The agent uses the latest active strategy.':runningElsewhere?'Switch to the tab running this strategy to stop it.':stopping?'Finishing cleanup before another run can start.':active?'The local model is evaluating this portfolio.':queued?`Position ${queuePosition} in the shared model queue.`:running?'Scheduling is enabled. Decisions are recorded only after validation.':otherTabBusy?'A paper session in another tab is using the browser runtime.':runtimeBusy?'Another paper session is running in this tab.':run?'Start a continuous session or evaluate the market once.':'Save a strategy before starting this agent.'}</p></div></div><div className="ac-run-buttons"><button type="button" className="nd-button" disabled={runDisabled} onClick={()=>void action('start')}><Play size={15}/>Start agent</button><button type="button" className="nd-button secondary" disabled={runDisabled} onClick={()=>void action('cycle')}><ArrowRight size={15}/>{busy==='cycle'?'Evaluating…':'Run once'}</button><button type="button" className="nd-button secondary ac-stop" disabled={!run||!occupied||stopping||runningElsewhere} onClick={()=>void action('stop')}><Square size={14}/>Stop</button></div></section>
     {active&&props.runtime.progress&&<BrowserInferenceProgress progress={props.runtime.progress}/>}
-    {lastFailure&&<div className="ac-blocker" role="alert"><AlertTriangle size={18}/><div><strong>{failureTitle}</strong><p>{lastFailure}</p><small>{blockedEvent&&`${new Date(blockedEvent.at).toLocaleString()} · `}{occupied?'Scheduling may still be enabled.':'The scheduler is stopped.'}</small></div>{/^Registered weights changed/.test(lastFailure)?<Link className="nd-text-button" to={`/console?agent=${agent.id}&scope=local&panel=identity`}>Inspect agent identity <ArrowRight size={13}/></Link>:<button type="button" className="nd-text-button" onClick={()=>setView('journal')}>Inspect decision journal <ArrowRight size={13}/></button>}</div>}
+    {lastFailure&&<div className="ac-blocker" role="alert"><AlertTriangle size={18}/><div><strong>{failureTitle}</strong><p>{lastFailure}</p><small>{!modelFolderFailure&&blockedEvent&&`${new Date(blockedEvent.at).toLocaleString()} · `}{occupied?'Scheduling may still be enabled.':'The scheduler is stopped.'}</small></div>{modelFolderFailure?(pickModelDirectory&&<button type="button" className="nd-text-button" disabled={runDisabled} onClick={()=>void action(retryInference.current,true)}>Choose model folder <ArrowRight size={13}/></button>):/^Registered weights changed/.test(lastFailure)?<Link className="nd-text-button" to={`/console?agent=${agent.id}&scope=local&panel=identity`}>Inspect agent identity <ArrowRight size={13}/></Link>:<button type="button" className="nd-text-button" onClick={()=>setView('journal')}>Inspect decision journal <ArrowRight size={13}/></button>}</div>}
     {props.unavailable&&<p className="nd-alert">Stop legacy execution practice or the historical comparison before starting a strategy.</p>}
     {otherVersion&&<div className="ac-draft-warning">Another version of this agent is active: v{otherVersion.version} · {otherVersion.label}. <button type="button" className="nd-text-button" onClick={()=>onSaved(otherVersion.id)}>Select active version</button></div>}
     {dirty&&run&&<div className="ac-draft-warning">Unsaved strategy edits. Save a new version before starting these settings. <button type="button" className="nd-text-button" onClick={()=>setView('strategy')}>Review edits</button></div>}

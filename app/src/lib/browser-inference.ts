@@ -3,7 +3,7 @@ import type { Wllama } from '@wllama/wllama/esm/wllama.js';
 import wasmUrl from '@wllama/wllama/esm/wasm/wllama.wasm?url';
 import { parseProposal, type ModelDecision } from '../../../near-demo/model.js';
 import type { AgentManifest } from '../../../near-demo/public-types.js';
-import { lastModelDirectory, scanModelDirectory } from './browser-models.js';
+import { lastModelDirectory, ModelFolderError, scanModelDirectory } from './browser-models.js';
 import { BrowserRuntimeCache, runtimeDiagnostics } from './browser-runtime.js';
 import { browserProposalRequest } from './browser-proposal.js';
 import type { ReportInferenceProgress } from './browser-inference-progress.js';
@@ -19,17 +19,8 @@ export async function prepareBrowserModel(manifest: AgentManifest, modelId: stri
   const loaded=runtimes.get(manifest.model.sha256);
   if(loaded)return loaded;
   progress('scanning');
-  const directory = await lastModelDirectory();
-  if (!directory || await directory.queryPermission({ mode: 'read' }) !== 'granted') {
-    throw new Error('Allow read access to your model folder in Create an agent, then try again.');
-  }
-  const models = await scanModelDirectory(directory, signal);
-  const selected = models.find(model => model.id === modelId) ??
-    models.find(model => model.filename === manifest.model.filename && model.bytes === manifest.model.bytes);
-  if (!selected?.openWeights) throw new Error('The registered GGUF file is missing from the permitted model folder.');
+  const file = await openRegisteredModel(manifest, modelId, signal, progress);
   await runtimes.clear();
-  progress('verifying',0,selected.bytes);
-  const file = await selected.openWeights(manifest.model.sha256, signal, completed=>progress('verifying',completed,selected.bytes));
   progress('loading');
   const engine = await import('@wllama/wllama/esm/index.js') as unknown as { Wllama: typeof Wllama };
   diagnostics=runtimeDiagnostics();
@@ -52,6 +43,26 @@ export async function prepareBrowserModel(manifest: AgentManifest, modelId: stri
   }
   runtimes.save(manifest.model.sha256,runtime);
   return runtime;
+}
+
+async function openRegisteredModel(manifest: AgentManifest, modelId: string, signal: AbortSignal, progress: ReportInferenceProgress) {
+  const directory = await lastModelDirectory(manifest.model.sha256);
+  try {
+    if (!directory || await directory.queryPermission({ mode: 'read' }) !== 'granted') {
+      throw new ModelFolderError('Chrome lost read access to the model folder. Choose it again to continue.');
+    }
+    const models = await scanModelDirectory(directory, signal);
+    const selected = models.find(model => model.id === modelId) ??
+      models.find(model => model.filename === manifest.model.filename && model.bytes === manifest.model.bytes);
+    if (!selected?.openWeights) throw new ModelFolderError(`Choose the folder containing ${manifest.model.filename}.`);
+    progress('verifying',0,selected.bytes);
+    return await selected.openWeights(manifest.model.sha256, signal, completed=>progress('verifying',completed,selected.bytes));
+  } catch (error) {
+    if (error instanceof DOMException && ['NotAllowedError', 'NotFoundError', 'SecurityError'].includes(error.name)) {
+      throw new ModelFolderError('Chrome couldn’t read the registered model. Choose its folder to try again.');
+    }
+    throw error;
+  }
 }
 
 export function browserInference(runtime: Wllama, strategyVersion: { id: string; commitment: string }, signal: AbortSignal, progress: ReportInferenceProgress): typeof import('../../../near-demo/model.js').infer {
