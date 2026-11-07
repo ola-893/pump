@@ -1,6 +1,24 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { scanModelDirectory, scanSelectedModelFiles, type ModelDirectory } from '../app/src/lib/browser-models.js';
+import { authorizeModelDirectory, ModelFolderError, scanModelDirectory, scanSelectedModelFiles, type ModelDirectory } from '../app/src/lib/browser-models.js';
+
+test('browser inference requests read permission from the initiating click for a saved model folder', async () => {
+  const requests: string[] = [];
+  const directory: ModelDirectory = {
+    kind: 'directory', name: 'models',
+    async *values() {},
+    async queryPermission() { return 'prompt'; },
+    async requestPermission({ mode }) {
+      requests.push(mode);
+      return 'granted';
+    },
+  };
+  const authorization = authorizeModelDirectory(directory);
+  assert.deepEqual(requests, ['read']);
+  assert.equal(await authorization, directory);
+  directory.requestPermission = async () => 'denied';
+  await assert.rejects(authorizeModelDirectory(directory), ModelFolderError);
+});
 
 function modelFile(path: string, content: BlobPart) {
   const file = new File([content], path.split('/').at(-1)!, { lastModified: 1 });

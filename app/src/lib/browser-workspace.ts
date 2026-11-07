@@ -9,7 +9,7 @@ import { BENCHMARK_POLICY, type AgentManifest, type StrategyRun, type StrategySe
 import { paperMarket, testAccount, validateConfig, type Config, type Event, type MarketSelection, type Session } from '../../../near-demo/types.js';
 import { journalBatchSize, journalSchema, publicJournalEvent } from '../../../near-demo/directory/public-journal.js';
 import { readJournal, sendJournalBatch } from './public-journal-client.js';
-import type { BrowserModel } from './browser-models.js';
+import { ModelFolderError, type BrowserModel } from './browser-models.js';
 import { changeStrategyVault, readSeedVault, seedVaultAccount, validateSeedVault, verifyRecordedSeed, type SeedFactory, type SeedVault } from './seed-vault.js';
 import { strategySeedFactory } from './strategy-seed-factory-config.js';
 import { seedFactory } from './seed-factory-config.js';
@@ -44,7 +44,7 @@ const databaseName = 'pump-browser-workspace';
 const executionLock = 'pump-browser-inference';
 const strategyLockPrefix = 'pump-browser-strategy:';
 const executions = new Map<string, { controller: AbortController; continuous: boolean }>();
-const errors = new Map<string, string>();
+const errors = new Map<string, Error>();
 let activeSession: string | null = null;
 let runtimePhase = 'idle';
 let inferenceProgress: InferenceProgress | undefined;
@@ -153,8 +153,10 @@ function agentView(agent: StoredAgent) {
 
 function strategySession(run: StoredRun) {
   const execution = executions.get(run.id);
+  const error = errors.get(run.id);
   return { ...sessionView(run.paper.session), state: execution && !execution.controller.signal.aborted ? 'running' as const : 'stopped' as const,
-    error: errors.get(run.id) ?? null };
+    error: error?.message ?? null,
+    modelFolderError: error instanceof ModelFolderError };
 }
 
 function strategyView(run: StoredRun, archived: boolean, otherTabRunId?: string) {
@@ -510,7 +512,7 @@ async function runPaperCycle(agent: StoredAgent, run: StoredRun, signal: AbortSi
     reportProgress('saving');
     await saveCycle(agent.id, current.id, revision, current.paper, signal);
     void syncIfPublic(agent.id);
-    if (result.error) errors.set(current.id, result.error);
+    if (result.error) errors.set(current.id, new Error(result.error));
     else errors.delete(current.id);
     return { session: strategySession(current) };
   } finally {
@@ -581,7 +583,7 @@ async function browserStrategyAction(agent: StoredAgent, run: StoredRun, action:
           });
         }
       } catch (error) {
-        if (!controller.signal.aborted) errors.set(run.id, error instanceof Error ? error.message : 'Browser inference failed.');
+        if (!controller.signal.aborted) errors.set(run.id, error instanceof Error ? error : new Error('Browser inference failed.'));
       } finally {
         executions.delete(run.id);
       }

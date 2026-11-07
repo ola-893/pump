@@ -15,11 +15,32 @@ type DirectoryEntries = {
 
 export type ModelDirectory = DirectoryEntries & {
   queryPermission(options: { mode: 'read' }): Promise<PermissionState>;
+  requestPermission?(options: { mode: 'read' }): Promise<PermissionState>;
 };
 
 export const pickModelDirectory = typeof window === 'undefined' ? undefined : (window as Window & {
   showDirectoryPicker?: (options: { id: string; mode: 'read' }) => Promise<ModelDirectory>;
 }).showDirectoryPicker?.bind(window);
+
+export class ModelFolderError extends Error {}
+
+// Call directly from a button click, while Chrome can show a permission prompt.
+export async function authorizeModelDirectory(directory: ModelDirectory | null) {
+  try {
+    if (directory?.requestPermission) {
+      if (await directory.requestPermission({ mode: 'read' }) === 'granted') return directory;
+      throw new ModelFolderError('Chrome needs read access to the registered model. Choose its folder to try again.');
+    }
+    if (!pickModelDirectory) throw new ModelFolderError('Open this agent in a browser that supports granting access to a local model folder.');
+    return await pickModelDirectory({ id: 'pump-models', mode: 'read' });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') return;
+    if (error instanceof DOMException && ['NotAllowedError', 'SecurityError'].includes(error.name)) {
+      throw new ModelFolderError('Chrome couldn’t grant read access. Choose the model folder to try again.');
+    }
+    throw error;
+  }
+}
 
 const maxEntries = 15_000;
 const maxManifestBytes = 65_536;
@@ -93,12 +114,12 @@ async function scanModelFiles(files: ModelFiles, signal?: AbortSignal) {
       runtime: 'llama.cpp',
     }, async progress => hashFile(await currentFile(), progress), async (checksum, signal, progress) => {
       const current = await currentFile();
-      if (await hashFile(current, progress, signal) !== checksum) throw new Error('The selected weights do not match this agent’s checksum.');
+      if (await hashFile(current, progress, signal) !== checksum) throw new ModelFolderError('The selected weights do not match this agent’s checksum. Choose the original GGUF file’s folder.');
       return current;
     });
     async function currentFile() {
       const current = await files.get(path)!();
-      if (current.size !== file!.size || current.lastModified !== file!.lastModified) throw new Error('The model changed. Detect it again.');
+      if (current.size !== file!.size || current.lastModified !== file!.lastModified) throw new ModelFolderError('The model file changed while Pump was opening it. Choose its folder to try again.');
       return current;
     }
   }
@@ -202,10 +223,11 @@ async function folderStore(mode: IDBTransactionMode, operation: (store: IDBObjec
   }
 }
 
-export async function lastModelDirectory(): Promise<ModelDirectory | undefined> {
-  return await folderStore('readonly', store => store.get('last')) as ModelDirectory | undefined;
+export async function lastModelDirectory(checksum?: string): Promise<ModelDirectory | undefined> {
+  const directory = await folderStore('readonly', store => store.get(checksum ?? 'last')) as ModelDirectory | undefined;
+  return directory ?? (checksum ? lastModelDirectory() : undefined);
 }
 
-export async function rememberModelDirectory(directory: ModelDirectory) {
-  await folderStore('readwrite', store => store.put(directory, 'last'));
+export async function rememberModelDirectory(directory: ModelDirectory, checksum?: string) {
+  await folderStore('readwrite', store => store.put(directory, checksum ?? 'last'));
 }
