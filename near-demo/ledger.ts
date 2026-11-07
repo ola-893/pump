@@ -1,7 +1,7 @@
 import { sha256 } from '@noble/hashes/sha256';
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
 import { verifyQuoteSignature } from '@defuse-protocol/one-click-sdk-typescript';
-import { paperMarket, units, type Config, type Portfolio, type Quote, type Session, type Event } from './types.js';
+import { ARBITRUM_USDC, paperMarket, testAccount, units, USDC, type Config, type Portfolio, type Quote, type Session, type Event, type VaultCapital } from './types.js';
 import { executionExercise, type ExecutionExercise } from './exercise.js';
 import { canonical, initialPortfolio } from './paper-state.js';
 export { canonical, initialPortfolio, metrics } from './paper-state.js';
@@ -39,6 +39,32 @@ export function mark(s: Session, q: Quote | undefined, now: number): Portfolio {
   }
   const peak = equity > units(p.peak) ? equity : units(p.peak), dd = peak === 0n ? 0 : Number((peak-equity)*10000n/peak);
   return { ...p, equity:String(equity), peak:String(peak), drawdownBps:dd, maxDrawdownBps:Math.max(dd,p.maxDrawdownBps), markAt:new Date(now).toISOString() };
+}
+
+export function acceptsVaultCapital(config: Config) {
+  const {quote,quoteDecimals} = paperMarket(config);
+  return quoteDecimals===6 && (quote===USDC || quote===ARBITRUM_USDC);
+}
+
+export function applyVaultCapital(s: Session, capital: VaultCapital, at: string): Portfolio {
+  const p=s.portfolio, previous=p.vaultCapital;
+  if (!s.agent?.strategyRunId || s.testnet || s.exercise || !acceptsVaultCapital(s.config) ||
+      Object.keys(capital).sort().join()!=='assets,blockHash,contractId,nonce' ||
+      !/^s[a-f0-9]{24}\.pl\..+\.testnet$/.test(testAccount(capital.contractId)) ||
+      !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(capital.blockHash) ||
+      !Number.isSafeInteger(capital.nonce) || capital.nonce<1 ||
+      previous && (capital.contractId!==previous.contractId || capital.nonce<=previous.nonce))
+    throw new Error('Invalid or stale vault capital observation.');
+  const delta=units(capital.assets)-units(previous?.assets??s.config.initialCash);
+  if (delta===0n) throw new Error('Vault capital did not change.');
+  const cash=units(p.cash)+delta;
+  if (cash<0n) throw new Error('A confirmed withdrawal exceeds available paper cash. It will sync when there is enough paper cash.');
+  const flat=p.position==='0';
+  const equity=flat?cash:p.equity===null?null:units(p.equity)+delta;
+  const adjustedPeak=units(p.peak)+delta;
+  const peak=(equity??0n)>adjustedPeak?(equity??0n):adjustedPeak;
+  return {...p,vaultCapital:capital,cash:String(cash),equity:equity?.toString()??null,peak:String(peak),
+    drawdownBps:equity===null?null:peak===0n?0:Number((peak-equity)*10000n/peak),markAt:flat?at:p.markAt};
 }
 // Paper-only retirement of a rounding residual, never an exchange fill or cash credit.
 // Both its quantity and its last-sale implied value must be negligible. Its full
@@ -94,7 +120,11 @@ export function verifyHistory(s: Session, events: Event[]) {
       if(e.evidence!=='paper-adjustment'||e.action||e.quote||e.model||e.exercise||e.exerciseId||!lastFill||canonical(e.dust)!==canonical({policy:'PUMP-PAPER-DUST-v1',saleHash:lastFill.hash}))throw new Error('Invalid paper dust receipt.');
       expected=retirePaperDust(prior,lastFill,Date.parse(e.at));
     }
-    if (e.kind==='mark') {
+    if (e.vaultCapital) {
+      if(e.kind!=='mark'||e.evidence!=='paper-adjustment'||e.action||e.quote||e.model||e.dust||e.exercise||e.exerciseId)
+        throw new Error('Invalid vault capital receipt.');
+      expected=applyVaultCapital(prior,e.vaultCapital,e.at);
+    } else if (e.kind==='mark') {
       // Earlier journals stamped the valuation just before stamping the event.
       // Replay that recorded valuation time without changing historical hashes.
       const valuedAt=e.after.markAt===null?Date.parse(e.at):Date.parse(e.after.markAt);

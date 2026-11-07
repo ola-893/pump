@@ -5,7 +5,8 @@ import type { SeedStep } from '../app/src/lib/seed-vault.js';
 
 const kinds = ['deploy','storage','share-storage','open','fund','confirmed'] as const;
 function step(kind: SeedStep['kind'], shortfall=0n): SeedStep {
-  if (kind==='confirmed') return {kind,state:{assets:'10000',nonce:1,pending:null,archived:false,paused:false,
+  if (kind==='confirmed') return {kind,state:{contractId:'vault.testnet',blockHash:'4'.repeat(44),navSequence:0,
+    assets:'10000',nonce:1,pending:null,archived:false,paused:false,
     shares:'10000',received:'10000',public:true,supply:'10000',tracking:false}};
   return {kind,balance:{available:10n,required:10n+shortfall,shortfall},plan:{
     network:'testnet',signerId:'owner.testnet',receiverId:'vault.testnet',description:kind,actions:[],
