@@ -7,4 +7,7 @@ test('display switches from a retained timestamped valuation to the latest quote
  assert.equal(fresh?.equity,'101000000');assert.equal(fresh?.total,'1000000');assert.equal(fresh?.unrealized,'1900000');assert.equal(fresh?.at,'2026-11-03T02:00:00Z');assert.equal(fresh?.stale,false);
  assert.equal(paperValuation({...session,lastValuation:undefined},'100000000'),null);
  assert.equal(paperValuation({...session,valuationStale:false,portfolio:{equity:'0',markAt:null,realized:'-100000000'}},'100000000')?.equity,'0');
+ const funded={...session,portfolio:{...session.portfolio,vaultCapital:{assets:'21000000'}},
+  lastValuation:{...session.lastValuation,equity:'20909928',realized:'0',capital:'21000000'}};
+ assert.equal(paperValuation(funded,'1000000')?.total,'-90072');
 });

@@ -111,12 +111,18 @@ function openSession(config: Config, agent: NonNullable<Session['agent']>, id: s
   };
 }
 
-function sessionView(session: Session) {
+function sessionView(paper: PaperRecord) {
+  const {session}=paper;
   const valuationStale = BigInt(session.portfolio.position) > 0n &&
     (!session.portfolio.markAt || Date.now() - Date.parse(session.portfolio.markAt) > session.config.maxQuoteAgeMs);
   const portfolio = valuationStale ? { ...session.portfolio, equity: null, drawdownBps: null } : session.portfolio;
+  const lastMark = valuationStale ? new BrowserPaperStore(paper).lastQuotedValuation(session.id) : undefined;
+  const lastValuation = lastMark?.after.equity != null && lastMark.after.markAt ? {
+    equity: lastMark.after.equity, realized: lastMark.after.realized, at: lastMark.after.markAt,
+    sequence: lastMark.sequence, capital: lastMark.after.vaultCapital?.assets,
+  } : null;
   const shown = { ...session, portfolio };
-  return { ...shown, valuationStale, error: null, metrics: metrics(shown) };
+  return { ...shown, lastValuation, valuationStale, error: null, metrics: metrics(shown) };
 }
 
 function activity(events: Event[]) {
@@ -148,14 +154,14 @@ function agentView(agent: StoredAgent) {
     publicSyncError: publicSyncErrors.get(agent.id), id: agent.id, manifest: agent.manifest, commitment: agent.commitment,
     seedVault: agent.seedVault, strategyVaults: agent.strategyVaults,
     sessionId: agent.paper.session.id, createdAt: agent.paper.session.createdAt,
-    session: sessionView(agent.paper.session), activity: activity(agent.paper.events),
+    session: sessionView(agent.paper), activity: activity(agent.paper.events),
   };
 }
 
 function strategySession(run: StoredRun) {
   const execution = executions.get(run.id);
   const error = errors.get(run.id);
-  return { ...sessionView(run.paper.session), state: execution && !execution.controller.signal.aborted ? 'running' as const : 'stopped' as const,
+  return { ...sessionView(run.paper), state: execution && !execution.controller.signal.aborted ? 'running' as const : 'stopped' as const,
     error: error?.message ?? null,
     capitalError: capitalErrors.get(run.id),
     modelFolderError: error instanceof ModelFolderError };
