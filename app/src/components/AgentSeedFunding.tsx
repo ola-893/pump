@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ArrowRight, Wallet } from 'lucide-react';
 import { NearWalletButton, useNearWallet } from './NearWalletProvider';
-import { approveSeedStep, readSeedVault, recoverStrategySeed, seedStep, withdrawSeed, type SeedFactory, type SeedStep, type SeedVault } from '../lib/seed-vault';
+import { approveSeedStep, readSeedVault, recoverStrategySeed, seedStep, withdrawSeed, type SeedFactory, type SeedState, type SeedStep, type SeedVault } from '../lib/seed-vault';
 import type { FundingDraft } from '../lib/browser-workspace';
 import { paperAmountInput } from '../lib/paper-amount';
 import { runSeedFunding } from '../lib/seed-funding-flow';
@@ -97,7 +97,7 @@ export function AgentSeedFunding({draft,factory,onFinish,onBack,onArchive,revisi
   </section>;
 }
 
-export function AgentSeedBalance({vault,factory}:{vault:SeedVault;factory:SeedFactory}){
+export function AgentSeedBalance({vault,factory,onObservation}:{vault:SeedVault;factory:SeedFactory;onObservation?:(state:SeedState)=>Promise<void>}){
   const wallet=useNearWallet();
   const [state,setState]=useState<Awaited<ReturnType<typeof readSeedVault>>>(),[busy,setBusy]=useState(false),[error,setError]=useState(''),[review,setReview]=useState(false);
   const cancelButton=useRef<HTMLButtonElement>(null),withdrawButton=useRef<HTMLButtonElement>(null);
@@ -113,8 +113,10 @@ export function AgentSeedBalance({vault,factory}:{vault:SeedVault;factory:SeedFa
   async function update(withdraw=false){
     setError('');setBusy(true);
     try{
-      setState(withdraw?await withdrawSeed(vault,factory):await readSeedVault(vault,factory));
+      const next=withdraw?await withdrawSeed(vault,factory):await readSeedVault(vault,factory);
+      setState(next);
       setReview(false);
+      if(next)await onObservation?.(next);
     }catch(e){setError((e as Error).message);setReview(false);}
     finally{setBusy(false);}
   }

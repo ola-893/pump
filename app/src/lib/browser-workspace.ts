@@ -1,4 +1,4 @@
-import { digest, verifyHistory } from '../../../near-demo/ledger.js';
+import { acceptsVaultCapital, applyVaultCapital, digest, makeEvent, verifyHistory } from '../../../near-demo/ledger.js';
 import { PaperDemo } from '../../../near-demo/service.js';
 import { IntentMarkets } from '../../../near-demo/intent-markets.js';
 import { BrowserPaperStore } from './browser-paper-store.js';
@@ -10,7 +10,7 @@ import { paperMarket, testAccount, validateConfig, type Config, type Event, type
 import { journalBatchSize, journalSchema, publicJournalEvent } from '../../../near-demo/directory/public-journal.js';
 import { readJournal, sendJournalBatch } from './public-journal-client.js';
 import { ModelFolderError, type BrowserModel } from './browser-models.js';
-import { changeStrategyVault, readSeedVault, seedVaultAccount, validateSeedVault, verifyRecordedSeed, type SeedFactory, type SeedVault } from './seed-vault.js';
+import { changeStrategyVault, readSeedVault, seedVaultAccount, validateSeedVault, verifyRecordedSeed, type SeedFactory, type SeedState, type SeedVault } from './seed-vault.js';
 import { strategySeedFactory } from './strategy-seed-factory-config.js';
 import { seedFactory } from './seed-factory-config.js';
 
@@ -45,6 +45,7 @@ const executionLock = 'pump-browser-inference';
 const strategyLockPrefix = 'pump-browser-strategy:';
 const executions = new Map<string, { controller: AbortController; continuous: boolean }>();
 const errors = new Map<string, Error>();
+const capitalErrors = new Map<string, string>();
 let activeSession: string | null = null;
 let runtimePhase = 'idle';
 let inferenceProgress: InferenceProgress | undefined;
@@ -156,6 +157,7 @@ function strategySession(run: StoredRun) {
   const error = errors.get(run.id);
   return { ...sessionView(run.paper.session), state: execution && !execution.controller.signal.aborted ? 'running' as const : 'stopped' as const,
     error: error?.message ?? null,
+    capitalError: capitalErrors.get(run.id),
     modelFolderError: error instanceof ModelFolderError };
 }
 
@@ -481,12 +483,65 @@ function saveCycle(agentId: string, runId: string, revision: number, paper: Pape
   });
 }
 
+function capitalVault(agent: StoredAgent, run: StoredRun) {
+  if (run.paper.session.testnet || run.paper.session.exercise || !acceptsVaultCapital(run.config)) return;
+  return agent.strategyVaults?.find(vault => vault.strategyId===run.id && vault.factoryId===strategySeedFactory.id &&
+    vault.strategyHash===run.commitment && vault.manifestHash===agent.commitment && vault.seedReceipt);
+}
+
+async function reconcileCapital(agent: StoredAgent, run: StoredRun, state: SeedState | null, signal: AbortSignal) {
+  const {session, events}=run.paper, previous=session.portfolio.vaultCapital;
+  // Only mirror principal. Once NAV is reported, changes in assets can include returns.
+  if (!state || state.pending || state.archived || state.tracking || state.navSequence!==0 || state.assets!==state.supply ||
+      state.contractId!==capitalVault(agent,run)?.contractId || previous && state.nonce<=previous.nonce) return false;
+  const {assets,nonce,contractId,blockHash}=state;
+  if (assets===(previous?.assets??session.config.initialCash)) return false;
+  const at=new Date().toISOString();
+  const vaultCapital={assets,nonce,contractId,blockHash};
+  const after=applyVaultCapital(session,vaultCapital,at);
+  const event=makeEvent(session,{at,kind:'mark',evidence:'paper-adjustment',vaultCapital,after,
+    reason:'Paper cash adjusted to match confirmed strategy vault capital.'});
+  const paper={session,events:[...events]};
+  const store=new BrowserPaperStore(paper,signal);
+  const lease=store.acquire(session.id);
+  store.save(session,lease,event);
+  store.release(session.id,lease);
+  await saveCycle(agent.id,run.id,session.revision,paper,signal);
+  run.paper=paper;
+  void syncIfPublic(agent.id);
+  return true;
+}
+
+export async function syncBrowserVaultCapital(agentId: string, runId: string, state: SeedState) {
+  if (!navigator.locks) return false;
+  return navigator.locks.request(strategyLockPrefix+runId,{ifAvailable:true},async lock=>{
+    if (!lock) return false;
+    const agent=await readAgent(agentId),run=agent?.runs[0];
+    if (!agent || run?.id!==runId) return false;
+    const changed=await reconcileCapital(agent,run,state,new AbortController().signal);
+    capitalErrors.delete(runId);
+    return changed;
+  });
+}
+
 async function runPaperCycle(agent: StoredAgent, run: StoredRun, signal: AbortSignal, action: 'cycle' | 'mark') {
   signal.throwIfAborted();
-  const current = (await readAgent(agent.id))?.runs[0];
+  const saved = await readAgent(agent.id);
+  const current = saved?.runs[0];
   signal.throwIfAborted();
-  if (!current || current.id !== run.id) throw new Error('This strategy is archived. Open the current version.');
+  if (!saved || !current || current.id !== run.id) throw new Error('This strategy is archived. Open the current version.');
   if (current.paper.session.testnet) throw new Error('This session is linked to testnet clearing. Use its original workspace.');
+  const vault=capitalVault(saved,current);
+  if (vault) {
+    try {
+      await reconcileCapital(saved,current,await readSeedVault(vault,strategySeedFactory),signal);
+      capitalErrors.delete(current.id);
+    } catch (error) {
+      signal.throwIfAborted();
+      capitalErrors.set(current.id,error instanceof Error?error.message:'Could not sync confirmed vault capital.');
+    }
+  }
+  signal.throwIfAborted();
   const revision = current.paper.session.revision;
   const store = new BrowserPaperStore(current.paper, signal);
   const service = new PaperDemo(store);
@@ -574,8 +629,8 @@ async function browserStrategyAction(agent: StoredAgent, run: StoredRun, action:
       resolve({ session: strategySession(run) });
       try {
         while (!controller.signal.aborted) {
-          const result = await runPaperCycle(agent, run, controller.signal, 'cycle');
-          if (result.session.error || controller.signal.aborted) break;
+          await runPaperCycle(agent, run, controller.signal, 'cycle');
+          if (controller.signal.aborted) break;
           await new Promise<void>(done => {
             const finish = () => { clearTimeout(timer); controller.signal.removeEventListener('abort', finish); done(); };
             const timer = setTimeout(finish, run.config.intervalMs);
@@ -646,6 +701,10 @@ export function validateWorkspaceTransfer(value: unknown): StoredAgent[] {
     });
     if (strategyVaults && new Set(strategyVaults.map(vault=>vault.strategyId)).size!==strategyVaults.length)
       throw new Error('A strategy version has more than one vault.');
+    if (paper.session.portfolio.vaultCapital || runs.some(run => {
+      const capital=run.paper.session.portfolio.vaultCapital;
+      return capital && !strategyVaults?.some(vault=>vault.strategyId===run.id&&vault.contractId===capital.contractId&&vault.seedReceipt);
+    })) throw new Error('A paper capital adjustment does not match its strategy vault.');
     return { id: agent.id, ownerName, manifest: agent.manifest, commitment: agent.commitment, paper, runs, seedVault, strategyVaults };
   });
 }

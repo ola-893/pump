@@ -10,7 +10,7 @@ import { vaultReceiptEffect } from '../../../near-demo/vault-receipt.js';
 export type { SeedVault } from '../../../near-demo/workspace-transfer.js';
 
 export type SeedFactory = { id:string; codeHash:string; vaultCodeHash:string; funding:string; reporterId?:string };
-type SeedState = { assets:string; nonce:number; pending:unknown; archived:boolean; paused:boolean; shares:string; received:string; public:boolean; supply:string; tracking:boolean };
+export type SeedState = { contractId:string; blockHash:string; assets:string; nonce:number; pending:unknown; archived:boolean; paused:boolean; shares:string; received:string; public:boolean; supply:string; tracking:boolean; navSequence:number|null };
 const bytes = new TextEncoder();
 const hex = (value:Uint8Array) => Array.from(value, byte=>byte.toString(16).padStart(2,'0')).join('');
 const uuid = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
@@ -58,12 +58,13 @@ export async function readSeedVault(v:SeedVault, factory:SeedFactory):Promise<Se
   if (keys.keys?.length!==0 ||
       s.controller_id!==v.owner || s.factory_id!==factory.id || s.reporter_id!==(factory.reporterId??factory.id) || s.token_id!==TEST_USDC ||
       s.agent_id!==v.agentId || s.manifest_hash!==v.manifestHash || s.strategy_id!==v.strategyId || s.strategy_hash!==v.strategyHash ||
-      (shared ? s.version!=='PUMP-STRATEGY-VAULT-v4'||!s.live_nav||s.name!==v.strategyName||typeof s.public!=='boolean'
+      (shared ? s.version!=='PUMP-STRATEGY-VAULT-v4'||!s.live_nav||s.name!==v.strategyName||typeof s.public!=='boolean'||
+        !Number.isSafeInteger(s.live_nav.sequence)||s.live_nav.sequence<0||typeof s.live_nav.tracking!=='boolean'
         : s.public!==false||s.live_nav!==null||seed?.required!==v.amount||!['0',v.amount].includes(seed.received)||units(s.assets)>units(seed.received)||units(shares)>units(s.assets)) ||
       !Number.isSafeInteger(s.nonce) || s.nonce<0 || units(shares)>units(s.total_supply))
     throw new Error('The testnet vault did not match this agent. No funds were sent.');
-  return { assets:s.assets, nonce:s.nonce, pending:s.pending, archived:s.archived, paused:s.paused, shares, received:seed?.received??'0',
-    public:s.public,supply:s.total_supply,tracking:!!s.live_nav?.tracking };
+  return { contractId:v.contractId,blockHash:block,assets:s.assets, nonce:s.nonce, pending:s.pending, archived:s.archived, paused:s.paused, shares, received:seed?.received??'0',
+    public:s.public,supply:s.total_supply,tracking:!!s.live_nav?.tracking,navSequence:s.live_nav?.sequence??null };
 }
 
 const plan = (v:SeedVault, receiverId:string, methodName:string, args:Record<string,unknown>, gas:string, deposit:string):WalletPlan =>

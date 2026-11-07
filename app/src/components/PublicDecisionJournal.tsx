@@ -146,7 +146,7 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
         <div className="ip-overview">
           <section className="nd-card ip-performance">
             <div className="ip-card-top"><div>
-              <div className="nd-eyebrow">STRATEGY EQUITY · {quote.quoteSymbol}</div>
+              <div className="nd-eyebrow">PAPER STRATEGY EQUITY · {quote.quoteSymbol}</div>
               <div className="ip-equity">{format(events[0]?.equity ?? null)}</div>
               <p>{subset} · Owner-authorized paper record</p>
             </div></div>
