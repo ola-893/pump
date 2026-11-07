@@ -2,11 +2,22 @@ import type { JournalListing } from '../../../near-demo/directory/public-journal
 
 export type CollectionAgent={visibility?:'private'|'public';id:string;createdAt?:string;journalUpdatedAt?:string;strategyVault?:string;journalActivity?:JournalListing['activity'];manifest:{name:string;controller?:string;model:{id:string};strategy?:{description:string}}};
 
+// Keep old QA vaults and journals reachable by their existing links.
+const unlistedQaAgents = new Set([
+ 'f6d0c0c5-b911-4b80-80aa-032f66d48a65', // Pump Public Investor QA
+ 'b107a916-83b7-4ba3-8136-7f161193651c', // Pump low balance QA
+ '6906f911-130e-42df-9baf-39885adb8fb9', // Pump seed flow QA
+]);
+
+export function isPubliclyListedAgent(agent: Pick<CollectionAgent, 'id' | 'visibility'>) {
+ return agent.visibility !== 'private' && !unlistedQaAgents.has(agent.id);
+}
+
 export function catalogAgents(registry: CollectionAgent[], journals: JournalListing[]): CollectionAgent[] {
  const known = new Set(registry.map(agent => agent.id));
- const agents = registry.filter(agent => agent.visibility !== 'private');
+ const agents = registry.filter(isPubliclyListedAgent);
  for (const journal of journals) {
-  if (known.has(journal.id)) continue;
+  if (known.has(journal.id) || !isPubliclyListedAgent(journal)) continue;
   known.add(journal.id);
   agents.push({
    id: journal.id, visibility: 'public', journalUpdatedAt: new Date(journal.updatedAt).toISOString(),strategyVault:journal.strategyVault,journalActivity:journal.activity,
