@@ -4,7 +4,7 @@ import wasmUrl from '@wllama/wllama/esm/wasm/wllama.wasm?url';
 import { parseProposal, type ModelDecision } from '../../../near-demo/model.js';
 import type { AgentManifest } from '../../../near-demo/public-types.js';
 import { lastModelDirectory, ModelFolderError, scanModelDirectory } from './browser-models.js';
-import { BrowserRuntimeCache, runtimeDiagnostics } from './browser-runtime.js';
+import { BrowserRuntimeCache, loadBrowserRuntime, runtimeDiagnostics } from './browser-runtime.js';
 import { browserProposalRequest } from './browser-proposal.js';
 import type { ReportInferenceProgress } from './browser-inference-progress.js';
 
@@ -21,26 +21,15 @@ export async function prepareBrowserModel(manifest: AgentManifest, modelId: stri
   progress('scanning');
   const file = await openRegisteredModel(manifest, modelId, signal, progress);
   await runtimes.clear();
+  signal.throwIfAborted();
   progress('loading');
   const engine = await import('@wllama/wllama/esm/index.js') as unknown as { Wllama: typeof Wllama };
-  diagnostics=runtimeDiagnostics();
-  const runtime = new engine.Wllama({ default: new URL(wasmUrl, location.origin).href }, { logger:diagnostics.logger });
-  try {
-    const webGPU = await runtime.isSupportWebGPU();
-    signal.throwIfAborted();
-    if (!webGPU && file.size > 2 * 1024 ** 3) throw new Error('WebGPU is required for this large GGUF file in Pump.');
-    await runtime.loadModel([file], {
-      n_ctx:manifest.inference.context,n_gpu_layers:webGPU?999:0,
-      // Pump serializes decisions. Large server defaults exhaust browser GPU
-      // memory during warmup/prefill on 27B models.
-      n_parallel:1,n_batch:64,n_ubatch:16,
-      warmup:false,flash_attn:true,log_level:3,
-    });
-  } catch (error) {
-    await runtimes.clear(runtime);
-    signal.throwIfAborted();
-    throw new Error(`Could not load ${manifest.model.id} in Chrome. ${diagnostics.reason(error).slice(0, 300)}`);
-  }
+  const loadedModel = await loadBrowserRuntime(
+    logger => new engine.Wllama({ default: new URL(wasmUrl, location.origin).href }, { logger }),
+    file, { id: manifest.model.id, context: manifest.inference.context }, signal, () => progress('retrying'),
+  );
+  const { runtime } = loadedModel;
+  diagnostics = loadedModel.diagnostics;
   runtimes.save(manifest.model.sha256,runtime);
   return runtime;
 }

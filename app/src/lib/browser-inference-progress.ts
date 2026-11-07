@@ -1,5 +1,5 @@
 export type InferenceProgress = {
-  stage: 'scanning' | 'verifying' | 'loading' | 'quoting' | 'evaluating' | 'saving';
+  stage: 'scanning' | 'verifying' | 'loading' | 'retrying' | 'quoting' | 'evaluating' | 'saving';
   completedBytes?: number;
   totalBytes?: number;
   startedAt: number;
