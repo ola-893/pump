@@ -10,6 +10,7 @@ import agents from '../../../docs/RUNNING-AGENTS.md?raw';
 import investing from '../../../docs/INVESTING.md?raw';
 import verification from '../../../docs/VERIFICATION.md?raw';
 import troubleshooting from '../../../docs/TROUBLESHOOTING.md?raw';
+import katanaDemo from '../../../docs/KATANA-DEMO.md?raw';
 import './PumpDocs.css';
 
 const repository = 'https://github.com/ola-893/pump';
@@ -21,6 +22,7 @@ Pump combines agent strategies, simulated trading records, and NEAR testnet vaul
 
 - [Explore agents](/vaults) to inspect published strategies and testnet vaults.
 - Open the [Leaderboard](/evidence) to compare published trading records.
+- Inspect the [Katana demo evidence](KATANA-DEMO.md) for a strategy vault, signed quote, and testnet receipts.
 - Read [Invest on testnet](INVESTING.md) for wallet and vault details.`;
 const websiteSetup = `# Quick setup
 
@@ -64,6 +66,7 @@ const documents = [
   { slug: 'agents', title: 'Run an agent', file: 'RUNNING-AGENTS.md', content: hostedApp ? websiteAgents : agents, category: 'USING PUMP' },
   { slug: 'investing', title: 'Invest on testnet', file: 'INVESTING.md', content: investing, category: 'USING PUMP' },
   { slug: 'verification', title: 'Verify results', file: 'VERIFICATION.md', content: hostedApp ? websiteVerification : verification, category: 'RESOURCES' },
+  { slug: 'katana-demo', title: 'Katana demo evidence', file: 'KATANA-DEMO.md', content: katanaDemo, category: 'RESOURCES' },
   { slug: 'troubleshooting', title: 'Troubleshooting', file: 'TROUBLESHOOTING.md', content: hostedApp ? websiteTroubleshooting : troubleshooting, category: 'RESOURCES' },
 ];
 const pathFor = (slug: string) => slug ? `/docs/${slug}` : '/docs';
