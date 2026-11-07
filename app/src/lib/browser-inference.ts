@@ -55,7 +55,6 @@ async function openRegisteredModel(manifest: AgentManifest, modelId: string, sig
     const selected = models.find(model => model.id === modelId) ??
       models.find(model => model.filename === manifest.model.filename && model.bytes === manifest.model.bytes);
     if (!selected?.openWeights) throw new ModelFolderError(`Choose the folder containing ${manifest.model.filename}.`);
-    progress('verifying',0,selected.bytes);
     return await selected.openWeights(manifest.model.sha256, signal, completed=>progress('verifying',completed,selected.bytes));
   } catch (error) {
     if (error instanceof DOMException && ['NotAllowedError', 'NotFoundError', 'SecurityError'].includes(error.name)) {

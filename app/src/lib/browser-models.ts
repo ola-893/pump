@@ -45,7 +45,20 @@ export async function authorizeModelDirectory(directory: ModelDirectory | null) 
 const maxEntries = 15_000;
 const maxManifestBytes = 65_536;
 const maxWeightIndexBytes = 4 * 1024 * 1024;
-type ModelFiles = Map<string, () => Promise<File>>;
+const modelVerificationLifetimeMs = 24 * 60 * 60 * 1000;
+type ModelFile = File | FileSystemFileHandle;
+type ModelFiles = Map<string, ModelFile>;
+type ModelVerification = {
+  handle: FileSystemFileHandle;
+  size: number;
+  modified: number;
+  sample: string;
+  verifiedAt: number;
+};
+
+function readModelFile(entry: ModelFile | undefined) {
+  return entry && ('getFile' in entry ? entry.getFile() : entry);
+}
 
 async function hashFile(file: File, progress?: (completedBytes: number) => void, signal?: AbortSignal) {
   const hash = sha256.create();
@@ -58,6 +71,40 @@ async function hashFile(file: File, progress?: (completedBytes: number) => void,
   }
   signal?.throwIfAborted();
   return bytesToHex(hash.digest());
+}
+
+async function sampleWeights(file: File, signal?: AbortSignal) {
+  const hash = sha256.create();
+  const length = Math.min(file.size, 64 * 1024);
+  const lastOffset = file.size - length;
+  for (const offset of new Set([0, Math.floor(lastOffset / 2), lastOffset])) {
+    signal?.throwIfAborted();
+    hash.update(new Uint8Array(await file.slice(offset, offset + length).arrayBuffer()));
+  }
+  signal?.throwIfAborted();
+  return bytesToHex(hash.digest());
+}
+
+async function verifyWeights(file: File, handle: FileSystemFileHandle | undefined, checksum?: string, signal?: AbortSignal, progress?: (completedBytes: number) => void) {
+  const sample = handle && await sampleWeights(file, signal);
+  if (handle && checksum) {
+    const saved = await folderStore('readonly', store => store.get(`verified-gguf:${checksum}`)).catch(() => undefined) as ModelVerification | undefined;
+    const now = Date.now();
+    if (saved && saved.verifiedAt <= now && saved.verifiedAt > now - modelVerificationLifetimeMs &&
+        saved.size === file.size && saved.modified === file.lastModified && saved.sample === sample &&
+        await handle.isSameEntry(saved.handle).catch(() => false)) {
+      signal?.throwIfAborted();
+      return checksum;
+    }
+  }
+  const measured = await hashFile(file, progress, signal);
+  if (checksum && measured !== checksum) throw new ModelFolderError('The selected weights do not match this agent’s checksum. Choose the original GGUF file’s folder.');
+  if (handle && sample) {
+    const verified: ModelVerification = { handle, size: file.size, modified: file.lastModified, sample, verifiedAt: Date.now() };
+    await folderStore('readwrite', store => store.put(verified, `verified-gguf:${measured}`)).catch(() => {});
+  }
+  signal?.throwIfAborted();
+  return measured;
 }
 
 function checkSize(size: number) {
@@ -73,7 +120,7 @@ export async function scanModelDirectory(root: ModelDirectory, signal?: AbortSig
       checkSize(++visited);
       const path = prefix + entry.name;
       if (entry.kind === 'directory') await walk(entry, path + '/');
-      else files.set(path, () => entry.getFile());
+      else files.set(path, entry);
     }
   }
   await walk(root, '');
@@ -85,7 +132,7 @@ export function scanSelectedModelFiles(files: FileList) {
   const entries: ModelFiles = new Map();
   for (const file of Array.from(files)) {
     const path = file.webkitRelativePath;
-    entries.set(path ? path.slice(path.indexOf('/') + 1) : file.name, async () => file);
+    entries.set(path ? path.slice(path.indexOf('/') + 1) : file.name, file);
   }
   return scanModelFiles(entries);
 }
@@ -105,27 +152,29 @@ async function scanModelFiles(files: ModelFiles, signal?: AbortSignal) {
   async function addGguf(path: string, filename: string) {
     if (checkedWeights.has(path)) return;
     checkedWeights.add(path);
-    const file = await files.get(path)?.();
+    const entry = files.get(path);
+    const file = await readModelFile(entry);
     if (!file || file.size < 24 || await file.slice(0, 4).text() !== 'GGUF') return;
+    const handle = entry && 'getFile' in entry ? entry : undefined;
     const name = filename.replace(/\.gguf$/i, '').replace(/-UD-.*$|-(?:Q\d|IQ\d).*$/i, '');
     await addModel(path, file.lastModified, {
       name, filename, bytes: file.size,
       quantization: filename.match(/(?:I?Q\d[^.]*)/i)?.[0] ?? 'See model metadata',
       runtime: 'llama.cpp',
-    }, async progress => hashFile(await currentFile(), progress), async (checksum, signal, progress) => {
+    }, async progress => verifyWeights(await currentFile(), handle, undefined, undefined, progress), async (checksum, signal, progress) => {
       const current = await currentFile();
-      if (await hashFile(current, progress, signal) !== checksum) throw new ModelFolderError('The selected weights do not match this agent’s checksum. Choose the original GGUF file’s folder.');
+      await verifyWeights(current, handle, checksum, signal, progress);
       return current;
     });
     async function currentFile() {
-      const current = await files.get(path)!();
-      if (current.size !== file!.size || current.lastModified !== file!.lastModified) throw new ModelFolderError('The model file changed while Pump was opening it. Choose its folder to try again.');
+      const current = await readModelFile(entry);
+      if (!current || current.size !== file!.size || current.lastModified !== file!.lastModified) throw new ModelFolderError('The model file changed while Pump was opening it. Choose its folder to try again.');
       return current;
     }
   }
 
   async function readManifest(path: string, maxBytes = maxManifestBytes) {
-    const file = await files.get(path)?.();
+    const file = await readModelFile(files.get(path));
     if (!file || file.size > maxBytes) return;
     return JSON.parse(await file.text());
   }
@@ -135,7 +184,7 @@ async function scanModelFiles(files: ModelFiles, signal?: AbortSignal) {
     'tokenizer.json', 'tokenizer_config.json', 'clef_mlx.py',
   ];
   async function addClef(path: string) {
-    const manifest = await files.get(path)?.();
+    const manifest = await readModelFile(files.get(path));
     if (!manifest || manifest.size > maxManifestBytes) return;
     const bundle = JSON.parse(await manifest.text());
     if (bundle?.schema !== 'PUMP-CLEF-BUNDLE-v1' || bundle.runtime !== 'clef-mlx' || bundle.context !== 4096 ||
@@ -150,7 +199,7 @@ async function scanModelFiles(files: ModelFiles, signal?: AbortSignal) {
         ['.', '..', 'pump-classifier.json'].includes(artifact.name) || names.has(artifact.name) ||
         !Number.isSafeInteger(artifact.bytes) || artifact.bytes < 1 ||
         typeof artifact.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(artifact.sha256)) return;
-      const file = await files.get(prefix + artifact.name)?.();
+      const file = await readModelFile(files.get(prefix + artifact.name));
       if (!file || file.size !== artifact.bytes) return;
       names.add(artifact.name);
       artifacts.push(artifact);
@@ -162,14 +211,14 @@ async function scanModelFiles(files: ModelFiles, signal?: AbortSignal) {
     const weights = [...names].filter(name => name.endsWith('.safetensors')).length;
     await addModel(path, manifest.lastModified, { name: bundle.name, filename: `MLX bundle · ${weights} weight files`, bytes,
       quantization: bundle.quantization, runtime: 'clef-mlx', context: 4096 }, async progress => {
-      const current = await files.get(path)!();
+      const current = (await readModelFile(files.get(path)))!;
       const checksum = await hashFile(manifest);
       if (current.size !== manifest.size || current.lastModified !== manifest.lastModified || await hashFile(current) !== checksum) {
         throw new Error('The model bundle changed. Detect it again before registering.');
       }
       let completed = 0;
       for (const artifact of artifacts) {
-        const file = await files.get(prefix + artifact.name)!();
+        const file = (await readModelFile(files.get(prefix + artifact.name)))!;
         if (file.size !== artifact.bytes || await hashFile(file, bytes => progress?.(completed + bytes)) !== artifact.sha256) throw new Error('The model bundle could not be verified. Detect it again before registering.');
         completed += artifact.bytes;
       }
