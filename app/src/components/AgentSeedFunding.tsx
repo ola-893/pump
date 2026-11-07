@@ -4,8 +4,9 @@ import { NearWalletButton, useNearWallet } from './NearWalletProvider';
 import { approveSeedStep, readSeedVault, recoverStrategySeed, seedStep, withdrawSeed, type SeedFactory, type SeedStep, type SeedVault } from '../lib/seed-vault';
 import type { FundingDraft } from '../lib/browser-workspace';
 import { paperAmountInput } from '../lib/paper-amount';
+import { runSeedFunding } from '../lib/seed-funding-flow';
 
-const labels={deploy:'Create vault',storage:'Register vault for USDC','share-storage':'Register owner for pump coin',open:'Open strategy vault',fund:'Send seed USDC',confirmed:'Finish creating agent'};
+const approvalMessages={deploy:'Approve vault creation in your wallet…',storage:'Approve USDC registration in your wallet…','share-storage':'Approve pump coin registration in your wallet…',open:'Approve opening the strategy vault in your wallet…',fund:'Approve the seed deposit in your wallet…',confirmed:'Saving funded agent…'};
 const display=(value:string)=>paperAmountInput(value,6);
 const near=(value:string)=>paperAmountInput(value,24);
 const nearDisplay=(value:bigint,roundUp=false)=>{
@@ -16,29 +17,41 @@ const nearDisplay=(value:bigint,roundUp=false)=>{
 export function AgentSeedFunding({draft,factory,onFinish,onBack,onArchive,revision=false}:{draft:FundingDraft;factory:SeedFactory;onFinish:()=>Promise<void>;onBack:()=>void;onArchive?:()=>Promise<void>;revision?:boolean}){
   const wallet=useNearWallet(),v=draft.vault;
   const [next,setNext]=useState<SeedStep>(),[error,setError]=useState(''),[busy,setBusy]=useState('');
+  const mounted=useRef(false),inFlight=useRef(false),connectedOwner=useRef(wallet.account);
+  useLayoutEffect(()=>{connectedOwner.current=wallet.account;},[wallet.account]);
   const [receiptHash,setReceiptHash]=useState('');
   const balance=next&&next.kind!=='confirmed'?next.balance:undefined;
   const needsNear=!!balance&&balance.shortfall>0n;
   async function check(){
+    if(inFlight.current)return;
+    inFlight.current=true;
     setError('');setBusy('Checking testnet…');
-    try{setNext(await seedStep(v,factory));}
-    catch(e){setNext(undefined);setError((e as Error).message);}
-    finally{setBusy('');}
+    try{const step=await seedStep(v,factory);if(mounted.current)setNext(step);}
+    catch(e){if(mounted.current){setNext(undefined);setError((e as Error).message);}}
+    finally{inFlight.current=false;if(mounted.current)setBusy('');}
   }
   async function advance(){
-    if(!next||busy||needsNear||wallet.account!==v.owner)return;
-    setError('');setBusy(next.kind==='confirmed'?'Saving agent…':'Waiting for wallet and testnet…');
+    if(!next||inFlight.current||needsNear||wallet.account!==v.owner)return;
+    inFlight.current=true;
+    setError('');setBusy('Checking vault and seed balance…');
     try{
-      if(next.kind==='confirmed')await onFinish();
-      else {
-        if(!navigator.locks)throw new Error('Use a browser that can coordinate wallet approvals across tabs.');
-        setNext(await navigator.locks.request('pump-seed-'+v.contractId,{ifAvailable:true},lock=>{
-          if(!lock)throw new Error('An approval for this vault is already open in another tab.');
-          return approveSeedStep(v,factory,next.kind as Exclude<SeedStep['kind'],'confirmed'>);
-        }));
-      }
-    }catch(e){setNext(undefined);setError((e as Error).message);}
-    finally{setBusy('');}
+      if(!navigator.locks)throw new Error('Use a browser that can coordinate wallet approvals across tabs.');
+      await navigator.locks.request('pump-seed-'+v.contractId,{ifAvailable:true},async lock=>{
+        if(!lock)throw new Error('An approval for this vault is already open in another tab.');
+        const checkOwner=()=>{
+          if(!mounted.current)throw new Error('Vault setup paused. Resume this draft to continue.');
+          if(connectedOwner.current!==v.owner)throw new Error('Reconnect the vault owner’s wallet to continue setup.');
+        };
+        checkOwner();
+        await runSeedFunding({
+          read:()=>seedStep(v,factory),
+          approve:kind=>{checkOwner();return approveSeedStep(v,factory,kind);},
+          onStep:step=>{checkOwner();setNext(step);setBusy(approvalMessages[step.kind]);},
+          finish:async()=>{checkOwner();await onFinish();},
+        });
+      });
+    }catch(e){if(mounted.current)setError((e as Error).message);}
+    finally{inFlight.current=false;if(mounted.current)setBusy('');}
   }
   async function archive(){
     setError('');setBusy('Archiving draft…');
@@ -52,12 +65,16 @@ export function AgentSeedFunding({draft,factory,onFinish,onBack,onArchive,revisi
     catch(e){setError((e as Error).message);}
     finally{setBusy('');}
   }
-  useEffect(()=>{void check();},[]); // Each selected draft mounts its own funding view.
+  useEffect(()=>{
+    mounted.current=true;
+    void check();
+    return()=>{mounted.current=false;};
+  },[]); // Each selected draft mounts its own funding view.
   return <section className="nd-card na-form">
     <div className="nd-eyebrow">{revision?'STRATEGY VAULT':'STEP 3 OF 3'} · NEAR TESTNET</div>
     <h2>Fund {draft.manifest.name}{revision&&` · Strategy v${draft.strategy?.version}`}</h2>
-    <p>Send <strong>{display(v.amount)} Circle test USDC</strong> from <strong>{v.owner}</strong> to this strategy’s vault.</p>
-    <p>Wallet approvals are required. Trades stay in paper mode.</p>
+    <p>Create this vault and fund it with <strong>{display(v.amount)} Circle test USDC</strong> from <strong>{v.owner}</strong>.</p>
+    <p>Approve each wallet request to complete setup.</p>
     <dl className="na-facts"><div><dt>Vault</dt><dd><code>{v.contractId}</code></dd></div>
       {next?.kind==='deploy'&&<div><dt>Vault setup</dt><dd>{near(next.plan.actions[0].params.deposit)} test NEAR for contract storage, plus gas</dd></div>}
       {next?.kind==='storage'&&<div><dt>USDC registration</dt><dd>{near(next.plan.actions[0].params.deposit)} test NEAR, plus gas</dd></div>}
@@ -75,7 +92,7 @@ export function AgentSeedFunding({draft,factory,onFinish,onBack,onArchive,revisi
     <div className="na-wizard-controls"><button type="button" className="nd-text-button" disabled={!!busy} onClick={onBack}>Save for later</button>
       {onArchive&&<button type="button" className="nd-text-button" disabled={!!busy} onClick={()=>void archive()}>Archive draft</button>}
       <button type="button" className="nd-text-button" disabled={!!busy} onClick={()=>void check()}>{needsNear?'Check balance':'Check vault'}</button>
-      {next&&<button type="button" className="nd-button" disabled={!!busy||needsNear||wallet.account!==v.owner} onClick={()=>void advance()}>{revision&&next.kind==='confirmed'?'Activate strategy':labels[next.kind]}<ArrowRight size={15}/></button>}
+      {next&&<button type="button" className="nd-button" disabled={!!busy||needsNear||wallet.account!==v.owner} onClick={()=>void advance()}>{next.kind==='confirmed'?(revision?'Activate strategy':'Finish creating agent'):next.kind==='deploy'?'Create & fund vault':'Continue vault setup'}<ArrowRight size={15}/></button>}
     </div>
   </section>;
 }
