@@ -1,6 +1,7 @@
 import type { LoadModelParams } from '@wllama/wllama/esm/types/types.js';
 
 export type RuntimeResource = { isModelLoaded():boolean; exit():Promise<void> };
+export const museModelId = 'Muse-Glimmer-30B';
 
 /** A crashed WASM instance cannot serve a subsequent agent decision. */
 export class BrowserRuntimeCache<T extends RuntimeResource> {
@@ -50,7 +51,7 @@ type ModelRuntime = RuntimeResource & {
 export async function loadBrowserRuntime<T extends ModelRuntime>(
   create: (logger: ReturnType<typeof runtimeDiagnostics>['logger']) => T,
   file: File,
-  model: { id: string; context: number },
+  model: { id: string; context: number; chatTemplate?: string },
   signal: AbortSignal,
   onRetry: () => void,
 ) {
@@ -58,10 +59,11 @@ export async function loadBrowserRuntime<T extends ModelRuntime>(
   let runtime = create(diagnostics.logger);
   // This 52-layer model needs GPU offload to fit inside wllama's WASM heap.
   // Reserve room on both devices by moving only a few layers off the GPU.
-  const largeMuse = model.id === 'Muse-Glimmer-30B' && file.size >= 12 * 1024 ** 3;
+  const largeMuse = model.id === museModelId && file.size >= 12 * 1024 ** 3;
   const settings: LoadModelParams = {
     n_ctx: model.context, n_parallel: 1, n_batch: 64, n_ubatch: 16,
     warmup: false, flash_attn: true, log_level: 3,
+    ...(model.chatTemplate ? { chat_template: model.chatTemplate, jinja: true } : {}),
   };
   try {
     const webGPU = runtime.isSupportWebGPU();
