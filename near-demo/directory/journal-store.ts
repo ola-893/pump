@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { canonical } from '../paper-state.js';
+import { freshQuote } from '../ledger.js';
 import { testAccount } from '../types.js';
 import { publicationHash, verifySignature } from './signatures.js';
 import { journalBatchSize, journalSchema, type JournalBatch, type JournalListing, type JournalPage } from './public-journal.js';
@@ -14,13 +15,13 @@ const integer = (value: number) => Number.isSafeInteger(value) && value >= 0;
 const eventKinds = ['dust', 'mandate', 'fill', 'hold', 'blocked', 'mark', 'model', 'testnet-link'];
 
 function validateBatch(batch: JournalBatch) {
-  if (!keys(batch, 'agent,events,schema,strategy') || batch.schema !== journalSchema ||
+  if (!keys(batch, batch.marks===undefined?'agent,events,schema,strategy':'agent,events,marks,schema,strategy') || batch.schema !== journalSchema ||
     !keys(batch.agent, 'controller,id,model,name') || !uuid(batch.agent.id) || !text(batch.agent.name, 64) ||
     !text(batch.agent.model, 128) || !Array.isArray(batch.events) || batch.events.length > journalBatchSize) {
     throw new Error('Invalid public journal batch.');
   }
   testAccount(batch.agent.controller);
-  if (batch.strategy === null && batch.events.length === 0) return;
+  if (batch.strategy === null && batch.events.length === 0 && batch.marks===undefined) return;
   const strategy = batch.strategy;
   if (!strategy || !keys(strategy, strategy.vault ? 'id,market,openingSequence,vault,version' : 'id,market,openingSequence,version') || !uuid(strategy.id) ||
     !text(strategy.market, 80) || !integer(strategy.openingSequence) || !integer(strategy.version) || strategy.version < 1) {
@@ -50,6 +51,15 @@ function validateBatch(batch: JournalBatch) {
       throw new Error('Invalid public quote receipt.');
     }
   }
+  if (batch.marks!==undefined) {
+    if(!Array.isArray(batch.marks)||batch.marks.length>journalBatchSize) throw new Error('Invalid public live valuations.');
+    for(const mark of batch.marks) {
+      if(!keys(mark,'at,equity,quote,sequence,sourceHash,totalPnl')||!date(mark.at)||!integer(mark.sequence)||
+        !hash(mark.sourceHash)||!amount(mark.equity)||BigInt(mark.equity)<0n||!amount(mark.totalPnl))
+        throw new Error('Invalid public live valuation.');
+      freshQuote(mark.quote,{config:{source:'live',maxQuoteAgeMs:30000}},Date.parse(mark.at));
+    }
+  }
 }
 
 export class PublicJournalStore {
@@ -68,6 +78,8 @@ export class PublicJournalStore {
         PRIMARY KEY(strategy_id, sequence), FOREIGN KEY(strategy_id) REFERENCES journal_strategies(id));
       CREATE TABLE IF NOT EXISTS journal_valuations(strategy_id TEXT NOT NULL, sequence INTEGER NOT NULL, total_pnl TEXT,
         PRIMARY KEY(strategy_id, sequence), FOREIGN KEY(strategy_id, sequence) REFERENCES journal_events(strategy_id, sequence));
+      CREATE TABLE IF NOT EXISTS journal_marks(strategy_id TEXT NOT NULL, at TEXT NOT NULL, body TEXT NOT NULL,
+        PRIMARY KEY(strategy_id,at), FOREIGN KEY(strategy_id) REFERENCES journal_strategies(id));
     `);
   }
 
@@ -122,10 +134,23 @@ export class PublicJournalStore {
             }
           }
         }
+        for(const mark of batch.marks??[]) {
+          const now=this.now(),at=Date.parse(mark.at);
+          if(at>now+5000||now-at>60000) throw new Error('Live valuation arrived too late.');
+          if(mark.sequence!==head) throw new Error('Live valuation belongs to an older portfolio.');
+          const source=this.db.prepare('SELECT body FROM journal_events WHERE strategy_id=? AND sequence=?').get(strategy.id,mark.sequence);
+          if(!source||JSON.parse(String(source.body)).sourceHash!==mark.sourceHash||at<Date.parse(JSON.parse(String(source.body)).at))
+            throw new Error('Live valuation does not match the published portfolio.');
+          const body=canonical(mark);
+          const prior=this.db.prepare('SELECT body FROM journal_marks WHERE strategy_id=? AND at=?').get(strategy.id,mark.at);
+          if(prior&&prior.body!==body) throw new Error('A live valuation cannot be rewritten.');
+          this.db.prepare('INSERT OR IGNORE INTO journal_marks VALUES (?,?,?)').run(strategy.id,mark.at,body);
+          this.db.prepare('DELETE FROM journal_marks WHERE strategy_id=? AND at<?').run(strategy.id,new Date(now-7*86400000).toISOString());
+        }
         if (head !== initialHead) this.db.prepare('UPDATE journal_strategies SET head=?,updated=? WHERE id=?').run(head, now, strategy.id);
         if (!current || head !== initialHead) this.db.prepare('UPDATE journal_agents SET updated=? WHERE id=?').run(now, agent.id);
       }
-      if (events.length) this.db.prepare('INSERT OR IGNORE INTO journal_batches VALUES (?,?)')
+      if (events.length||batch.marks?.length) this.db.prepare('INSERT OR IGNORE INTO journal_batches VALUES (?,?)')
         .run(publicationHash(batch).toString('hex'), canonical({ batch, key, signature }));
       this.db.exec('COMMIT');
       return { head };
@@ -182,10 +207,13 @@ export class PublicJournalStore {
       WHERE e.strategy_id=? AND e.sequence<? ORDER BY e.sequence DESC LIMIT 101`)
       .all(selected.id, before !== undefined && integer(before) ? before : Number.MAX_SAFE_INTEGER) : [];
     const page = rows.slice(0, journalBatchSize);
+    const marks=selected?this.db.prepare('SELECT body FROM journal_marks WHERE strategy_id=? ORDER BY at DESC LIMIT 1800').all(selected.id):[];
     return {
       agent: { ...JSON.parse(String(row.body)), updatedAt: Number(row.updated) },
       strategies, strategyId: selected?.id ?? null,
       paperValuations: true,
+      liveMarks: true,
+      marks: marks.map(row=>{const {quote:_quote,...mark}=JSON.parse(String(row.body));return mark;}),
       events: page.map(event => ({ ...JSON.parse(String(event.body)), ...(event.valued===null ? {} : { totalPnl:event.total_pnl }) })),
       nextBefore: rows.length > journalBatchSize ? Number(page.at(-1)!.sequence) : null,
     };

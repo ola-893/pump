@@ -91,6 +91,14 @@ function Fact({label,value}: {label:string;value:string}) { return <div><dt>{lab
 
 type ChartObservation = Pick<EquityObservation, 'at' | 'equity'>;
 
+function chartPath(points:{x:number;y:number}[]) {
+  return points.map((point,index)=>{
+    if(index===0)return `M ${point.x} ${point.y}`;
+    const prior=points[index-1],third=(point.x-prior.x)/3;
+    return `C ${prior.x+third} ${prior.y}, ${point.x-third} ${point.y}, ${point.x} ${point.y}`;
+  }).join(' ');
+}
+
 export function EquityChart({market,observations,initial,gapMs,loading,variant='equity'}: {
   market:Pick<ReturnType<typeof paperMarket>,'quoteDecimals'|'quoteSymbol'>;
   observations:ChartObservation[];
@@ -100,12 +108,12 @@ export function EquityChart({market,observations,initial,gapMs,loading,variant='
   variant?:'equity'|'pnl';
 }) {
   const id=useId().replaceAll(':','');
-  const [range,setRange]=useState('All'), [hover,setHover]=useState<number|null>(null);
+  const [range,setRange]=useState(variant==='pnl'?'1h':'All'), [hover,setHover]=useState<number|null>(null);
   const performance=variant==='pnl';
   const metric=performance?'paper P&L':'equity';
   const filtered=useMemo(()=>{
     if(range==='All')return observations;
-    const since=Date.now()-(range==='24h'?86400000:604800000);
+    const since=Date.now()-(range==='1h'?3600000:range==='24h'?86400000:604800000);
     const index=observations.findIndex(point=>Date.parse(point.at)>=since);
     if(index<0)return [];
     return observations.slice(index);
@@ -155,7 +163,7 @@ export function EquityChart({market,observations,initial,gapMs,loading,variant='
     <div className="ip-chart-tools">
       <div>{selected?<><strong>{paperAmount(selected.equity,market.quoteDecimals)} {market.quoteSymbol} {ratio!==null&&<span>{pct(ratio)}</span>}</strong><small>{stamp(selected.at)}</small></>:<small>{loading?'Loading published events…':`No recorded ${metric} in this period.`}</small>}</div>
       <div className="ip-range" role="group" aria-label={`${metric} chart period`}>
-        {['24h','7d','All'].map(option=><button type="button" key={option} aria-pressed={option===range} onClick={()=>{setRange(option);setHover(null);}}>{option}</button>)}
+        {(performance?['1h','24h','7d','All']:['24h','7d','All']).map(option=><button type="button" key={option} aria-pressed={option===range} onClick={()=>{setRange(option);setHover(null);}}>{option}</button>)}
       </div>
     </div>
     {points.length?<><svg viewBox="0 0 648 220" role="img" aria-label={`${metric} chart for ${range} · ${points.length} observations`}
@@ -177,10 +185,10 @@ export function EquityChart({market,observations,initial,gapMs,loading,variant='
       {segments.map((group,index)=>{
         const first=group[0], last=group.at(-1)!;
         if(group.length===1)return <circle key={index} cx={x(first)} cy={y(value(first))} r="3" fill="#b3ef81"/>;
-        const line=group.map(point=>`${x(point)},${y(value(point))}`).join(' ');
+        const line=chartPath(group.map(point=>({x:x(point),y:y(value(point))})));
         return <g key={index}>
-          <polygon fill={`url(#${id})`} points={`${x(first)},185 ${line} ${x(last)},185`}/>
-          <polyline fill="none" stroke="#b3ef81" strokeWidth="2" strokeLinejoin="round" points={line}/>
+          <path fill={`url(#${id})`} d={`${line} L ${x(last)} 185 L ${x(first)} 185 Z`}/>
+          <path className="ip-chart-line" fill="none" stroke="#b3ef81" strokeWidth="2" strokeLinejoin="round" d={line}/>
         </g>;
       })}
       {selected&&<g><line x1={x(selected)} x2={x(selected)} y1="22" y2="185" stroke="#ffffff35" strokeDasharray="3 4"/>
@@ -191,7 +199,7 @@ export function EquityChart({market,observations,initial,gapMs,loading,variant='
     </svg>{points.length>1&&<input className="ip-chart-slider" type="range" aria-label={`Inspect ${metric} observation`}
       aria-valuetext={`${paperAmount(selected?.equity,market.quoteDecimals)} ${market.quoteSymbol} · ${selected?stamp(selected.at):''}`}
       min="0" max={points.length-1} value={selectedIndex} onChange={event=>setHover(Number(event.target.value))}/>}</>:<div className="ip-chart-empty">{loading?'Loading chart…':'No observations for this period.'}</div>}
-    <p className="ip-help">{performance?'Recorded paper valuations include open positions. Deposits and withdrawals are excluded from P&L.':`Recorded valuations only. Gaps over ${(gapMs??0)/60000} minutes are disconnected.`}</p>
+    <p className="ip-help">{performance?'Open positions are valued from live quotes every 20 seconds while the owner’s agent workspace is open. Deposits and withdrawals are excluded from P&L.':`Recorded valuations only. Gaps over ${(gapMs??0)/60000} minutes are disconnected.`}</p>
   </div>;
 }
 function ActivityTable({market,data,fillsOnly=false,compact=false,loading}: {market:ReturnType<typeof paperMarket>;data?:AgentPerformance;fillsOnly?:boolean;compact?:boolean;loading:boolean}) {
