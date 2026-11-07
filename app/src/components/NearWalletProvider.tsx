@@ -72,10 +72,15 @@ export function useNearWallet() {
   const session = useContext(Context);
   if (!session) throw new Error('NEAR wallet provider is missing.');
   const state = useSyncExternalStore(session.subscribe, session.snapshot, session.snapshot);
-  return { ...state, connect: session.connect, disconnect: session.disconnect, selectAccount: session.selectAccount };
+  return { ...state, connect: session.connect, disconnect: session.disconnect, selectAccount: session.selectAccount, dismissNotice: session.dismissNotice };
 }
 export function NearWalletButton() {
-  const { account, accounts, busy, ready, error, connect, disconnect, selectAccount } = useNearWallet();
+  const { account, accounts, busy, ready, error, notice, dismissNotice, connect, disconnect, selectAccount } = useNearWallet();
+  useEffect(()=>{
+    if(!notice)return;
+    const timer=window.setTimeout(dismissNotice,6000);
+    return()=>window.clearTimeout(timer);
+  },[notice,dismissNotice]);
   const short = account.length > 23 ? `${account.slice(0,12)}…${account.slice(-8)}` : account;
   return <div className="nw-wallet">
     {account ? <details className="nw-account" key={account}>
@@ -87,5 +92,6 @@ export function NearWalletButton() {
       </div>
     </details> : <button type="button" className="nd-button secondary" disabled={busy || !ready} onClick={() => void connect()}><Wallet size={15}/>{busy ? 'Connecting…' : !ready ? 'Loading wallet…' : 'Connect wallet'}</button>}
     {error && <span className="nw-error" role="alert">{error}</span>}
+    {notice && <div className="nw-notice" role="status"><span>{notice}</span><button type="button" aria-label="Dismiss wallet notice" onClick={dismissNotice}>×</button></div>}
   </div>;
 }

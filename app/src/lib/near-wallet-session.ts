@@ -3,13 +3,13 @@ import { testAccount } from '../../../near-demo/types.js';
 import { rememberWalletAccount, rememberedWalletAccount, walletAccountKey, withWalletApproval } from './near-wallet-account.js';
 
 type Connector = Pick<NearConnector, 'network' | 'getConnectedWallet' | 'connect' | 'disconnect' | 'on' | 'off'>;
-type State = { account: string; accounts: string[]; busy: boolean; ready: boolean; error: string };
+type State = { account: string; accounts: string[]; busy: boolean; ready: boolean; error: string; notice: string };
 type Connection = { accounts: string[]; walletId: string };
 
 // One account selection shared by registration, navigation and vault controls.
 // Connection is account visibility only, not an ownership proof or trading grant.
 export class NearWalletSession {
-  private state: State = { account: '', accounts: [], busy: false, ready: false, error: '' };
+  private state: State = { account: '', accounts: [], busy: false, ready: false, error: '', notice: '' };
   private listeners = new Set<() => void>();
   private revision = 0;
   private locked = false;
@@ -22,6 +22,7 @@ export class NearWalletSession {
     }
   }
   snapshot = () => this.state;
+  dismissNotice = () => this.update({notice:''});
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private update(next: Partial<State>) { this.state = { ...this.state, ...next }; this.listeners.forEach(fn => fn()); }
   private async account(c: Connector) {
@@ -36,7 +37,7 @@ export class NearWalletSession {
     if (walletId==='meteor-wallet') desired=rememberedWalletAccount(walletId)||desired;
     const account = accounts.includes(desired) ? desired : accounts[0];
     this.preferred = account;
-    this.update({ account, accounts });
+    this.update({ account, accounts, error:'', notice:'' });
     if (typeof window !== 'undefined') {
       try { window.localStorage.setItem('pump.near-testnet-account', account); } catch { /* Selection still works without storage. */ }
     }
@@ -45,7 +46,7 @@ export class NearWalletSession {
     if (this.locked) return;
     this.locked = true;
     let revision = ++this.revision;
-    this.update({ busy: true, error: '' });
+    this.update({ busy: true, error: '', notice:'' });
     try {
       const c=await this.connector();
       let connection=await this.account(c);
@@ -56,10 +57,13 @@ export class NearWalletSession {
         connection=await this.account(c);
         if(revision!==this.revision)return;
         this.select(connection);
-        if(this.state.account!==desired)throw new Error(`Meteor connected ${this.state.account}. Choose ${desired} in Meteor to switch accounts.`);
+        if(this.state.account!==desired)this.update({notice:`Connected to ${this.state.account}.`});
       } else if (revision === this.revision) this.select(connection, desired);
     } catch (e) {
-      if (revision === this.revision) this.update({ error: e instanceof Error ? e.message : 'Account selection failed.' });
+      if (revision === this.revision) {
+        const message=e instanceof Error ? e.message : 'Account selection failed.';
+        this.update({error:/reject|cancel/i.test(message)?'':message});
+      }
     } finally { this.locked = false; this.update({ busy: false }); }
   };
   start() {
@@ -68,10 +72,10 @@ export class NearWalletSession {
     const initial = ++this.revision;
     void this.connector().then(async c => {
       if (!active) return;
-      const signedOut = () => { ++this.revision; this.update({ account: '', accounts: [], error: '' }); };
+      const signedOut = () => { ++this.revision; this.update({ account: '', accounts: [], error: '', notice:'' }); };
       const signedIn = (event?:EventMap['wallet:signIn']) => {
         const revision = ++this.revision;
-        this.update({ account: '', accounts: [], error: '' });
+        this.update({ account: '', accounts: [], error: '', notice:'' });
         if(event?.accounts?.length && event.success){
           try{
             const account=testAccount(event.accounts[0].accountId);
@@ -91,7 +95,7 @@ export class NearWalletSession {
         if(event.key!==walletAccountKey+'meteor-wallet')return;
         if(event.newValue===null){signedOut();return;}
         const revision=++this.revision;
-        this.update({account:'',error:''});
+        this.update({account:'',error:'',notice:''});
         void this.account(c).then(connection=>{
           if(active&&revision===this.revision)this.select(connection);
         }).catch(e=>{if(active&&revision===this.revision)this.update({error:e.message});});
@@ -113,7 +117,7 @@ export class NearWalletSession {
     if (this.locked) return;
     this.locked = true;
     ++this.revision; // An earlier restoration must not replace this selection.
-    this.update({ busy: true, error: '' });
+    this.update({ busy: true, error: '', notice:'' });
     try {
       const c = await this.connector();
       if (c.network !== 'testnet') throw new Error('Connect a NEAR testnet wallet.');
@@ -130,7 +134,7 @@ export class NearWalletSession {
     if (this.locked) return;
     this.locked = true;
     ++this.revision;
-    this.update({ busy: true, error: '' });
+    this.update({ busy: true, error: '', notice:'' });
     try { await withWalletApproval(async()=>{await (await this.connector()).disconnect();}); this.update({ account: '', accounts: [] }); }
     catch (e) { this.update({ error: e instanceof Error ? e.message : 'Could not disconnect wallet.' }); }
     finally { this.locked = false; this.update({ busy: false }); }
