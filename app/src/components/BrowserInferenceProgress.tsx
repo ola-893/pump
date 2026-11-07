@@ -5,6 +5,7 @@ const stages = {
   scanning: ['Finding your model', 'Checking the model folder you allowed.'],
   verifying: ['Verifying model weights', 'Reading the model file and checking its saved checksum.'],
   loading: ['Loading model into memory', 'Large models can take several minutes. Keep this tab open.'],
+  retrying: ['Retrying model load', 'The first load failed. Pump is trying again with less work on the GPU.'],
   quoting: ['Getting live market quotes', 'Requesting signed prices for this strategy.'],
   evaluating: ['Evaluating the market', 'Your model is preparing a decision from the live quotes.'],
   saving: ['Saving the decision', 'Recording the result in this browser’s journal.'],
