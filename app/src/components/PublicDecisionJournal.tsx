@@ -63,6 +63,7 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
   const format = (value:string|null) => value === null ? '—' : `${market ? paperAmount(value, market.quoteDecimals) : value} ${quote.quoteSymbol}`;
   const switchingStrategy = strategy !== undefined && strategy !== latest?.strategyId;
   const events = switchingStrategy ? [] : latest?.events ?? [];
+  const lastEquity = events.find(event => event.equity !== null);
   const fills = events.filter(event => event.kind === 'fill');
   const decisions = events.filter(event => event.kind === 'model');
   const realized = events.reduce((sum, event) => sum + BigInt(event.realized), 0n);
@@ -147,8 +148,8 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
           <section className="nd-card ip-performance">
             <div className="ip-card-top"><div>
               <div className="nd-eyebrow">PAPER STRATEGY EQUITY · {quote.quoteSymbol}</div>
-              <div className="ip-equity">{format(events[0]?.equity ?? null)}</div>
-              <p>{subset} · Owner-authorized paper record</p>
+              <div className="ip-equity">{format(lastEquity?.equity ?? null)}</div>
+              <p>{subset} · Includes synced vault capital{lastEquity&&lastEquity!==events[0]&&` · Last recorded ${displayTime(lastEquity.at)}`}</p>
             </div></div>
             <EquityChart key={current?.id} market={quote} observations={[...events].reverse()} initial={null} gapMs={180000} loading={switchingStrategy}/>
             <div className="ip-stat-row">
