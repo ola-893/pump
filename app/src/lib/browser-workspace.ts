@@ -7,7 +7,7 @@ import type { WorkspaceAgent, WorkspacePaper, WorkspaceStrategy, WorkspaceTransf
 import { initialPortfolio, metrics } from '../../../near-demo/paper-state.js';
 import { BENCHMARK_POLICY, type AgentManifest, type StrategyRun, type StrategySettings } from '../../../near-demo/public-types.js';
 import { paperMarket, testAccount, validateConfig, type Config, type Event, type MarketSelection, type Session } from '../../../near-demo/types.js';
-import { journalBatchSize, journalSchema, publicJournalEvent } from '../../../near-demo/directory/public-journal.js';
+import { journalBatchSize, journalSchema, paperPnlAt, publicJournalEvent } from '../../../near-demo/directory/public-journal.js';
 import { readJournal, sendJournalBatch } from './public-journal-client.js';
 import { ModelFolderError, type BrowserModel } from './browser-models.js';
 import { changeStrategyVault, readSeedVault, seedVaultAccount, validateSeedVault, verifyRecordedSeed, type SeedFactory, type SeedState, type SeedVault } from './seed-vault.js';
@@ -766,11 +766,20 @@ async function syncJournal(agent: StoredAgent) {
   for (const run of agent.runs) {
     const strategy=journalStrategy(agent,run);
     const existing = remote.strategies.find(item => item.id === run.id);
-    const pending = run.paper.events.filter(event => event.sequence > (existing?.head ?? strategy.openingSequence));
+    const publishedEvents = run.paper.events.filter(event => event.sequence > strategy.openingSequence);
+    const baseline = strategy.openingSequence===0 ? 0n : publishedEvents
+      .map(event => paperPnlAt(event, run.config.initialCash)).find(value => value!==null) ?? null;
+    const syncedThrough = remote.paperValuations ? existing?.valuedThrough : existing?.head;
+    const pending = publishedEvents.filter(event => event.sequence > (syncedThrough ?? strategy.openingSequence));
     if (!existing && pending.length === 0) await sendJournalBatch({ schema: journalSchema, agent: profile, strategy, events: [] });
     for (let offset = 0; offset < pending.length; offset += journalBatchSize) {
-      await sendJournalBatch({ schema: journalSchema, agent: profile, strategy,
-        events: pending.slice(offset, offset + journalBatchSize).map(publicJournalEvent) });
+      const events = pending.slice(offset, offset + journalBatchSize).map(event => {
+        const projection = publicJournalEvent(event);
+        if (!remote.paperValuations) return projection;
+        const value = paperPnlAt(event, run.config.initialCash);
+        return { ...projection, totalPnl: value===null || baseline===null ? null : String(value-baseline) };
+      });
+      await sendJournalBatch({ schema: journalSchema, agent: profile, strategy, events });
     }
   }
 }

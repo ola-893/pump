@@ -68,6 +68,7 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
   const fills = events.filter(event => event.kind === 'fill');
   const decisions = events.filter(event => event.kind === 'model');
   const pnl = publicPaperPnl(events);
+  const total = pnl.latest?.equity ?? null;
   const fundingId = `investor-vault-${agentId}`;
   const alert = error && <p role="alert" className="nd-alert">{error}</p>;
 
@@ -148,15 +149,15 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
         <div className="ip-overview">
           <section className="nd-card ip-performance">
             <div className="ip-card-top"><div>
-              <div className="nd-eyebrow">REALIZED PAPER P&L · {quote.quoteSymbol}</div>
-              <div className={`ip-equity ${BigInt(pnl.total)<0n?'negative':BigInt(pnl.total)>0n?'positive':''}`}>{format(events.length ? pnl.total : null)}</div>
-              <p>{subset} · Cumulative trading gains and losses</p>
+              <div className="nd-eyebrow">TOTAL PAPER P&L · {quote.quoteSymbol}</div>
+              <div className={`ip-equity ${BigInt(total??0)<0n?'negative':BigInt(total??0)>0n?'positive':''}`}>{format(total)}</div>
+              <p>{pnl.latest?`Realized and unrealized · As of ${displayTime(pnl.latest.at)}`:'Valuations appear when the owner syncs this strategy’s journal.'}</p>
             </div></div>
-            <EquityChart key={current?.id} market={quote} observations={pnl.observations} initial="0" variant="realized" loading={switchingStrategy}/>
+            <EquityChart key={current?.id} market={quote} observations={pnl.observations} initial="0" variant="pnl" loading={switchingStrategy}/>
             <div className="ip-stat-row">
               <Metric label={`Paper equity · ${quote.quoteSymbol}`} value={paperAmount(lastEquity?.equity,quote.quoteDecimals)} hint={lastEquity?`Includes capital · ${displayTime(lastEquity.at)}`:'Includes capital'}/>
+              <Metric label={`Realized P&L · ${quote.quoteSymbol}`} value={events.length?paperAmount(pnl.realized,quote.quoteDecimals):'—'} hint={subset}/>
               <Metric label="Filled orders" value={switchingStrategy?'—':String(fills.length)} hint={subset}/>
-              <Metric label="Model decisions" value={switchingStrategy?'—':String(decisions.length)} hint={subset}/>
             </div>
           </section>
           <aside className="nd-card ip-at-glance">
@@ -164,6 +165,7 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
             <div className="ip-counts">
               <Metric label="HOLD outcomes" value={switchingStrategy?'—':String(events.filter(event=>event.kind==='hold').length)}/>
               <Metric label="Blocked attempts" value={switchingStrategy?'—':String(events.filter(event=>event.kind==='blocked').length)}/>
+              <Metric label="Model decisions" value={switchingStrategy?'—':String(decisions.length)} hint={subset}/>
             </div>
             <div className="ip-latest"><small>Latest recorded model decision</small><strong>{switchingStrategy?'—':decisions[0]?.action ?? 'No decision yet'}</strong>
               {decisions[0]&&<p>{displayTime(decisions[0].at)}</p>}
