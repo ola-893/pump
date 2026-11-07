@@ -3,7 +3,7 @@ import { paperMarket } from '../../../near-demo/types';
 import { paperValuation } from '../lib/paper-valuation';
 import { Link } from 'react-router-dom';
 import { ArrowDown, ArrowRight, ArrowUpRight, Cpu, Fingerprint, ScanLine, ShieldCheck } from 'lucide-react';
-import { agentEntries } from '../lib/agent-collection';
+import { agentEntries, isPubliclyListedAgent } from '../lib/agent-collection';
 import type { ConsoleRun } from './AgentConsole';
 import './NearLanding.css';
 
@@ -18,7 +18,7 @@ type LandingData = {
 };
 function AgentGlyph({index}:{index:number}){return <svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><path d={index%3===0?'M12 36 32 10l4 4-20 26M12 30l10 8M27 13l8 8':index%3===1?'M34 12a17 17 0 1 0 3 27M11 37 37 11M29 10h9v9':'M10 37 29 9h9L19 37H10ZM17 27h13M23 18h13'} stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>;}
 export function NearLanding({data}:{data?:LandingData}){
-  const agents = data?.agents ?? [];
+  const agents = data?.agents.filter(isPubliclyListedAgent) ?? [];
   const entries = agentEntries(agents, data?.strategyRuns ?? []);
   const runs = new Map((data?.strategyRuns ?? []).map(run => [run.id, run]));
   const fills = entries.reduce((sum, {run}) => sum + (run?.activity.fills ?? 0), 0);
