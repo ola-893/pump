@@ -178,9 +178,9 @@ export function VaultWorkspace({v,account,run,api,refresh,fundingId,manage=false
    <h3>{human(s.assets)}</h3>
  </div>}
  {s?.live_nav&&<div className="av-live-price">
-   <small>{o?.navFresh===false?'Last confirmed pump coin price':'pump coin price · test USDC'}</small>
+   <small>{o?.navFresh===false?'Last confirmed price per pumpcoin':'Vault price per pumpcoin · test USDC'}</small>
    <h3>{human(o?.pumpCoinPrice)}</h3>
-   <p>{pricingDelayed?'Showing the last confirmed price while Pump waits for a new valuation.':journalVault?'This price reflects on-chain vault accounting. Browser paper results are displayed separately.':s.live_nav.tracking?'Updates automatically from fresh strategy valuations.':'The strategy is stopped with no open position.'}</p>
+   <p>{pricingDelayed?'Showing the last confirmed price while Pump waits for a new valuation.':journalVault?'Based on vault assets per pumpcoin. Confirmed gains and losses change this price. Gains retained in the vault compound automatically.':s.live_nav.tracking?'Updates automatically from fresh strategy valuations.':'The strategy is stopped with no open position.'}</p>
    <small>Confirmed valuation {new Date(s.live_nav.observed_at_ms).toLocaleTimeString()}</small>
    <button type="button" className="nd-text-button" disabled={!!busy} onClick={()=>void task('evidence',async()=>{const evidence=journalVault?{vault:v.contractId,strategy:v.runId,blockHash:o.blockHash,blockHeight:o.blockHeight,assets:s.assets,totalSupply:s.total_supply,valuation:s.live_nav}:(await api('/nav-evidence',{runId:v.runId})).evidence;const url=URL.createObjectURL(new Blob([JSON.stringify(evidence,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=`${v.name}-v${v.version}-price-evidence.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);})}>Export price evidence</button>
    {o?.reportingError&&<details><summary>Latest price update issue</summary><p className="av-address">{o.reportingError}</p></details>}

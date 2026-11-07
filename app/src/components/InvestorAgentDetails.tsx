@@ -89,24 +89,109 @@ export function InvestorProfileTabs({selected,onSelect}: {selected:InvestorProfi
 export function Metric({label,value,hint}: {label:string;value:string;hint?:string}) { return <div className="ip-metric"><small>{label}</small><strong>{value}</strong>{hint && <span>{hint}</span>}</div>; }
 function Fact({label,value}: {label:string;value:string}) { return <div><dt>{label}</dt><dd>{value}</dd></div>; }
 
-export function EquityChart({market,observations,initial,gapMs,loading}: {market:Pick<ReturnType<typeof paperMarket>,'quoteDecimals'|'quoteSymbol'>;observations:EquityObservation[];initial:string|null;gapMs:number;loading:boolean}) {
-  const id = useId().replaceAll(':',''), [range,setRange] = useState('All'), [hover,setHover] = useState<number | null>(null);
-  const filtered = useMemo(() => { const since = range === 'All' ? -Infinity : Date.now() - (range === '24h' ? 86400000 : 604800000); return observations.filter(p => Date.parse(p.at) >= since); }, [observations,range]);
-  const points = filtered.filter(p => p.equity != null);
-  const start = filtered.length ? Date.parse(filtered[0].at) : 0, end = filtered.length ? Date.parse(filtered.at(-1)!.at) : 1;
+type ChartObservation = Pick<EquityObservation, 'at' | 'equity'>;
+
+export function EquityChart({market,observations,initial,gapMs,loading,variant='equity'}: {
+  market:Pick<ReturnType<typeof paperMarket>,'quoteDecimals'|'quoteSymbol'>;
+  observations:ChartObservation[];
+  initial:string|null;
+  gapMs?:number;
+  loading:boolean;
+  variant?:'equity'|'realized';
+}) {
+  const id=useId().replaceAll(':','');
+  const [range,setRange]=useState('All'), [hover,setHover]=useState<number|null>(null);
+  const realized=variant==='realized';
+  const metric=realized?'realized paper P&L':'equity';
+  const filtered=useMemo(()=>{
+    if(range==='All')return observations;
+    const since=Date.now()-(range==='24h'?86400000:604800000);
+    const index=observations.findIndex(point=>Date.parse(point.at)>=since);
+    if(index<0)return [];
+    const points=observations.slice(index);
+    if(realized&&index>0&&Date.parse(points[0].at)>since)
+      points.unshift({at:new Date(since).toISOString(),equity:observations[index-1].equity});
+    return points;
+  },[observations,range,realized]);
+  const points=filtered.filter(point=>point.equity!=null);
+  const start=points[0]?Date.parse(points[0].at):0, end=points.length?Date.parse(points.at(-1)!.at):start;
   const scale=10**market.quoteDecimals;
-  const values = points.map(p => Number(p.equity)/scale), base = initial===null ? null : Number(initial)/scale;
-  const bounds = base===null ? values : [...values,base];
-  const min = bounds.length ? Math.min(...bounds) : 0, max = bounds.length ? Math.max(...bounds) : 0, span = Math.max(max-min,(base??max)*.001,0.01);
-  const x = (p:EquityObservation) => 55 + (Date.parse(p.at)-start)/Math.max(1,end-start)*710;
-  const y = (v:number) => 200 - (v-min+span*.12)/(span*1.24)*155;
-  const segments:EquityObservation[][] = []; let segment:EquityObservation[] = [];
-  for (const p of filtered) { const last = segment.at(-1); if(p.equity == null || last && Date.parse(p.at)-Date.parse(last.at)>gapMs){ if(segment.length)segments.push(segment);segment=[]; } if(p.equity != null)segment.push(p); } if(segment.length)segments.push(segment);
-  const selected = hover == null ? points.at(-1) : points[Math.min(hover,points.length-1)];
-  const ratio = selected?.equity != null && base ? (Number(selected.equity)/scale-base)*100/base : null;
-  return <div className="ip-chart"><div className="ip-chart-tools"><div>{selected ? <><strong>{paperAmount(selected.equity,market.quoteDecimals)} {market.quoteSymbol} {ratio!==null&&<span>{pct(ratio)}</span>}</strong><small>{stamp(selected.at)}</small></> : <small>{loading ? 'Loading verified observations…' : 'No recorded valuations in this period.'}</small>}</div><div className="ip-range" role="group" aria-label="Equity chart period">{['24h','7d','All'].map(r => <button type="button" key={r} aria-pressed={r===range} onClick={()=>{setRange(r);setHover(null);}}>{r}</button>)}</div></div>
-    {points.length ? <><svg viewBox="0 0 800 245" role="img" aria-label={`${points.length} recorded equity values for ${range}; gaps over ${gapMs/60000} minutes are left disconnected`} onPointerLeave={()=>setHover(null)} onPointerMove={e=>{const bounds=e.currentTarget.getBoundingClientRect(),cursor=(e.clientX-bounds.left)*800/bounds.width;let nearest=0;for(let i=1;i<points.length;i++)if(Math.abs(x(points[i])-cursor)<Math.abs(x(points[nearest])-cursor))nearest=i;setHover(nearest);}}><defs><linearGradient id={id} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#b3ef81" stopOpacity=".15"/><stop offset="100%" stopColor="#b3ef81" stopOpacity="0"/></linearGradient></defs>{[min,min+(max-min)/2,max].filter((v,i,a)=>a.indexOf(v)===i).map(v=><g key={v}><line x1="55" x2="765" y1={y(v)} y2={y(v)} stroke="#ffffff0c"/><text x="2" y={y(v)+4}>{v.toFixed(2)}</text></g>)}{base!==null&&<line x1="55" x2="765" y1={y(base)} y2={y(base)} stroke="#a9b99b" strokeOpacity=".3" strokeDasharray="4 5"/>}{segments.map((s,i)=><g key={i}>{s.length>1&&<><polygon fill={`url(#${id})`} points={`${x(s[0])},210 ${s.map(p=>`${x(p)},${y(Number(p.equity)/scale)}`).join(' ')} ${x(s.at(-1)!)},210`}/><polyline fill="none" stroke="#b3ef81" strokeWidth="2" points={s.map(p=>`${x(p)},${y(Number(p.equity)/scale)}`).join(' ')}/></>}{s.length===1&&<circle cx={x(s[0])} cy={y(Number(s[0].equity)/scale)} r="3" fill="#b3ef81"/>}</g>)}{selected&&<g><line x1={x(selected)} x2={x(selected)} y1="25" y2="210" stroke="#ffffff30" strokeDasharray="3 4"/><circle cx={x(selected)} cy={y(Number(selected.equity)/scale)} r="4" fill="#b3ef81" stroke="#151c15" strokeWidth="2"/></g>}<text x="55" y="238">{shortDate(filtered[0].at)}</text><text x="765" y="238" textAnchor="end">{shortDate(filtered.at(-1)!.at)}</text></svg><input className="ip-chart-slider" type="range" aria-label="Inspect recorded equity observation" min="0" max={Math.max(0,points.length-1)} value={hover??points.length-1} onChange={e=>setHover(Number(e.target.value))}/></> : <div className="ip-chart-empty">{loading?'Loading equity history…':'No observed equity values for this period.'}</div>}
-    <p className="ip-help">Recorded valuations only. Gaps over {gapMs/60000} minutes are disconnected; the chart does not assume continuous pricing.</p>
+  const value=(point:ChartObservation)=>Number(point.equity)/scale;
+  const base=initial===null?null:Number(initial)/scale;
+  const bounds=points.map(value);
+  if(base!==null)bounds.push(base);
+  const min=bounds.length?Math.min(...bounds):0, max=bounds.length?Math.max(...bounds):0;
+  const span=Math.max(max-min,Math.abs(base??max)*.001,1/scale,min===0 && max===0 ? .02 : .000001);
+  const padding=span*.12+(span-(max-min))/2;
+  const lower=min-padding, upper=max+padding;
+  const x=(point:ChartObservation)=>end===start?344:56+(Date.parse(point.at)-start)/(end-start)*576;
+  const y=(amount:number)=>185-(amount-lower)/(upper-lower)*163;
+  const tick=new Intl.NumberFormat(undefined,{
+    notation:Math.max(Math.abs(min),Math.abs(max))>=10000?'compact':'standard',
+    maximumFractionDigits:Math.min(market.quoteDecimals,Math.max(2,Math.ceil(-Math.log10(span))+1)),
+  });
+  const segments:ChartObservation[][]=[];
+  let segment:ChartObservation[]=[];
+  for(const point of filtered){
+    const previous=segment.at(-1);
+    if(point.equity==null||previous&&gapMs!==undefined&&Date.parse(point.at)-Date.parse(previous.at)>gapMs){
+      if(segment.length)segments.push(segment);
+      segment=[];
+    }
+    if(point.equity!=null)segment.push(point);
+  }
+  if(segment.length)segments.push(segment);
+  const selectedIndex=Math.min(hover??points.length-1,points.length-1);
+  const selected=points[selectedIndex];
+  const ratio=selected&&base?(value(selected)-base)*100/base:null;
+  const sameDay=new Date(start).toDateString()===new Date(end).toDateString();
+  const timeLabel=(at:number)=>sameDay?new Date(at).toLocaleTimeString(undefined,{
+    hour:'numeric',minute:'2-digit',...(end-start<60000?{second:'2-digit'}:{}),
+  }):shortDate(new Date(at).toISOString());
+
+  return <div className="ip-chart">
+    <div className="ip-chart-tools">
+      <div>{selected?<><strong>{paperAmount(selected.equity,market.quoteDecimals)} {market.quoteSymbol} {ratio!==null&&<span>{pct(ratio)}</span>}</strong><small>{stamp(selected.at)}</small></>:<small>{loading?'Loading published events…':`No recorded ${metric} in this period.`}</small>}</div>
+      <div className="ip-range" role="group" aria-label={`${metric} chart period`}>
+        {['24h','7d','All'].map(option=><button type="button" key={option} aria-pressed={option===range} onClick={()=>{setRange(option);setHover(null);}}>{option}</button>)}
+      </div>
+    </div>
+    {points.length?<><svg viewBox="0 0 648 220" role="img" aria-label={`${metric} chart for ${range} · ${points.length} observations`}
+      onPointerLeave={()=>setHover(null)} onPointerMove={event=>{
+        const rect=event.currentTarget.getBoundingClientRect();
+        const cursor=(event.clientX-rect.left)*648/rect.width;
+        let nearest=0;
+        for(let index=1;index<points.length;index++){
+          if(Math.abs(x(points[index])-cursor)<Math.abs(x(points[nearest])-cursor))nearest=index;
+        }
+        setHover(nearest);
+      }}>
+      <defs><linearGradient id={id} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#b3ef81" stopOpacity=".15"/><stop offset="100%" stopColor="#b3ef81" stopOpacity="0"/></linearGradient></defs>
+      {[lower,(lower+upper)/2,upper].map(amount=><g key={amount}>
+        <line x1="56" x2="632" y1={y(amount)} y2={y(amount)} stroke="#ffffff15"/>
+        <text x="49" y={y(amount)+4} textAnchor="end">{tick.format(Math.abs(amount)<span/100?0:amount)}</text>
+      </g>)}
+      {base!==null&&<line x1="56" x2="632" y1={y(base)} y2={y(base)} stroke="#a9b99b" strokeOpacity=".5" strokeDasharray="4 5"/>}
+      {segments.map((group,index)=>{
+        const first=group[0], last=group.at(-1)!;
+        if(group.length===1)return <circle key={index} cx={x(first)} cy={y(value(first))} r="3" fill="#b3ef81"/>;
+        const line=group.flatMap((point,i)=>realized&&i>0?[
+          `${x(point)},${y(value(group[i-1]))}`,`${x(point)},${y(value(point))}`,
+        ]:[`${x(point)},${y(value(point))}`]).join(' ');
+        return <g key={index}>
+          {!realized&&<polygon fill={`url(#${id})`} points={`${x(first)},185 ${line} ${x(last)},185`}/>}
+          <polyline fill="none" stroke="#b3ef81" strokeWidth="2" points={line}/>
+        </g>;
+      })}
+      {selected&&<g><line x1={x(selected)} x2={x(selected)} y1="22" y2="185" stroke="#ffffff35" strokeDasharray="3 4"/>
+        <circle cx={x(selected)} cy={y(value(selected))} r="4" fill="#b3ef81" stroke="#151c15" strokeWidth="2"/></g>}
+      {start===end?<text x="344" y="207" textAnchor="middle">{timeLabel(start)}</text>:<>
+        <text x="56" y="207">{timeLabel(start)}</text><text x="632" y="207" textAnchor="end">{timeLabel(end)}</text>
+      </>}
+    </svg>{points.length>1&&<input className="ip-chart-slider" type="range" aria-label={`Inspect ${metric} observation`}
+      aria-valuetext={`${paperAmount(selected?.equity,market.quoteDecimals)} ${market.quoteSymbol} · ${selected?stamp(selected.at):''}`}
+      min="0" max={points.length-1} value={selectedIndex} onChange={event=>setHover(Number(event.target.value))}/>}</>:<div className="ip-chart-empty">{loading?'Loading chart…':'No observations for this period.'}</div>}
+    <p className="ip-help">{realized?'The line moves when paper gains or losses are realized. Deposits, withdrawals and open positions are excluded.':`Recorded valuations only. Gaps over ${(gapMs??0)/60000} minutes are disconnected.`}</p>
   </div>;
 }
 function ActivityTable({market,data,fillsOnly=false,compact=false,loading}: {market:ReturnType<typeof paperMarket>;data?:AgentPerformance;fillsOnly?:boolean;compact?:boolean;loading:boolean}) {

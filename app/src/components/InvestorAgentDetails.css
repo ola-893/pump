@@ -28,3 +28,27 @@
 .ip-version>div,.ip-version label{min-width:0;max-width:100%}
 .near-demo .ip-version select{min-width:0;max-width:100%;text-overflow:ellipsis;padding-right:30px}
 @media(max-width:1099px){.ip-investor-sidebar{max-height:none;padding:0;overflow:visible;scrollbar-gutter:auto}}
+
+.near-demo .ip-chart-slider {
+  appearance: none;
+  width: 100%;
+  height: 18px;
+  cursor: ew-resize;
+}
+.ip-chart-slider::-webkit-slider-runnable-track { height: 2px; background: #405039; }
+.ip-chart-slider::-moz-range-track { height: 2px; background: #405039; }
+.ip-chart-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.ip-chart-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+}

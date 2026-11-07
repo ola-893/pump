@@ -5,6 +5,7 @@ import { markets, TEST_USDC } from '../../../near-demo/types';
 import type { JournalPage, PublicJournalEvent } from '../../../near-demo/directory/public-journal';
 import { readJournal } from '../lib/public-journal-client';
 import { paperAmount } from '../lib/paper-amount';
+import { publicPaperPnl } from '../lib/public-paper-pnl';
 import { AgentBackLink } from './AgentCollections';
 import { VaultWorkspace, type VaultRow } from './AgentVaults';
 import { useNearWallet } from './NearWalletProvider';
@@ -66,7 +67,7 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
   const lastEquity = events.find(event => event.equity !== null);
   const fills = events.filter(event => event.kind === 'fill');
   const decisions = events.filter(event => event.kind === 'model');
-  const realized = events.reduce((sum, event) => sum + BigInt(event.realized), 0n);
+  const pnl = publicPaperPnl(events);
   const fundingId = `investor-vault-${agentId}`;
   const alert = error && <p role="alert" className="nd-alert">{error}</p>;
 
@@ -147,13 +148,13 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
         <div className="ip-overview">
           <section className="nd-card ip-performance">
             <div className="ip-card-top"><div>
-              <div className="nd-eyebrow">PAPER STRATEGY EQUITY · {quote.quoteSymbol}</div>
-              <div className="ip-equity">{format(lastEquity?.equity ?? null)}</div>
-              <p>{subset} · Includes synced vault capital{lastEquity&&lastEquity!==events[0]&&` · Last recorded ${displayTime(lastEquity.at)}`}</p>
+              <div className="nd-eyebrow">REALIZED PAPER P&L · {quote.quoteSymbol}</div>
+              <div className={`ip-equity ${BigInt(pnl.total)<0n?'negative':BigInt(pnl.total)>0n?'positive':''}`}>{format(events.length ? pnl.total : null)}</div>
+              <p>{subset} · Cumulative trading gains and losses</p>
             </div></div>
-            <EquityChart key={current?.id} market={quote} observations={[...events].reverse()} initial={null} gapMs={180000} loading={switchingStrategy}/>
+            <EquityChart key={current?.id} market={quote} observations={pnl.observations} initial="0" variant="realized" loading={switchingStrategy}/>
             <div className="ip-stat-row">
-              <Metric label="Realized P&L change" value={events.length ? format(String(realized)) : '—'} hint={subset}/>
+              <Metric label="Paper strategy equity" value={format(lastEquity?.equity ?? null)} hint={lastEquity?`Includes capital · ${displayTime(lastEquity.at)}`:'Includes capital'}/>
               <Metric label="Filled orders" value={switchingStrategy?'—':String(fills.length)} hint={subset}/>
               <Metric label="Model decisions" value={switchingStrategy?'—':String(decisions.length)} hint={subset}/>
             </div>
