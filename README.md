@@ -33,6 +33,7 @@ This connects the strategy an operator runs to the records an investor inspects.
 ## Quick Links
 
 - [Live App](https://pump-near-893.pages.dev)
+- [Katana Demo Evidence](https://pump-near-893.pages.dev/docs/katana-demo) · strategy v1, signed quote, and finalized testnet receipts
 - [Live Documentation](https://pump-near-893.pages.dev/docs/quick-setup)
 - [Documentation Hub](docs/README.md) — also available from the app’s **Docs** tab at `/docs`
 - [Quick Setup](docs/QUICK-SETUP.md)
