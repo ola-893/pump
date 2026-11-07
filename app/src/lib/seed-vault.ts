@@ -3,6 +3,7 @@ import { sha256 } from '@noble/hashes/sha2';
 import { TEST_USDC, testAccount, units, type WalletPlan } from '../../../near-demo/types.js';
 import { RpcQueryError, TestnetReads } from '../../../near-demo/rpc-reads.js';
 import { nearConnector } from './near-demo-wallet.js';
+import { withAccountWallet } from './near-wallet-account.js';
 import type { SeedVault } from '../../../near-demo/workspace-transfer.js';
 import { seedNearBalance, type SeedNearBalance } from './seed-vault-fees.js';
 import { vaultReceiptEffect } from '../../../near-demo/vault-receipt.js';
@@ -154,10 +155,7 @@ export async function verifyRecordedSeed(v:SeedVault) {
 }
 
 async function send(v:SeedVault, transaction:WalletPlan) {
-  const connector=await nearConnector(), wallet=await connector.wallet();
-  if (connector.network!=='testnet' || !(await wallet.getAccounts({network:'testnet'})).some(a=>a.accountId===v.owner))
-    throw new Error('Connect the owner’s NEAR testnet wallet.');
-  return wallet.signAndSendTransaction({signerId:v.owner,receiverId:transaction.receiverId,actions:transaction.actions});
+  return withAccountWallet(await nearConnector(),v.owner,wallet=>wallet.signAndSendTransaction({signerId:v.owner,receiverId:transaction.receiverId,actions:transaction.actions}));
 }
 
 /** Recompute the next action after the user clicks; never submit a stale or supplied plan. */
