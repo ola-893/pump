@@ -67,7 +67,7 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
   const lastEquity = events.find(event => event.equity !== null);
   const fills = events.filter(event => event.kind === 'fill');
   const decisions = events.filter(event => event.kind === 'model');
-  const pnl = publicPaperPnl(events);
+  const pnl = publicPaperPnl(events,switchingStrategy?[]:latest?.marks);
   const total = pnl.latest?.equity ?? null;
   const fundingId = `investor-vault-${agentId}`;
   const alert = error && <p role="alert" className="nd-alert">{error}</p>;

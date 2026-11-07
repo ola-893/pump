@@ -1,4 +1,4 @@
-import type { Event } from '../types.js';
+import type { Event, Quote } from '../types.js';
 
 export const journalSchema = 'PUMP-PUBLIC-JOURNAL-v1';
 export const journalBatchSize = 100;
@@ -21,7 +21,9 @@ export type JournalBatch = {
   agent: JournalAgent;
   strategy: JournalStrategy | null;
   events: PublicJournalEvent[];
+  marks?: JournalMark[];
 };
+export type JournalMark = { at:string; sequence:number; sourceHash:string; equity:string; totalPnl:string; quote:Quote };
 export type JournalActivity = { version: number; market: string; hasTradingRecord: boolean;
   decisions: number; fills: number; buys: number; sells: number };
 export type JournalListing = JournalAgent & { updatedAt: number; strategyVault?: string; activity?: JournalActivity };
@@ -29,6 +31,8 @@ export type JournalPage = {
   agent: JournalListing;
   strategies: (JournalStrategy & { updatedAt: number; head: number; valuedThrough?: number })[];
   paperValuations?: true;
+  liveMarks?: true;
+  marks?: Omit<JournalMark,'quote'>[];
   strategyId: string | null;
   events: PublicJournalEvent[];
   nextBefore: number | null;

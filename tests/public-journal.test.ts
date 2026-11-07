@@ -1,12 +1,44 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { ed25519 } from '@noble/curves/ed25519';
 import { base58 } from '@scure/base';
 import { PumpDirectory, publicationHash } from '../near-demo/directory/service.js';
-import { journalSchema, paperPnlAt, publicJournalEvent, type JournalBatch, type PublicJournalEvent } from '../near-demo/directory/public-journal.js';
+import { journalSchema, paperPnlAt, publicJournalEvent, type JournalBatch, type JournalMark, type PublicJournalEvent } from '../near-demo/directory/public-journal.js';
 import type { Event } from '../near-demo/types.js';
 import { publicPaperPnl } from '../app/src/lib/public-paper-pnl.js';
+
+test('live quotes add P&L observations without creating decisions and reject mismatched portfolios',()=>{
+  const {exit:quote}=JSON.parse(readFileSync(new URL('../docs/testing/near-budget-20261020/signed-sol-eth-dry-quotes.json',import.meta.url),'utf8'));
+  const now=Date.parse(quote.receivedAt),db=new DatabaseSync(':memory:');
+  try {
+    const directory=new PumpDirectory(db,'http://127.0.0.1:5198',undefined,()=>now);
+    const secret=new Uint8Array(32).fill(41),key='ed25519:'+base58.encode(ed25519.getPublicKey(secret));
+    const agent={id:'00000000-0000-4000-8000-000000000011',name:'Live chart',model:'Fixture',controller:'owner.testnet'};
+    const strategy={id:'00000000-0000-4000-8000-000000000012',version:1,market:'SOL / ETH',openingSequence:0};
+    db.prepare('INSERT INTO directory_runners(owner,key,proof) VALUES(?,?,?)').run(agent.controller,key,'{}');
+    const send=(events:PublicJournalEvent[],marks?:JournalMark[])=>{
+      const batch:JournalBatch={schema:journalSchema,agent,strategy,events,...(marks?{marks}:{})};
+      return directory.journals.publish(batch,key,Buffer.from(ed25519.sign(publicationHash(batch),secret)).toString('base64'));
+    };
+    const event:PublicJournalEvent={at:quote.receivedAt,sequence:1,sourceHash:'a'.repeat(64),kind:'fill',action:'BUY',equity:null,realized:'0',receipt:null};
+    send([event]);
+    const observation:JournalMark={at:quote.receivedAt,sequence:1,sourceHash:event.sourceHash,equity:'1001000',totalPnl:'1000',quote};
+    send([],[observation]);
+    const page=directory.journals.page(agent.id);
+    assert.equal(page.events.length,1);
+    assert.equal(page.marks?.[0].totalPnl,'1000');
+    assert.equal('quote' in page.marks![0],false);
+    assert.throws(()=>send([],[{...observation,sourceHash:'b'.repeat(64)}]),/does not match/);
+    assert.throws(()=>send([],[{...observation,sequence:0}]),/older portfolio/);
+    assert.throws(()=>send([],[{...observation,totalPnl:'2000'}]),/cannot be rewritten/);
+    assert.throws(()=>send([],[{...observation,quote:{...quote,amountOut:String(BigInt(quote.amountOut)+1n)}}]),/signature/);
+    const pnl=publicPaperPnl([event],page.marks);
+    assert.equal(pnl.latest?.equity,'1000');
+    assert.equal(pnl.realized,'0');
+  } finally { db.close(); }
+});
 
 test('public paper valuations exclude capital and include unrealized gains only at a recorded mark', () => {
   const mark = (equity:string, assets:string, position='0', signed=false) => ({

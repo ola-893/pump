@@ -1,4 +1,5 @@
-import { acceptsVaultCapital, applyVaultCapital, digest, makeEvent, verifyHistory } from '../../../near-demo/ledger.js';
+import { acceptsVaultCapital, applyVaultCapital, digest, makeEvent, mark, verifyHistory } from '../../../near-demo/ledger.js';
+import { liveQuotes } from '../../../near-demo/quotes.js';
 import { PaperDemo } from '../../../near-demo/service.js';
 import { IntentMarkets } from '../../../near-demo/intent-markets.js';
 import { BrowserPaperStore } from './browser-paper-store.js';
@@ -46,6 +47,7 @@ const strategyLockPrefix = 'pump-browser-strategy:';
 const executions = new Map<string, { controller: AbortController; continuous: boolean }>();
 const errors = new Map<string, Error>();
 const capitalErrors = new Map<string, string>();
+const quoteChecks = new Map<string, number>();
 let activeSession: string | null = null;
 let runtimePhase = 'idle';
 let inferenceProgress: InferenceProgress | undefined;
@@ -183,6 +185,12 @@ export async function browserWorkspace() {
   const otherTabRunId = otherTabBusy
     ? held.find(lock => lock.mode === 'exclusive' && lock.name?.startsWith(strategyLockPrefix))?.name?.slice(strategyLockPrefix.length)
     : undefined;
+  for(const agent of records) {
+    const run=agent.runs[0];
+    if(run && (executions.get(run.id)?.continuous || otherTabRunId===run.id)) {
+      void publishLiveMark(agent.id,run.id).catch(()=>{});
+    }
+  }
   return {
     agents: records.map(agentView),
     strategyRuns: records.flatMap(agent => agent.runs.map((run, index) => strategyView(run, index !== 0, otherTabRunId))),
@@ -757,6 +765,34 @@ function journalStrategy(agent:StoredAgent,run:StoredRun) {
     openingSequence:agent.publication?.cutoffs[run.id]??0,
     ...(vault?.seedReceipt?{vault:{contractId:vault.contractId,manifestHash:vault.manifestHash,strategyHash:vault.strategyHash,
       seedAmount:vault.amount,seedReceipt:vault.seedReceipt}}:{}) };
+}
+
+async function publishLiveMark(agentId:string,runId:string) {
+  if(Date.now()-(quoteChecks.get(runId)??0)<20000) return;
+  quoteChecks.set(runId,Date.now());
+  await navigator.locks.request('pump-live-mark:'+runId,{ifAvailable:true},async lock=>{
+    if(!lock) return;
+    const saved=await readAgent(agentId),run=saved?.runs[0],session=run?.paper.session;
+    if(!saved?.publication?.confirmed||!run||run.id!==runId||!session||session.portfolio.position==='0'||
+      session.config.source!=='live'||!session.head||session.testnet) return;
+    const market=paperMarket(session.config);
+    const quote=await liveQuotes(fetch,Date.now,session.config.market).get(market.base,market.quote,session.portfolio.position,session.config.slippageBps);
+    const at=new Date().toISOString(),portfolio=mark(session,quote,Date.parse(at));
+    const base=run.paper.events.filter(event=>event.sequence>(saved.publication!.cutoffs[run.id]??0));
+    const baseline=(saved.publication.cutoffs[run.id]??0)===0?0n:
+      base.map(event=>paperPnlAt(event,session.config.initialCash)).find(value=>value!==null)??null;
+    if(portfolio.equity===null||baseline===null) return;
+    const totalPnl=String(BigInt(portfolio.equity)-BigInt(portfolio.vaultCapital?.assets??session.config.initialCash)-baseline);
+    await navigator.locks.request('pump-public-journal-sync:'+agentId,async()=>{
+      const latest=await readAgent(agentId),current=latest?.runs[0]?.paper.session;
+      if(!latest||latest.runs[0].id!==runId||current?.head!==session.head) return;
+      const remote=await readJournal(agentId);
+      if(!remote.liveMarks) return;
+      await syncJournal(latest);
+      await sendJournalBatch({schema:journalSchema,agent:journalIdentity(latest),strategy:journalStrategy(latest,latest.runs[0]),events:[],
+        marks:[{at,sequence:session.sequence,sourceHash:session.head!,equity:portfolio.equity!,totalPnl,quote}]});
+    });
+  });
 }
 
 async function syncJournal(agent: StoredAgent) {
