@@ -33,6 +33,9 @@ later with a dedicated Cloudflare API token; never commit deployment credentials
 
 The build outputs the static site, its WASM inference runtime, and a small
 Cloudflare Function that forwards only public API routes to Railway.
+Use `build:cloudflare` for every Pages release. It restores the published
+asset history and checks the file hashes before packaging the new release,
+so open tabs can still load the inference code they were built with.
 `_routes.json` invokes the Function only for `/api/*`; assets and SPA navigation
 are served directly by Pages. Unknown and private APIs return JSON errors.
 Requests retain their exact Origin for Railway's allowlist checks. The proxy
