@@ -154,7 +154,7 @@ export function PublishedInvestorProfile({agentId}: {agentId:string}) {
             </div></div>
             <EquityChart key={current?.id} market={quote} observations={pnl.observations} initial="0" variant="realized" loading={switchingStrategy}/>
             <div className="ip-stat-row">
-              <Metric label="Paper strategy equity" value={format(lastEquity?.equity ?? null)} hint={lastEquity?`Includes capital · ${displayTime(lastEquity.at)}`:'Includes capital'}/>
+              <Metric label={`Paper equity · ${quote.quoteSymbol}`} value={paperAmount(lastEquity?.equity,quote.quoteDecimals)} hint={lastEquity?`Includes capital · ${displayTime(lastEquity.at)}`:'Includes capital'}/>
               <Metric label="Filled orders" value={switchingStrategy?'—':String(fills.length)} hint={subset}/>
               <Metric label="Model decisions" value={switchingStrategy?'—':String(decisions.length)} hint={subset}/>
             </div>

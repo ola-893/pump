@@ -124,11 +124,16 @@ export function EquityChart({market,observations,initial,gapMs,loading,variant='
   const span=Math.max(max-min,Math.abs(base??max)*.001,1/scale,min===0 && max===0 ? .02 : .000001);
   const padding=span*.12+(span-(max-min))/2;
   const lower=min-padding, upper=max+padding;
+  const tickTarget=span/2.5;
+  const tickMagnitude=10**Math.floor(Math.log10(tickTarget));
+  const tickStep=Math.max(1/scale,([1,2,2.5,5,10].find(step=>step*tickMagnitude>=tickTarget)??10)*tickMagnitude);
+  const ticks=[];
+  for(let i=Math.ceil(lower/tickStep);i<=Math.floor(upper/tickStep);i++)ticks.push(i*tickStep);
   const x=(point:ChartObservation)=>end===start?344:56+(Date.parse(point.at)-start)/(end-start)*576;
   const y=(amount:number)=>185-(amount-lower)/(upper-lower)*163;
   const tick=new Intl.NumberFormat(undefined,{
     notation:Math.max(Math.abs(min),Math.abs(max))>=10000?'compact':'standard',
-    maximumFractionDigits:Math.min(market.quoteDecimals,Math.max(2,Math.ceil(-Math.log10(span))+1)),
+    maximumFractionDigits:Math.min(market.quoteDecimals,Math.max(2,Math.ceil(-Math.log10(tickStep))+1)),
   });
   const segments:ChartObservation[][]=[];
   let segment:ChartObservation[]=[];
@@ -167,9 +172,9 @@ export function EquityChart({market,observations,initial,gapMs,loading,variant='
         setHover(nearest);
       }}>
       <defs><linearGradient id={id} x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stopColor="#b3ef81" stopOpacity=".15"/><stop offset="100%" stopColor="#b3ef81" stopOpacity="0"/></linearGradient></defs>
-      {[lower,(lower+upper)/2,upper].map(amount=><g key={amount}>
+      {ticks.map(amount=><g key={amount}>
         <line x1="56" x2="632" y1={y(amount)} y2={y(amount)} stroke="#ffffff15"/>
-        <text x="49" y={y(amount)+4} textAnchor="end">{tick.format(Math.abs(amount)<span/100?0:amount)}</text>
+        <text x="49" y={y(amount)+4} textAnchor="end">{tick.format(amount || 0)}</text>
       </g>)}
       {base!==null&&<line x1="56" x2="632" y1={y(base)} y2={y(base)} stroke="#a9b99b" strokeOpacity=".5" strokeDasharray="4 5"/>}
       {segments.map((group,index)=>{
