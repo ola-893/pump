@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { BrowserRuntimeCache, loadBrowserRuntime, runtimeDiagnostics } from '../app/src/lib/browser-runtime.js';
 
 test('a failed WASM evaluation releases its resource and cannot be reused on retry',async()=>{
@@ -26,6 +27,7 @@ test('runtime diagnostics retain the native GPU failure rather than the generic 
 
 test('Muse retries a GPU queue timeout in a fresh worker with fewer offloaded layers', async () => {
   const file = { size: 15_878_222_368 } as File;
+  const chatTemplate = readFileSync(new URL('../near-demo/muse-direct-answer.jinja', import.meta.url), 'utf8');
   const events: string[] = [];
   let workers = 0;
   const { runtime } = await loadBrowserRuntime(logger => {
@@ -38,6 +40,8 @@ test('Muse retries a GPU queue timeout in a fresh worker with fewer offloaded la
         assert.equal(files[0], file);
         assert.equal(settings.n_ctx, 4096);
         assert.equal(settings.no_kv_offload, true);
+        assert.equal(settings.chat_template, chatTemplate);
+        assert.equal(settings.jinja, true);
         events.push(`load ${worker} with ${settings.n_gpu_layers} GPU layers`);
         if (worker === 1) {
           logger.error('ggml_webgpu: Queue wait timed out after 30000 ms');
@@ -45,7 +49,7 @@ test('Muse retries a GPU queue timeout in a fresh worker with fewer offloaded la
         }
       },
     };
-  }, file, { id: 'Muse-Glimmer-30B', context: 4096 }, new AbortController().signal, () => events.push('retry'));
+  }, file, { id: 'Muse-Glimmer-30B', context: 4096, chatTemplate }, new AbortController().signal, () => events.push('retry'));
   assert.deepEqual(events, ['load 1 with 48 GPU layers', 'exit 1', 'retry', 'load 2 with 44 GPU layers']);
   assert.equal(runtime.isModelLoaded(), true);
 });

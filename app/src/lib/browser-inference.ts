@@ -4,9 +4,10 @@ import wasmUrl from '@wllama/wllama/esm/wasm/wllama.wasm?url';
 import { parseProposal, type ModelDecision } from '../../../near-demo/model.js';
 import type { AgentManifest } from '../../../near-demo/public-types.js';
 import { lastModelDirectory, ModelFolderError, scanModelDirectory } from './browser-models.js';
-import { BrowserRuntimeCache, loadBrowserRuntime, runtimeDiagnostics } from './browser-runtime.js';
+import { BrowserRuntimeCache, loadBrowserRuntime, museModelId, runtimeDiagnostics } from './browser-runtime.js';
 import { browserProposalRequest } from './browser-proposal.js';
 import type { ReportInferenceProgress } from './browser-inference-progress.js';
+import museChatTemplate from '../../../near-demo/muse-direct-answer.jinja?raw';
 
 const runtimes=new BrowserRuntimeCache<Wllama>();
 let diagnostics=runtimeDiagnostics();
@@ -26,7 +27,10 @@ export async function prepareBrowserModel(manifest: AgentManifest, modelId: stri
   const engine = await import('@wllama/wllama/esm/index.js') as unknown as { Wllama: typeof Wllama };
   const loadedModel = await loadBrowserRuntime(
     logger => new engine.Wllama({ default: new URL(wasmUrl, location.origin).href }, { logger }),
-    file, { id: manifest.model.id, context: manifest.inference.context }, signal, () => progress('retrying'),
+    file, {
+      id: manifest.model.id, context: manifest.inference.context,
+      chatTemplate: manifest.model.id === museModelId ? museChatTemplate : undefined,
+    }, signal, () => progress('retrying'),
   );
   const { runtime } = loadedModel;
   diagnostics = loadedModel.diagnostics;
@@ -69,11 +73,16 @@ export function browserInference(runtime: Wllama, strategyVersion: { id: string;
     });
     const result = response.choices[0];
     const raw = result?.message.content;
-    if (signal.aborted || response.choices.length !== 1 || result?.finish_reason !== 'stop' || typeof raw !== 'string' || raw.length > 131072) {
-      throw new Error('The local model did not return a complete paper-trade decision.');
+    signal.throwIfAborted();
+    if (response.choices.length !== 1 || result?.finish_reason !== 'stop' || typeof raw !== 'string' || !raw.trim() || raw.length > 131072) {
+      const detail = result?.finish_reason === 'length' ? 'It reached the output limit.' : 'It did not provide one final answer.';
+      throw new Error(`The local model did not return a complete paper-trade decision. ${detail}`);
     }
     const proposal = parseProposal(JSON.parse(raw));
     if (proposal.reason.length > 240) throw new Error('Local model explanation exceeded the size limit.');
-    return { id, request, raw, proposal, runtime: { engine: 'wllama', version: (runtime.constructor as typeof Wllama).getLibllamaVersion() } };
+    return { id, request, raw, proposal, runtime: {
+      engine: 'wllama', version: (runtime.constructor as typeof Wllama).getLibllamaVersion(),
+      ...(id === museModelId ? { template: 'Muse direct-answer recipient prefill' } : {}),
+    } };
   };
 }
