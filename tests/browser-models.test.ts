@@ -62,6 +62,65 @@ test('stopping a browser run cancels GGUF verification between file reads', asyn
   assert.deepEqual(reads, [0]);
 });
 
+test('a saved GGUF verification is reused only for the same recent file', async t => {
+  const stored = new Map<string, unknown>();
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'indexedDB');
+  Object.defineProperty(globalThis, 'indexedDB', { configurable: true, value: {
+    open() {
+      const request = { onsuccess() {}, result: {
+        close() {},
+        transaction() {
+          const transaction = { oncomplete() {}, objectStore: () => ({
+            get: (key: string) => ({ result: stored.get(key) }),
+            put(value: unknown, key: string) { stored.set(key, value); return { result: key }; },
+          }) };
+          queueMicrotask(() => transaction.oncomplete());
+          return transaction;
+        },
+      } };
+      queueMicrotask(() => request.onsuccess());
+      return request;
+    },
+  } });
+  t.after(() => {
+    if (previous) Object.defineProperty(globalThis, 'indexedDB', previous);
+    else Reflect.deleteProperty(globalThis, 'indexedDB');
+  });
+
+  let now = 1_000_000_000;
+  t.mock.method(Date, 'now', () => now);
+  let file = modelFile('Muse.gguf', 'GGUF' + '0'.repeat(256 * 1024));
+  let location = 'first';
+  const root: ModelDirectory = {
+    kind: 'directory', name: 'models', async queryPermission() { return 'granted'; },
+    async *values() {
+      const path = location;
+      yield { kind: 'file', name: file.name, getFile: async () => file, path,
+        isSameEntry: async (other: { path: string }) => path === other.path } as unknown as FileSystemFileHandle;
+    },
+  };
+  const scan = async () => (await scanModelDirectory(root))[0];
+  const checksum = await (await scan()).measure();
+  const progress: number[] = [];
+  const open = async () => (await scan()).openWeights!(checksum, undefined, bytes => progress.push(bytes));
+
+  const day = 24 * 60 * 60 * 1000;
+  now += day - 1;
+  assert.equal(await open(), file);
+  assert.deepEqual(progress, []);
+  now++;
+  assert.equal(await open(), file);
+  assert.equal(progress.at(-1), file.size);
+
+  progress.length = 0;
+  location = 'different-folder';
+  assert.equal(await open(), file);
+  assert.equal(progress.at(-1), file.size);
+
+  file = modelFile('Muse.gguf', 'GGUF' + '1' + '0'.repeat(256 * 1024 - 1));
+  await assert.rejects(open(), /do not match this agent’s checksum/);
+});
+
 test('browser folder selection resolves Ollama blobs and rejects incomplete MLX bundles', async () => {
   const digest = 'a'.repeat(64);
   const artifactNames = ['config.json', 'model.safetensors.index.json', 'model.safetensors', 'joint_head.safetensors', 'joint_head_config.json', 'tokenizer.json', 'tokenizer_config.json', 'clef_mlx.py'];
