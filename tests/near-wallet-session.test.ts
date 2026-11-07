@@ -1,19 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { NearWalletSession } from '../app/src/lib/near-wallet-session.js';
+import { rememberWalletAccount } from '../app/src/lib/near-wallet-account.js';
 
 class WalletFixture {
   network = 'testnet';
   accounts = [{ accountId: 'alice.testnet' }];
   connectCalls = 0;
   rejectConnect = false;
-  listeners = new Map<string, Set<() => void>>();
+  listeners = new Map<string, Set<(payload?:any) => void>>();
   async getConnectedWallet() { return { accounts: this.accounts }; }
   async connect() { ++this.connectCalls; if (this.rejectConnect) throw new Error('User rejected'); this.emit('wallet:signIn'); }
   async disconnect() { this.accounts = []; this.emit('wallet:signOut'); }
   on(event: string, fn: () => void) { if (!this.listeners.has(event)) this.listeners.set(event, new Set()); this.listeners.get(event)!.add(fn); }
   off(event: string, fn: () => void) { this.listeners.get(event)?.delete(fn); }
-  emit(event: string) { this.listeners.get(event)?.forEach(fn => fn()); }
+  emit(event: string, payload?:any) { this.listeners.get(event)?.forEach(fn => fn(payload)); }
 }
 function session(wallet: WalletFixture) {
   return new NearWalletSession(async () => wallet as unknown as Awaited<ReturnType<ConstructorParameters<typeof NearWalletSession>[0]>>);
@@ -82,4 +83,40 @@ test('users can select only a currently connected account and selection survives
  await state.selectAccount('stranger.testnet');assert.equal(state.snapshot().account,'bob.testnet');assert.match(state.snapshot().error,/not connected/);
  wallet.accounts=[{accountId:'alice.testnet'}];wallet.emit('wallet:signIn');await tick();assert.equal(state.snapshot().account,'alice.testnet');
  stop();
+});
+
+test('Meteor sign-in selection overrides an older preference even when it lists both accounts',async()=>{
+ const wallet=new WalletFixture(),meteor={manifest:{id:'meteor-wallet'}};
+ wallet.accounts=[{accountId:'alice.testnet'},{accountId:'bob.testnet'}];
+ wallet.getConnectedWallet=async()=>({accounts:wallet.accounts,wallet:meteor});
+ rememberWalletAccount('meteor-wallet',[{accountId:'alice.testnet'}]);
+ const state=session(wallet),stop=state.start();
+ await tick();
+ wallet.emit('wallet:signIn',{wallet:meteor,accounts:[{accountId:'bob.testnet'}],success:true});
+ await tick();
+ assert.equal(state.snapshot().account,'bob.testnet');
+ assert.deepEqual(state.snapshot().accounts,['alice.testnet','bob.testnet']);
+ stop();rememberWalletAccount('meteor-wallet',[]);
+});
+
+test('switching Meteor accounts reconnects the wallet and cancellation preserves its real signer',async()=>{
+ const wallet=new WalletFixture(),meteor={manifest:{id:'meteor-wallet'}};
+ wallet.accounts=[{accountId:'alice.testnet'},{accountId:'bob.testnet'}];
+ wallet.getConnectedWallet=async()=>({accounts:wallet.accounts,wallet:meteor});
+ let reject=true;
+ wallet.connect=async()=>{
+  wallet.connectCalls++;
+  if(reject)throw new Error('User cancelled the action');
+  wallet.emit('wallet:signIn',{wallet:meteor,accounts:[{accountId:'bob.testnet'}],success:true});
+ };
+ rememberWalletAccount('meteor-wallet',[{accountId:'alice.testnet'}]);
+ const state=session(wallet),stop=state.start();await tick();
+ await state.selectAccount('bob.testnet');
+ assert.equal(state.snapshot().account,'alice.testnet');
+ assert.equal(state.snapshot().busy,false);
+ reject=false;
+ await state.selectAccount('bob.testnet');await tick();
+ assert.equal(state.snapshot().account,'bob.testnet');
+ assert.equal(wallet.connectCalls,2);
+ stop();rememberWalletAccount('meteor-wallet',[]);
 });

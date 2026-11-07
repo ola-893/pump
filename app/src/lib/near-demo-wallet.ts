@@ -1,9 +1,17 @@
 import { TEST_USDC, TESTNET_RPC, testAccount } from '../../../near-demo/types.js';
 import type { TestnetConfig, WalletPlan } from '../../../near-demo/types.js';
 import type { NearConnector } from '@hot-labs/near-connect';
+import { rememberWalletAccount, withAccountWallet } from './near-wallet-account.js';
 let connector:Promise<NearConnector>|undefined;
 export async function nearConnector(){
-  connector ??= import('@hot-labs/near-connect').then(({NearConnector})=>new NearConnector({network:'testnet',autoConnect:false,features:{testnet:true,signAndSendTransaction:true},providers:{testnet:[TESTNET_RPC,'https://near-testnet.drpc.org','https://testnet-rpc.intea.rs']}})).catch(error=>{connector=undefined;throw error;});
+  connector ??= import('@hot-labs/near-connect').then(({NearConnector})=>{
+    const current=new NearConnector({network:'testnet',autoConnect:false,features:{testnet:true,signAndSendTransaction:true},providers:{testnet:[TESTNET_RPC,'https://near-testnet.drpc.org','https://testnet-rpc.intea.rs']}});
+    current.on('wallet:signIn',event=>{
+      if(event.success&&current.network==='testnet')rememberWalletAccount(event.wallet.manifest.id,event.accounts);
+    });
+    current.on('wallet:signOut',()=>rememberWalletAccount('meteor-wallet',[]));
+    return current;
+  }).catch(error=>{connector=undefined;throw error;});
   const current=await connector;
   if(current.network!=='testnet')throw new Error('Demo wallet must be on NEAR testnet.');return current;
 }
@@ -28,8 +36,6 @@ export function validateDemoPlan(plan:WalletPlan,account:string,config:TestnetCo
   }
 }
 export async function sendDemoPlan(plan:WalletPlan,account:string,config:TestnetConfig){
-  validateDemoPlan(plan,account,config);const c=await nearConnector(),wallet=await c.wallet();
-  const accounts=await wallet.getAccounts({network:'testnet'});if(!accounts.some(a=>a.accountId===account))throw new Error('Wallet account changed. Reconnect.');
-  if(c.network!=='testnet')throw new Error('Wallet network changed.');
-  return wallet.signAndSendTransaction({signerId:account,receiverId:plan.receiverId,actions:plan.actions});
+  validateDemoPlan(plan,account,config);
+  return withAccountWallet(await nearConnector(),account,wallet=>wallet.signAndSendTransaction({signerId:account,receiverId:plan.receiverId,actions:plan.actions}));
 }

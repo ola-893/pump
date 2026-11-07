@@ -1,4 +1,5 @@
 import { nearConnector } from './near-demo-wallet.js';
+import { withAccountWallet } from './near-wallet-account.js';
 import { TEST_USDC,testAccount,units,type WalletPlan } from '../../../near-demo/types.js';
 export type VaultTarget={runId:string;strategyHash:string;contractId:string;controllerId:string;reporterId:string;tokenId:string;network:string};
 const exact=(x:Record<string,unknown>,keys:string[])=>Object.keys(x).sort().join()===keys.sort().join();
@@ -21,4 +22,4 @@ export function validateVaultPlan(p:WalletPlan,account:string,v:VaultTarget){
  else throw new Error('Unsupported vault method.');
  if(!Number.isSafeInteger(a.expected_nonce)||Number(a.expected_nonce)<0)throw new Error('Invalid NAV version.');
 }
-export async function sendVaultPlan(plan:WalletPlan,account:string,target:VaultTarget){validateVaultPlan(plan,account,target);const c=await nearConnector(),wallet=await c.wallet(),accounts=await wallet.getAccounts({network:'testnet'});if(c.network!=='testnet'||!accounts.some(a=>a.accountId===account))throw new Error('Wallet account or network changed. Reconnect.');return wallet.signAndSendTransaction({signerId:account,receiverId:plan.receiverId,actions:plan.actions});}
+export async function sendVaultPlan(plan:WalletPlan,account:string,target:VaultTarget){validateVaultPlan(plan,account,target);return withAccountWallet(await nearConnector(),account,wallet=>wallet.signAndSendTransaction({signerId:account,receiverId:plan.receiverId,actions:plan.actions}));}

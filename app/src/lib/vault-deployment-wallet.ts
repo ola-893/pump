@@ -1,4 +1,5 @@
 import { nearConnector } from './near-demo-wallet.js';
+import { withAccountWallet } from './near-wallet-account.js';
 import { testAccount, units, type WalletPlan } from '../../../near-demo/types.js';
 
 export async function sendDeploymentPlan(plan:WalletPlan, account:string, agentId:string) {
@@ -20,10 +21,5 @@ export async function sendDeploymentPlan(plan:WalletPlan, account:string, agentI
     if (!valid || amount!==0n || limit!==20_000_000_000_000n)
       throw new Error('Invalid strategy vault approval.');
   }
-  const connector = await nearConnector();
-  const wallet = await connector.wallet();
-  const accounts = await wallet.getAccounts({network:'testnet'});
-  if (connector.network !== 'testnet' || !accounts.some(a=>a.accountId===account))
-    throw new Error('Wallet account or network changed. Reconnect.');
-  return wallet.signAndSendTransaction({signerId:account,receiverId:target,actions:plan.actions});
+  return withAccountWallet(await nearConnector(),account,wallet=>wallet.signAndSendTransaction({signerId:account,receiverId:target,actions:plan.actions}));
 }
