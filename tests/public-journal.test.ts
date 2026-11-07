@@ -4,19 +4,25 @@ import { DatabaseSync } from 'node:sqlite';
 import { ed25519 } from '@noble/curves/ed25519';
 import { base58 } from '@scure/base';
 import { PumpDirectory, publicationHash } from '../near-demo/directory/service.js';
-import { journalSchema, publicJournalEvent, type JournalBatch, type PublicJournalEvent } from '../near-demo/directory/public-journal.js';
+import { journalSchema, paperPnlAt, publicJournalEvent, type JournalBatch, type PublicJournalEvent } from '../near-demo/directory/public-journal.js';
 import type { Event } from '../near-demo/types.js';
 import { publicPaperPnl } from '../app/src/lib/public-paper-pnl.js';
 
-test('public P&L stays flat through funding and moves only by realized trading gains or losses', () => {
-  const opening = { at:'2026-11-07T11:00:00.000Z', equity:'1000000', realized:'0' };
-  const deposit = { at:'2026-11-07T11:47:10.000Z', equity:'21000000', realized:'0' };
-  const exit = { at:'2026-11-07T12:02:57.000Z', equity:'20905374', realized:'-94626' };
-  const later = { at:'2026-11-07T12:12:00.000Z', equity:'19905374', realized:'0' };
-  assert.equal(publicPaperPnl([deposit,opening]).total, '0');
-  assert.deepEqual(publicPaperPnl([later,exit,deposit,opening]), {
-    total:'-94626',
-    observations:[{at:opening.at,equity:'0'},{at:exit.at,equity:'-94626'},{at:later.at,equity:'-94626'}],
+test('public paper valuations exclude capital and include unrealized gains only at a recorded mark', () => {
+  const mark = (equity:string, assets:string, position='0', signed=false) => ({
+    kind:'mark', after:{equity,position,vaultCapital:{assets}}, quote:{signatureVerified:signed},
+  } as unknown as Event);
+  assert.equal(paperPnlAt(mark('1000000','1000000'),'1000000'),0n);
+  assert.equal(paperPnlAt(mark('21000000','21000000'),'1000000'),0n);
+  const unrealized=paperPnlAt(mark('21090000','21000000','100',true),'1000000');
+  assert.equal(unrealized,90000n);
+  assert.equal(paperPnlAt(mark('21090000','21000000','100'),'1000000'),null);
+  const opened = { at:'2026-11-07T11:54:49.000Z', totalPnl:String(unrealized), realized:'0' };
+  const sold = { at:'2026-11-07T12:02:57.000Z', totalPnl:'-94626', realized:'-94626' };
+  const old = { at:'2026-11-07T11:47:10.000Z', realized:'0' };
+  assert.deepEqual(publicPaperPnl([sold,opened,old]), {
+    realized:'-94626', observations:[{at:opened.at,equity:'90000'},{at:sold.at,equity:'-94626'}],
+    latest:{at:sold.at,equity:'-94626'},
   });
 });
 
@@ -50,6 +56,14 @@ test('public journal requires owner authorization, rejects gaps and rewrites, an
     assert.equal(latest.events[0].sequence, 108);
     assert.equal(latest.nextBefore, 9);
     assert.deepEqual(directory.journals.page(agent.id, strategy.id, latest.nextBefore!).events.map(item => item.sequence), [8]);
+    assert.throws(() => publish([{...event(9),totalPnl:'0'}]), /missing an earlier event/);
+    assert.equal(publish([{...event(8),totalPnl:'0'},{...event(9),totalPnl:null}]).head,108);
+    assert.equal(publish([event(8)]).head,108);
+    assert.throws(() => publish([{...event(8),totalPnl:'1'}]), /valuation cannot be rewritten/);
+    assert.throws(() => publish([{...event(8),equity:'2',totalPnl:'0'}]), /event cannot be rewritten/);
+    const valued = directory.journals.page(agent.id, strategy.id, 10);
+    assert.equal(valued.strategies[0].valuedThrough,9);
+    assert.deepEqual(valued.events.map(item => item.totalPnl),[null,'0']);
     assert.deepEqual(directory.journals.catalog(0).agents[0].activity, {
       version:1, market:strategy.market, hasTradingRecord:true, decisions:0, fills:0, buys:0, sells:0,
     });

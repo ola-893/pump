@@ -10,6 +10,7 @@ export type PublicJournalEvent = {
   receipt: { id: string; observedAt: string; amountIn: string; amountOut: string } | null;
   equity: string | null;
   realized: string;
+  totalPnl?: string | null;
   sourceHash: string;
 };
 export type JournalAgent = { id: string; name: string; model: string; controller: string };
@@ -26,11 +27,19 @@ export type JournalActivity = { version: number; market: string; hasTradingRecor
 export type JournalListing = JournalAgent & { updatedAt: number; strategyVault?: string; activity?: JournalActivity };
 export type JournalPage = {
   agent: JournalListing;
-  strategies: (JournalStrategy & { updatedAt: number; head: number })[];
+  strategies: (JournalStrategy & { updatedAt: number; head: number; valuedThrough?: number })[];
+  paperValuations?: true;
   strategyId: string | null;
   events: PublicJournalEvent[];
   nextBefore: number | null;
 };
+
+export function paperPnlAt(event: Event, initialCash: string): bigint | null {
+  const { after } = event;
+  if (after.equity === null) return null;
+  if (after.position !== '0' && (event.kind !== 'mark' || !event.quote?.signatureVerified)) return null;
+  return BigInt(after.equity) - BigInt(after.vaultCapital?.assets ?? initialCash);
+}
 
 export function publicJournalEvent(event: Event): PublicJournalEvent {
   return {

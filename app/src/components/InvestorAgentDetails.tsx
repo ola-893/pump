@@ -97,22 +97,19 @@ export function EquityChart({market,observations,initial,gapMs,loading,variant='
   initial:string|null;
   gapMs?:number;
   loading:boolean;
-  variant?:'equity'|'realized';
+  variant?:'equity'|'pnl';
 }) {
   const id=useId().replaceAll(':','');
   const [range,setRange]=useState('All'), [hover,setHover]=useState<number|null>(null);
-  const realized=variant==='realized';
-  const metric=realized?'realized paper P&L':'equity';
+  const performance=variant==='pnl';
+  const metric=performance?'paper P&L':'equity';
   const filtered=useMemo(()=>{
     if(range==='All')return observations;
     const since=Date.now()-(range==='24h'?86400000:604800000);
     const index=observations.findIndex(point=>Date.parse(point.at)>=since);
     if(index<0)return [];
-    const points=observations.slice(index);
-    if(realized&&index>0&&Date.parse(points[0].at)>since)
-      points.unshift({at:new Date(since).toISOString(),equity:observations[index-1].equity});
-    return points;
-  },[observations,range,realized]);
+    return observations.slice(index);
+  },[observations,range]);
   const points=filtered.filter(point=>point.equity!=null);
   const start=points[0]?Date.parse(points[0].at):0, end=points.length?Date.parse(points.at(-1)!.at):start;
   const scale=10**market.quoteDecimals;
@@ -180,12 +177,10 @@ export function EquityChart({market,observations,initial,gapMs,loading,variant='
       {segments.map((group,index)=>{
         const first=group[0], last=group.at(-1)!;
         if(group.length===1)return <circle key={index} cx={x(first)} cy={y(value(first))} r="3" fill="#b3ef81"/>;
-        const line=group.flatMap((point,i)=>realized&&i>0?[
-          `${x(point)},${y(value(group[i-1]))}`,`${x(point)},${y(value(point))}`,
-        ]:[`${x(point)},${y(value(point))}`]).join(' ');
+        const line=group.map(point=>`${x(point)},${y(value(point))}`).join(' ');
         return <g key={index}>
-          {!realized&&<polygon fill={`url(#${id})`} points={`${x(first)},185 ${line} ${x(last)},185`}/>}
-          <polyline fill="none" stroke="#b3ef81" strokeWidth="2" points={line}/>
+          <polygon fill={`url(#${id})`} points={`${x(first)},185 ${line} ${x(last)},185`}/>
+          <polyline fill="none" stroke="#b3ef81" strokeWidth="2" strokeLinejoin="round" points={line}/>
         </g>;
       })}
       {selected&&<g><line x1={x(selected)} x2={x(selected)} y1="22" y2="185" stroke="#ffffff35" strokeDasharray="3 4"/>
@@ -196,7 +191,7 @@ export function EquityChart({market,observations,initial,gapMs,loading,variant='
     </svg>{points.length>1&&<input className="ip-chart-slider" type="range" aria-label={`Inspect ${metric} observation`}
       aria-valuetext={`${paperAmount(selected?.equity,market.quoteDecimals)} ${market.quoteSymbol} · ${selected?stamp(selected.at):''}`}
       min="0" max={points.length-1} value={selectedIndex} onChange={event=>setHover(Number(event.target.value))}/>}</>:<div className="ip-chart-empty">{loading?'Loading chart…':'No observations for this period.'}</div>}
-    <p className="ip-help">{realized?'The line moves when paper gains or losses are realized. Deposits, withdrawals and open positions are excluded.':`Recorded valuations only. Gaps over ${(gapMs??0)/60000} minutes are disconnected.`}</p>
+    <p className="ip-help">{performance?'Recorded paper valuations include open positions. Deposits and withdrawals are excluded from P&L.':`Recorded valuations only. Gaps over ${(gapMs??0)/60000} minutes are disconnected.`}</p>
   </div>;
 }
 function ActivityTable({market,data,fillsOnly=false,compact=false,loading}: {market:ReturnType<typeof paperMarket>;data?:AgentPerformance;fillsOnly?:boolean;compact?:boolean;loading:boolean}) {

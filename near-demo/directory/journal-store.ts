@@ -35,9 +35,13 @@ function validateBatch(batch: JournalBatch) {
     testAccount(vault.contractId);
   }
   for (const event of batch.events) {
-    if (!keys(event, 'action,at,equity,kind,realized,receipt,sequence,sourceHash') || !integer(event.sequence) ||
+    const eventKeys = event && Object.hasOwn(event, 'totalPnl')
+      ? 'action,at,equity,kind,realized,receipt,sequence,sourceHash,totalPnl'
+      : 'action,at,equity,kind,realized,receipt,sequence,sourceHash';
+    if (!keys(event, eventKeys) || !integer(event.sequence) ||
       !date(event.at) || !eventKinds.includes(event.kind) || ![null, 'BUY', 'SELL', 'HOLD'].includes(event.action) ||
-      !hash(event.sourceHash) || event.equity !== null && !amount(event.equity) || !amount(event.realized)) {
+      !hash(event.sourceHash) || event.equity !== null && !amount(event.equity) || !amount(event.realized) ||
+      event.totalPnl != null && (event.equity === null || !amount(event.totalPnl))) {
       throw new Error('Invalid public decision event.');
     }
     const receipt = event.receipt;
@@ -62,6 +66,8 @@ export class PublicJournalStore {
       CREATE TABLE IF NOT EXISTS journal_batches(hash TEXT PRIMARY KEY, body TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS journal_events(strategy_id TEXT NOT NULL, sequence INTEGER NOT NULL, body TEXT NOT NULL,
         PRIMARY KEY(strategy_id, sequence), FOREIGN KEY(strategy_id) REFERENCES journal_strategies(id));
+      CREATE TABLE IF NOT EXISTS journal_valuations(strategy_id TEXT NOT NULL, sequence INTEGER NOT NULL, total_pnl TEXT,
+        PRIMARY KEY(strategy_id, sequence), FOREIGN KEY(strategy_id, sequence) REFERENCES journal_events(strategy_id, sequence));
     `);
   }
 
@@ -89,11 +95,14 @@ export class PublicJournalStore {
         if (current) head = Number(current.head);
         else this.db.prepare('INSERT INTO journal_strategies VALUES (?,?,?,?,?)').run(strategy.id, agent.id, canonical(strategy), head, now);
         const initialHead = head;
+        const coverage = this.db.prepare('SELECT max(sequence) AS head FROM journal_valuations WHERE strategy_id=?').get(strategy.id);
+        let valuedThrough = Number(coverage?.head ?? strategy.openingSequence);
         let previousSequence = events[0]?.sequence;
         for (const event of events) {
           if (event.sequence <= strategy.openingSequence || event.sequence !== previousSequence) throw new Error('Public journal events must be consecutive.');
           previousSequence++;
-          const body = canonical(event);
+          const { totalPnl, ...publicEvent } = event;
+          const body = canonical(publicEvent);
           if (event.sequence <= head) {
             const existing = this.db.prepare('SELECT body FROM journal_events WHERE strategy_id=? AND sequence=?').get(strategy.id, event.sequence);
             if (existing?.body !== body) throw new Error('A previously published event cannot be rewritten.');
@@ -101,6 +110,16 @@ export class PublicJournalStore {
             if (event.sequence !== head + 1) throw new Error('Public journal is missing an earlier event.');
             this.db.prepare('INSERT INTO journal_events VALUES (?,?,?)').run(strategy.id, event.sequence, body);
             head = event.sequence;
+          }
+          if (totalPnl !== undefined) {
+            const previous = this.db.prepare('SELECT total_pnl FROM journal_valuations WHERE strategy_id=? AND sequence=?')
+              .get(strategy.id, event.sequence);
+            if (previous && previous.total_pnl !== totalPnl) throw new Error('A published paper valuation cannot be rewritten.');
+            if (!previous) {
+              if (event.sequence !== valuedThrough + 1) throw new Error('Public paper valuations are missing an earlier event.');
+              this.db.prepare('INSERT INTO journal_valuations VALUES (?,?,?)').run(strategy.id, event.sequence, totalPnl);
+              valuedThrough = event.sequence;
+            }
           }
         }
         if (head !== initialHead) this.db.prepare('UPDATE journal_strategies SET head=?,updated=? WHERE id=?').run(head, now, strategy.id);
@@ -150,18 +169,24 @@ export class PublicJournalStore {
   page(agentId: string, strategyId?: string, before?: number): JournalPage {
     const row = this.db.prepare('SELECT body,updated FROM journal_agents WHERE id=?').get(agentId);
     if (!row) throw new Error('Public journal not found.');
-    const strategies = this.db.prepare('SELECT body,updated,head FROM journal_strategies WHERE agent_id=?').all(agentId)
-      .map(record => ({ ...JSON.parse(String(record.body)), updatedAt: Number(record.updated), head: Number(record.head) } as JournalPage['strategies'][number]))
+    const strategies = this.db.prepare(`SELECT body,updated,head,
+      (SELECT max(sequence) FROM journal_valuations WHERE strategy_id=journal_strategies.id) AS valuedThrough
+      FROM journal_strategies WHERE agent_id=?`).all(agentId)
+      .map(record => ({ ...JSON.parse(String(record.body)), updatedAt: Number(record.updated), head: Number(record.head),
+        ...(record.valuedThrough===null ? {} : { valuedThrough: Number(record.valuedThrough) }) } as JournalPage['strategies'][number]))
       .sort((a, b) => b.version - a.version);
     const selected = strategyId ? strategies.find(strategy => strategy.id === strategyId) : strategies[0];
     if (strategyId && !selected) throw new Error('Public strategy not found.');
-    const rows = selected ? this.db.prepare('SELECT sequence,body FROM journal_events WHERE strategy_id=? AND sequence<? ORDER BY sequence DESC LIMIT 101')
+    const rows = selected ? this.db.prepare(`SELECT e.sequence,e.body,v.sequence AS valued,v.total_pnl
+      FROM journal_events e LEFT JOIN journal_valuations v ON v.strategy_id=e.strategy_id AND v.sequence=e.sequence
+      WHERE e.strategy_id=? AND e.sequence<? ORDER BY e.sequence DESC LIMIT 101`)
       .all(selected.id, before !== undefined && integer(before) ? before : Number.MAX_SAFE_INTEGER) : [];
     const page = rows.slice(0, journalBatchSize);
     return {
       agent: { ...JSON.parse(String(row.body)), updatedAt: Number(row.updated) },
       strategies, strategyId: selected?.id ?? null,
-      events: page.map(event => JSON.parse(String(event.body))),
+      paperValuations: true,
+      events: page.map(event => ({ ...JSON.parse(String(event.body)), ...(event.valued===null ? {} : { totalPnl:event.total_pnl }) })),
       nextBefore: rows.length > journalBatchSize ? Number(page.at(-1)!.sequence) : null,
     };
   }
