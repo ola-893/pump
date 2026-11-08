@@ -30,6 +30,50 @@ This connects the strategy an operator runs to the records an investor inspects.
 | Investor accounting | Per-strategy testnet vaults with NEP-141 PUMP shares |
 | Evidence | Exportable journals with quote, signature, and accounting verification |
 
+## NEAR Hackathon disclosure
+
+We previously submitted the same core idea to another hackathon as
+[PumpCoin](https://github.com/ola-893/Pumpcoin). That entry was an EVM prototype
+for self-hosted trading agents and investor vaults, with Solidity contracts,
+historical Monad testnet deployments, and an Ethereum Sepolia implementation
+using ERC-8004 identities and Uniswap v4. Its hackathon demo was incomplete.
+The older repository documents controller-driven Sepolia infrastructure tests.
+
+**Earlier work.** The shared design for local inference, trading limits, and
+isolated investor vaults predates the October 19, 2026 announcement. See the
+[October 13 PumpCoin baseline](https://github.com/ola-893/Pumpcoin/tree/2e7d758ea79cbf8fc6f6068756bd610ed0d0b053)
+and the [later EVM snapshot](https://github.com/ola-893/Pumpcoin/tree/2dbcc276714b76d4791e67f2e4db50a5cba77d84).
+Both implementations use React and TypeScript. The reused frontend scaffolding
+includes `app/.gitignore`, `app/src/vite-env.d.ts`, `app/tsconfig.json`, and
+`app/tsconfig.node.json`. Pump also adapts the earlier local model inspector's
+artifact hashing in [`near-demo/artifact-hasher.ts`](near-demo/artifact-hasher.ts).
+These carryovers count as baseline work. Earlier EVM balances and shares remain
+on their original contracts.
+
+**Work for NEAR HACKATHON.** This separate repository contains the working NEAR
+integration. It uses signed NEAR Intents 1Click dry-run quotes for paper trading,
+NEAR wallet authorization, replayable decision journals, and Rust strategy
+vaults that take Circle test USDC and issue NEP-141 PUMP shares. The
+[October 20 verification report](docs/testing/NEAR-DEMO-20261020.md) records the
+early NEAR work. The [Katana demo evidence](docs/KATANA-DEMO.md) shows a signed
+paper-trade quote and finalized NEAR testnet deposit and redemption receipts.
+The entry asks judges to evaluate the NEAR integration built during the
+hackathon window.
+
+**What the demo verifies.** The Katana deposits and redemptions move Circle test
+USDC on NEAR testnet. Trades and returns are simulated. A trusted reporter posts
+vault valuations, with separately funded testnet surplus covering simulated gains.
+Signed journals establish attribution and support quote and accounting replay.
+The recorded model fingerprints identify artifacts and do not attest to which
+model executed a historical decision.
+
+The dedicated [`hackathon/near-2026` branch](https://github.com/ola-893/pump/tree/hackathon/near-2026)
+and [source publication diff](https://github.com/ola-893/pump/compare/publication-start...hackathon/near-2026)
+show the published NEAR implementation. `publication-start` marks the setup of
+this repository. Its Git history records publication and subsequent repository
+edits. The October 13 PumpCoin snapshot above shows the pre-announcement EVM
+baseline.
+
 ## Quick Links
 
 - [Live App](https://pump-near-893.pages.dev)
@@ -119,13 +163,23 @@ Recorded sandbox and testnet results are available in [test evidence](docs/testi
 
 ## Built With
 
-React, Vite, TypeScript, Tailwind CSS, Lucide, React Router, `near-api-js`,
-`near-sdk`, `@hot-labs/near-connect`, the 1Click SDK, `@noble/curves`, and
-`@scure/base`. Dependency versions are recorded in the npm and Cargo lockfiles.
-Development includes AI-assisted code and documentation.
-
-Built for NEAR HACKATHON on the dedicated `hackathon/near-2026` branch.
-See the [source publication diff](https://github.com/ola-893/pump/compare/publication-start...hackathon/near-2026).
+- **Libraries and tooling.** The frontend uses React, Vite, TypeScript, Tailwind
+  CSS, Lucide, React Router, React Markdown, and remark-gfm. NEAR and evidence
+  code uses `near-api-js`, `near-sdk`, `@hot-labs/near-connect`, the NEAR Intents
+  1Click SDK, `@noble/curves`, `@noble/hashes`, and `@scure/base`. The complete
+  dependency lists and versions are recorded in the [root npm lockfile](package-lock.json),
+  [frontend npm lockfile](app/package-lock.json), and [Cargo lockfile](contracts-near/Cargo.lock).
+- **Runtimes and models.** Browser inference uses `@wllama/wllama` with
+  user-supplied GGUF weights. Local inference can use a separately installed
+  OpenAI-compatible runtime, such as `llama.cpp`, or the optional
+  [Clef MLX integration](docs/CLEF-CLASSIFIER.md). Katana used the third-party
+  Muse-Glimmer-30B GGUF model. Model weights are supplied separately and retain
+  their publishers' licenses. See the [demo model and runtime notes](docs/NEAR-AGENT-UX.md).
+- **External data and scaffolding.** NEAR Intents supplies live dry-run quotes.
+  Binance public candles supply optional historical market context. The staging
+  verifier uses the [Sites Worker build scaffold](staging/verifier/package.json)
+  and bundles Pump's verification code with esbuild.
+- **AI assistance.** Development includes AI-assisted code and documentation.
 
 ## Community
 
