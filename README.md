@@ -32,6 +32,8 @@ This connects the strategy an operator runs to the records an investor inspects.
 
 ## NEAR Hackathon disclosure
 
+**Other entry by the same creator:** [Remora](https://github.com/ola-893/Remora) is a separate NEAR hackathon project for publishing agent decisions and reusing them through paid subscriptions under follower controls. Pump focuses on strategy investment and investor-vault accounting. Remora separately [discloses its inherited AgentPay source and prior submission history](https://github.com/ola-893/Remora/blob/codex/near-hackathon/docs/HACKATHON_PROVENANCE.md). These projects are disclosed together for Q-015; shared ideas or libraries are not claimed twice as new work.
+
 We previously submitted the same core idea to another hackathon as
 [PumpCoin](https://github.com/ola-893/Pumpcoin). That entry was an EVM prototype
 for self-hosted trading agents and investor vaults, with Solidity contracts,
